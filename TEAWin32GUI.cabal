@@ -1,0 +1,68 @@
+cabal-version: 2.2
+
+name:           TEAWin32GUI
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/t-sasaki915/TEAWin32GUI#readme>
+homepage:       https://github.com/t-sasaki915/TEAWin32GUI#readme
+bug-reports:    https://github.com/t-sasaki915/TEAWin32GUI/issues
+author:         Toma Sasaki
+maintainer:     netst915@gmail.com
+copyright:      2026 Toma Sasaki
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/t-sasaki915/TEAWin32GUI
+
+library
+  exposed-modules:
+      Framework.TEA.Internal
+      Framework.TEA
+      Graphics.GUI.Component.Button.DSL
+      Graphics.GUI.Component.Button.Property
+      Graphics.GUI.Component.Window.DSL
+      Graphics.GUI.Component.Window.Property
+      Graphics.GUI.Component.Button
+      Graphics.GUI.Component.Property
+      Graphics.GUI.Component.Window
+      Graphics.GUI.Component
+      Graphics.GUI.DSL
+      Graphics.GUI.Foreign
+      Graphics.GUI.Internal
+      Graphics.GUI
+  other-modules:
+      Paths_TEAWin32GUI
+  autogen-modules:
+      Paths_TEAWin32GUI
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , Win32 >=2.14 && <2.15
+    , mtl >= 2.3 && <2.4
+    , text >=2.1 && <2.2
+    , containers >=0.7 && <0.8
+  default-language: Haskell2010
+  default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
+
+
+test-suite TEAWin32GUI-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_TEAWin32GUI
+  autogen-modules:
+      Paths_TEAWin32GUI
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      TEAWin32GUI
+    , base >=4.7 && <5
+  default-language: Haskell2010
+  default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
