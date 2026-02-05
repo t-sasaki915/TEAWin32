@@ -2,7 +2,7 @@ module Graphics.GUI.Component.Window (Window (..)) where
 
 import           Control.Monad                          (void, when)
 import           Data.IORef                             (atomicModifyIORef',
-                                                         readIORef)
+                                                         newIORef, readIORef)
 import qualified Data.Map                               as Map
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
@@ -59,13 +59,16 @@ instance IsGUIComponent Window where
 
         pure window
 
-typicalWindowProc :: Win32.LPPAINTSTRUCT -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
+typicalWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
 typicalWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
         remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
         when (remainingWindow <= 0) $
             Win32.postQuitMessage 0
+
+        cleanupGDIs hwnd
+        cleanupEventHandlers hwnd
 
         pure 0
 
@@ -84,14 +87,27 @@ typicalWindowProc hwnd wMsg wParam lParam
             _ ->
                 Win32.defWindowProc (Just hwnd) wMsg wParam lParam
 
-    | wMsg == Win32.wM_NCDESTROY =
-        cleanupGDIs hwnd >>
-            pure 0
-
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
--- TODO: cleanupEventHandlers
+cleanupEventHandlers :: Win32.HWND -> IO ()
+cleanupEventHandlers targetHWND = do
+    childrenRef <- newIORef []
+
+    let callback hwnd _ =
+            atomicModifyIORef' childrenRef (\x -> (hwnd : x, hwnd : x)) >>
+                pure True
+
+    enumPtr <- Win32.makeEnumWindowProc callback
+    _ <- Win32.c_EnumChildWindows targetHWND enumPtr 0
+
+    children <- readIORef childrenRef
+
+    _ <- atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
+            let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= targetHWND) handlers in
+                (newHandlers, newHandlers)
+
+    freeHaskellFunPtr enumPtr
 
 cleanupGDIs :: Win32.HWND -> IO ()
 cleanupGDIs hwnd = do

@@ -7,7 +7,9 @@ module Graphics.GUI.Foreign
     , c_SetProp
     , c_EnumPropsEx
     , c_DeleteObject
+    , c_EnumChildWindows
     , makePropEnumProcEx
+    , makeEnumWindowProc
     , gCLP_HICON
     , gCLP_HCURSOR
     , gCLP_HBRBACKGROUND
@@ -17,7 +19,7 @@ module Graphics.GUI.Foreign
 import           Data.Int       (Int32)
 import           Foreign        (FunPtr, Ptr, intPtrToPtr)
 import           Foreign.C      (CIntPtr (..))
-import           Graphics.Win32 (BOOL, HANDLE, HWND, INT, LPCTSTR, UINT)
+import           Graphics.Win32 (BOOL, HANDLE, HWND, INT, LPARAM, LPCTSTR, UINT)
 
 foreign import stdcall "windows.h SetClassLongPtrW"
   c_SetClassLongPtr :: HWND -> Int32 -> Ptr () -> IO (Ptr ())
@@ -41,6 +43,14 @@ foreign import ccall "EnumPropsExW"
 
 foreign import ccall "DeleteObject"
   c_DeleteObject :: Ptr () -> IO BOOL
+
+type WindowEnumProc = HWND -> LPARAM -> IO BOOL
+
+foreign import stdcall "wrapper"
+  makeEnumWindowProc :: WindowEnumProc -> IO (FunPtr WindowEnumProc)
+
+foreign import stdcall "windows.h EnumChildWindows"
+  c_EnumChildWindows :: HWND -> FunPtr WindowEnumProc -> LPARAM -> IO BOOL
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

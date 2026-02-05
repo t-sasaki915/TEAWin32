@@ -70,6 +70,11 @@ view model =
                         buttonSize (100, 100)
                         buttonPosition (20, 50)
 
+                    button $ do
+                        buttonLabel "!?"
+                        buttonSize (50, 50)
+                        buttonPosition (100, 100)
+
                     window "TEAWin32GUI-Sub-Sub" BorderlessChild $ do
                         windowTitle "GOOD MORNING"
                         windowIcon Application
