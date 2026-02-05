@@ -4,8 +4,8 @@ import           Data.Bits                              ((.|.))
 import           Data.Maybe                             (fromJust)
 import           Foreign                                (intPtrToPtr)
 import           Graphics.GUI.Component                 (IsGUIComponent (render))
-import           Graphics.GUI.Component.Button.Property (ButtonProperty,
-                                                         IsButtonProperty (..))
+import           Graphics.GUI.Component.Button.Property (ButtonProperty)
+import           Graphics.GUI.Component.Property        (IsGUIComponentProperty (applyProperty))
 import qualified Graphics.Win32                         as Win32
 
 newtype Button = Button [ButtonProperty] deriving Eq

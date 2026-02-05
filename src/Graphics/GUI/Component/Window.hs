@@ -2,7 +2,7 @@ module Graphics.GUI.Component.Window (Window (..)) where
 
 import           Control.Monad                          (void, when)
 import           Data.IORef                             (atomicModifyIORef',
-                                                         newIORef, readIORef)
+                                                         readIORef)
 import qualified Data.Map                               as Map
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
@@ -12,8 +12,8 @@ import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (WindowStyle,
                                                          toWin32WindowStyle)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
-import           Graphics.GUI.Component.Window.Property (IsWindowProperty (..),
-                                                         WindowProperty (..))
+import           Graphics.GUI.Component.Property        (IsGUIComponentProperty (applyProperty))
+import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
 import qualified Graphics.GUI.Foreign                   as Win32
 import qualified Graphics.GUI.Internal                  as Internal
 import qualified Graphics.Win32                         as Win32
@@ -91,23 +91,11 @@ defaultWindowProc hwnd wMsg wParam lParam
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
 cleanupEventHandlers :: Win32.HWND -> IO ()
-cleanupEventHandlers targetHWND = do
-    childrenRef <- newIORef []
-
-    let callback hwnd _ =
-            atomicModifyIORef' childrenRef (\x -> (hwnd : x, hwnd : x)) >>
-                pure True
-
-    enumPtr <- Win32.makeEnumWindowProc callback
-    _ <- Win32.c_EnumChildWindows targetHWND enumPtr 0
-
-    children <- readIORef childrenRef
-
-    _ <- atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
-            let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= targetHWND) handlers in
+cleanupEventHandlers hwnd =
+    Internal.withChildWindows hwnd $ \children ->
+        void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
+            let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= hwnd) handlers in
                 (newHandlers, newHandlers)
-
-    freeHaskellFunPtr enumPtr
 
 cleanupGDIs :: Win32.HWND -> IO ()
 cleanupGDIs hwnd = do

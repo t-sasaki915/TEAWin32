@@ -1,3 +1,8 @@
-module Graphics.GUI.Component.Property (IsGUIComponentProperty) where
+module Graphics.GUI.Component.Property (IsGUIComponentProperty (..)) where
 
-class Eq a => IsGUIComponentProperty a
+import qualified Graphics.Win32 as Win32
+
+class Eq a => IsGUIComponentProperty a where
+    applyProperty :: a -> Win32.HWND -> IO ()
+
+    unapplyProperty :: a -> Win32.HWND -> IO ()

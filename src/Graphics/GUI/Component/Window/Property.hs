@@ -2,7 +2,7 @@
 
 module Graphics.GUI.Component.Window.Property
     ( WindowProperty (..)
-    , IsWindowProperty (..)
+    , IsWindowProperty
     , WindowTitle (..)
     , WindowIcon (..)
     , WindowCursor (..)
@@ -21,11 +21,12 @@ import           Foreign                         (intPtrToPtr)
 import           Graphics.GUI
 import           Graphics.GUI.Component          (GUIComponent (..),
                                                   IsGUIComponent (render))
-import           Graphics.GUI.Component.Property (IsGUIComponentProperty)
+import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
 import qualified Graphics.GUI.Foreign            as Win32
+import qualified Graphics.GUI.Internal           as Internal
 import qualified Graphics.Win32                  as Win32
 
-data WindowProperty = forall a. (Typeable a, Eq a, IsWindowProperty a) => WindowProperty a
+data WindowProperty = forall a. (Typeable a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
 instance Eq WindowProperty where
     (WindowProperty a) == (WindowProperty b) =
@@ -33,13 +34,14 @@ instance Eq WindowProperty where
             Just b' -> a == b'
             Nothing -> False
 
-class Eq a => IsWindowProperty a where
-    applyProperty :: a -> Win32.HWND -> IO ()
+class Eq a => IsWindowProperty a
 
-instance IsWindowProperty WindowProperty where
-    applyProperty (WindowProperty a) = applyProperty a
+instance IsWindowProperty WindowProperty
 
-instance IsGUIComponentProperty WindowProperty
+instance IsGUIComponentProperty WindowProperty where
+    applyProperty (WindowProperty x) = applyProperty x
+
+    unapplyProperty (WindowProperty x) = unapplyProperty x
 
 newtype WindowTitle    = WindowTitle    Text           deriving Eq
 newtype WindowIcon     = WindowIcon     Icon           deriving Eq
@@ -49,29 +51,37 @@ newtype WindowPosition = WindowPosition (Int, Int)     deriving Eq
 newtype WindowBrush    = WindowBrush    Brush          deriving Eq
 newtype WindowChildren = WindowChildren [GUIComponent] deriving Eq
 
-instance IsGUIComponentProperty WindowTitle
-instance IsGUIComponentProperty WindowIcon
-instance IsGUIComponentProperty WindowCursor
-instance IsGUIComponentProperty WindowSize
-instance IsGUIComponentProperty WindowPosition
-instance IsGUIComponentProperty WindowBrush
-instance IsGUIComponentProperty WindowChildren
+instance IsWindowProperty WindowTitle
+instance IsWindowProperty WindowIcon
+instance IsWindowProperty WindowCursor
+instance IsWindowProperty WindowSize
+instance IsWindowProperty WindowPosition
+instance IsWindowProperty WindowBrush
+instance IsWindowProperty WindowChildren
 
-instance IsWindowProperty WindowTitle where
+instance IsGUIComponentProperty WindowTitle where
     applyProperty (WindowTitle title) windowHWND =
         Win32.setWindowText windowHWND (Text.unpack title)
 
-instance IsWindowProperty WindowIcon where
+    unapplyProperty _ = applyProperty (WindowTitle "")
+
+instance IsGUIComponentProperty WindowIcon where
     applyProperty (WindowIcon icon) windowHWND =
         toWin32Icon icon >>= \icon' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon'
 
-instance IsWindowProperty WindowCursor where
+    unapplyProperty _ windowHWND =
+        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON Win32.nullPtr
+
+instance IsGUIComponentProperty WindowCursor where
     applyProperty (WindowCursor cursor) windowHWND =
         Win32.loadCursor Nothing (toWin32Cursor cursor) >>= \cursor' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor'
 
-instance IsWindowProperty WindowSize where
+    unapplyProperty _ windowHWND =
+        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR Win32.nullPtr
+
+instance IsGUIComponentProperty WindowSize where
     applyProperty (WindowSize (width, height)) windowHWND =
         void $
             Win32.c_SetWindowPos windowHWND
@@ -82,7 +92,9 @@ instance IsWindowProperty WindowSize where
                 (fromIntegral height)
                 (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-instance IsWindowProperty WindowPosition where
+    unapplyProperty _ = applyProperty (WindowSize (0, 0))
+
+instance IsGUIComponentProperty WindowPosition where
     applyProperty (WindowPosition (x, y)) windowHWND =
         void $
             Win32.c_SetWindowPos
@@ -94,10 +106,12 @@ instance IsWindowProperty WindowPosition where
                 0
                 (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-instance IsWindowProperty WindowBrush where
+    unapplyProperty _ = applyProperty (WindowPosition (0, 0))
+
+instance IsGUIComponentProperty WindowBrush where
+    -- TODO
     applyProperty (WindowBrush brush) windowHWND = do
-        Win32.c_GetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND >>= \oldBrush ->
-            void $ Win32.c_DeleteObject (intPtrToPtr $ fromIntegral oldBrush)
+        unapplyProperty (WindowBrush brush) windowHWND
 
         toWin32Brush brush >>= \brush' -> do
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND brush'
@@ -105,7 +119,15 @@ instance IsWindowProperty WindowBrush where
             Win32.withTString "WINDOW_BRUSH" $ \pName ->
                 void $ Win32.c_SetProp windowHWND pName brush'
 
-instance IsWindowProperty WindowChildren where
+    unapplyProperty _ windowHWND =
+        Win32.c_GetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND >>= \oldBrush ->
+            void $ Win32.c_DeleteObject (intPtrToPtr $ fromIntegral oldBrush)
+
+instance IsGUIComponentProperty WindowChildren where
     applyProperty (WindowChildren children) windowHWND =
         forM_ children $ \(GUIComponent child) ->
             render child (Just windowHWND)
+
+    unapplyProperty _ windowHWND =
+        Internal.withChildWindows windowHWND $ \children ->
+            mapM_ Win32.destroyWindow children

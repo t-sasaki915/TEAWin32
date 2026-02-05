@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -Wno-unsupported-calling-conventions #-}
 
 module Graphics.GUI.Foreign
-    ( c_SetClassLongPtr
+    ( WindowEnumProc
+    , c_SetClassLongPtr
     , c_GetClassLongPtr
     , c_SetWindowPos
     , c_SetProp
