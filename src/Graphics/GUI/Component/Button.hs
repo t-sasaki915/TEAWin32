@@ -3,14 +3,17 @@ module Graphics.GUI.Component.Button (Button (..)) where
 import           Data.Bits                              ((.|.))
 import           Data.Maybe                             (fromJust)
 import           Foreign                                (intPtrToPtr)
-import           Graphics.GUI.Component                 (IsGUIComponent (render))
+import           Graphics.GUI.Component                 (IsGUIComponent (..))
 import           Graphics.GUI.Component.Button.Property (ButtonProperty)
-import           Graphics.GUI.Component.Property        (IsGUIComponentProperty (applyProperty))
+import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
+                                                         IsGUIComponentProperty (applyProperty))
 import qualified Graphics.Win32                         as Win32
 
 newtype Button = Button [ButtonProperty] deriving Eq
 
 instance IsGUIComponent Button where
+    getProperties (Button properties) = GUIComponentProperty <$> properties
+
     render (Button buttonProperties) parentHWND = do
         parentInstance <- Win32.c_GetWindowLongPtr (fromJust parentHWND) (-6)
 

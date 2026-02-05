@@ -6,14 +6,17 @@ module Graphics.GUI.Component
     , GUIComponent (..)
     ) where
 
-import           Control.Monad.Writer (Writer)
-import           Data.Data            (Typeable, cast)
-import qualified Graphics.Win32       as Win32
+import           Control.Monad.Writer            (Writer)
+import           Data.Data                       (Typeable, cast)
+import           Graphics.GUI.Component.Property (GUIComponentProperty)
+import qualified Graphics.Win32                  as Win32
 
 type GUIComponents = Writer [GUIComponent] ()
 
 class Eq a => IsGUIComponent a where
     render :: a -> Maybe Win32.HWND -> IO Win32.HWND
+
+    getProperties :: a -> [GUIComponentProperty]
 
 data GUIComponent = forall a. (Typeable a, Eq a, IsGUIComponent a) => GUIComponent a
 
@@ -25,3 +28,5 @@ instance Eq GUIComponent where
 
 instance IsGUIComponent GUIComponent where
     render (GUIComponent a) = render a
+
+    getProperties (GUIComponent a) = getProperties a

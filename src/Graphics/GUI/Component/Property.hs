@@ -1,8 +1,31 @@
-module Graphics.GUI.Component.Property (IsGUIComponentProperty (..)) where
+{-# LANGUAGE ExistentialQuantification #-}
 
+module Graphics.GUI.Component.Property
+    ( GUIComponentProperty (..)
+    , IsGUIComponentProperty (..)
+    ) where
+
+import           Data.Data      (Typeable, cast)
 import qualified Graphics.Win32 as Win32
+
+data GUIComponentProperty = forall a. (Typeable a, IsGUIComponentProperty a) => GUIComponentProperty a
+
+instance Eq GUIComponentProperty where
+    (GUIComponentProperty x) == (GUIComponentProperty y) =
+        case cast y of
+            Just y' -> x == y'
+            Nothing -> False
 
 class Eq a => IsGUIComponentProperty a where
     applyProperty :: a -> Win32.HWND -> IO ()
 
+    updateProperty :: a -> Win32.HWND -> IO ()
+
     unapplyProperty :: a -> Win32.HWND -> IO ()
+
+instance IsGUIComponentProperty GUIComponentProperty where
+    applyProperty (GUIComponentProperty x) = applyProperty x
+
+    updateProperty (GUIComponentProperty x) = updateProperty x
+
+    unapplyProperty (GUIComponentProperty x) = unapplyProperty x

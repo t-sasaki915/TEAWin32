@@ -12,7 +12,8 @@ import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (WindowStyle,
                                                          toWin32WindowStyle)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
-import           Graphics.GUI.Component.Property        (IsGUIComponentProperty (applyProperty))
+import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
+                                                         IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
 import qualified Graphics.GUI.Foreign                   as Win32
 import qualified Graphics.GUI.Internal                  as Internal
@@ -22,6 +23,8 @@ import qualified System.Win32                           as Win32
 data Window = Window Text WindowStyle [WindowProperty] deriving Eq
 
 instance IsGUIComponent Window where
+    getProperties (Window _ _ properties) = GUIComponentProperty <$> properties
+
     render (Window windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
 
