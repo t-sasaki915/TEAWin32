@@ -26,13 +26,16 @@ import qualified Graphics.GUI.Foreign            as Win32
 import qualified Graphics.GUI.Internal           as Internal
 import qualified Graphics.Win32                  as Win32
 
-data WindowProperty = forall a. (Typeable a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
+data WindowProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
 instance Eq WindowProperty where
     (WindowProperty a) == (WindowProperty b) =
         case cast b of
             Just b' -> a == b'
             Nothing -> False
+
+instance Show WindowProperty where
+    show (WindowProperty x) = show x
 
 class Eq a => IsWindowProperty a
 
@@ -45,13 +48,13 @@ instance IsGUIComponentProperty WindowProperty where
 
     unapplyProperty (WindowProperty x) = unapplyProperty x
 
-newtype WindowTitle    = WindowTitle    Text           deriving Eq
-newtype WindowIcon     = WindowIcon     Icon           deriving Eq
-newtype WindowCursor   = WindowCursor   Cursor         deriving Eq
-newtype WindowSize     = WindowSize     (Int, Int)     deriving Eq
-newtype WindowPosition = WindowPosition (Int, Int)     deriving Eq
-newtype WindowBrush    = WindowBrush    Brush          deriving Eq
-newtype WindowChildren = WindowChildren [GUIComponent] deriving Eq
+newtype WindowTitle    = WindowTitle    Text           deriving (Show, Eq)
+newtype WindowIcon     = WindowIcon     Icon           deriving (Show, Eq)
+newtype WindowCursor   = WindowCursor   Cursor         deriving (Show, Eq)
+newtype WindowSize     = WindowSize     (Int, Int)     deriving (Show, Eq)
+newtype WindowPosition = WindowPosition (Int, Int)     deriving (Show, Eq)
+newtype WindowBrush    = WindowBrush    Brush          deriving (Show, Eq)
+newtype WindowChildren = WindowChildren [GUIComponent] deriving (Show, Eq)
 
 instance IsWindowProperty WindowTitle
 instance IsWindowProperty WindowIcon

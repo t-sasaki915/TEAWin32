@@ -22,13 +22,16 @@ import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
 import qualified Graphics.GUI.Foreign            as Win32
 import qualified Graphics.Win32                  as Win32
 
-data ButtonProperty = forall a. (Typeable a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
+data ButtonProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
 
 instance Eq ButtonProperty where
     (ButtonProperty a) == (ButtonProperty b) =
         case cast b of
             Just b' -> a == b'
             Nothing -> False
+
+instance Show ButtonProperty where
+    show (ButtonProperty x) = show x
 
 class Eq a => IsButtonProperty a
 
@@ -41,16 +44,19 @@ instance IsGUIComponentProperty ButtonProperty where
 
     unapplyProperty (ButtonProperty x) = unapplyProperty x
 
-newtype ButtonLabel    = ButtonLabel    Text       deriving Eq
-newtype ButtonSize     = ButtonSize     (Int, Int) deriving Eq
-newtype ButtonPosition = ButtonPosition (Int, Int) deriving Eq
-data    ButtonClicked  = forall a. (Typeable a, IsMsg a) => ButtonClicked a
+newtype ButtonLabel    = ButtonLabel    Text       deriving (Show, Eq)
+newtype ButtonSize     = ButtonSize     (Int, Int) deriving (Show, Eq)
+newtype ButtonPosition = ButtonPosition (Int, Int) deriving (Show, Eq)
+data    ButtonClicked  = forall a. (Typeable a, Show a, IsMsg a) => ButtonClicked a
 
 instance Eq ButtonClicked where
     (ButtonClicked a) == (ButtonClicked b) =
         case cast b of
             Just b' -> a == b'
             Nothing -> False
+
+instance Show ButtonClicked where
+    show (ButtonClicked x) = "ButtonClicked " <> show x
 
 instance IsButtonProperty ButtonLabel
 instance IsButtonProperty ButtonSize

@@ -1,20 +1,27 @@
 module Graphics.GUI.Component.Button (Button (..)) where
 
 import           Data.Bits                              ((.|.))
+import           Data.IORef                             (atomicModifyIORef')
+import qualified Data.Map                               as Map
 import           Data.Maybe                             (fromJust)
 import           Foreign                                (intPtrToPtr)
-import           Graphics.GUI.Component                 (IsGUIComponent (..))
+import qualified Framework.TEA.Internal                 as TEAInternal
+import           Graphics.GUI                           (UniqueId)
+import           Graphics.GUI.Component                 (GUIComponent (..),
+                                                         IsGUIComponent (..))
 import           Graphics.GUI.Component.Button.Property (ButtonProperty)
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import qualified Graphics.Win32                         as Win32
 
-newtype Button = Button [ButtonProperty] deriving Eq
+data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
 instance IsGUIComponent Button where
-    getProperties (Button properties) = GUIComponentProperty <$> properties
+    getProperties (Button _ properties) = GUIComponentProperty <$> properties
 
-    render (Button buttonProperties) parentHWND = do
+    getUniqueId (Button uniqueId _) = uniqueId
+
+    render component@(Button buttonUniqueId buttonProperties) parentHWND = do
         parentInstance <- Win32.c_GetWindowLongPtr (fromJust parentHWND) (-6)
 
         button <- Win32.createWindow
@@ -31,5 +38,9 @@ instance IsGUIComponent Button where
             (const $ const $ const $ const $ pure 0)
 
         mapM_ (`applyProperty` button) buttonProperties
+
+        _ <- atomicModifyIORef' TEAInternal.guiComponentMapRef $ \x ->
+            let newMap = Map.insert buttonUniqueId (button, GUIComponent component) x in
+                (newMap, newMap)
 
         pure button

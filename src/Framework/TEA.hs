@@ -30,9 +30,19 @@ runTEA init update view = do
 
         update' _ NoModel = error "TEA is not initialised."
 
+        view' (Model model) =
+            case cast model of
+                Just model' -> view model'
+                _           -> error "Failed to cast Model."
+
+        view' NoModel = error "TEA is not initialised"
+
     _ <- atomicModifyIORef' updateFuncRef (const (update', update'))
+    _ <- atomicModifyIORef' viewFuncRef (const (view', view'))
 
     let initGUIComponents = fmap snd runWriter (view initModel)
+
+    _ <- atomicModifyIORef' lastGUIComponentsRef (const (initGUIComponents, initGUIComponents))
 
     forM_ initGUIComponents $ \guiComponent ->
         render guiComponent Nothing

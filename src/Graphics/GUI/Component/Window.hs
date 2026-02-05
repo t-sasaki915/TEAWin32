@@ -9,9 +9,10 @@ import qualified Data.Text                              as Text
 import           Foreign                                (freeHaskellFunPtr,
                                                          intPtrToPtr)
 import qualified Framework.TEA.Internal                 as TEAInternal
-import           Graphics.GUI                           (WindowStyle,
+import           Graphics.GUI                           (UniqueId, WindowStyle,
                                                          toWin32WindowStyle)
-import           Graphics.GUI.Component                 (IsGUIComponent (..))
+import           Graphics.GUI.Component                 (GUIComponent (..),
+                                                         IsGUIComponent (..))
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
@@ -20,12 +21,14 @@ import qualified Graphics.GUI.Internal                  as Internal
 import qualified Graphics.Win32                         as Win32
 import qualified System.Win32                           as Win32
 
-data Window = Window Text WindowStyle [WindowProperty] deriving Eq
+data Window = Window UniqueId Text WindowStyle [WindowProperty] deriving (Show, Eq)
 
 instance IsGUIComponent Window where
-    getProperties (Window _ _ properties) = GUIComponentProperty <$> properties
+    getProperties (Window _ _ _ properties) = GUIComponentProperty <$> properties
 
-    render (Window windowClassName windowStyle windowProperties) parentHWND = do
+    getUniqueId (Window uniqueId _ _ _) = uniqueId
+
+    render component@(Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
 
         let windowClass = Win32.mkClassName (Text.unpack windowClassName)
@@ -60,6 +63,10 @@ instance IsGUIComponent Window where
 
         void $ atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, n + 1)
 
+        void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \x ->
+            let newMap = Map.insert windowUniqueId (window, GUIComponent component) x in
+                (newMap, newMap)
+
         pure window
 
 defaultWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
@@ -72,6 +79,8 @@ defaultWindowProc hwnd wMsg wParam lParam
 
         cleanupGDIs hwnd
         cleanupEventHandlers hwnd
+        unregisterChildComponent hwnd
+        unregisterComponent hwnd
 
         pure 0
 
@@ -99,6 +108,17 @@ cleanupEventHandlers hwnd =
         void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
             let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= hwnd) handlers in
                 (newHandlers, newHandlers)
+
+unregisterChildComponent :: Win32.HWND -> IO ()
+unregisterChildComponent hwnd =
+    Internal.withChildWindows hwnd $ \children ->
+        mapM_ unregisterComponent children
+
+unregisterComponent :: Win32.HWND -> IO ()
+unregisterComponent targetHWND =
+    void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \componentMap ->
+        let newComponentMap = Map.filter (\(hwnd, _) -> hwnd /= targetHWND) componentMap in
+            (newComponentMap, newComponentMap)
 
 cleanupGDIs :: Win32.HWND -> IO ()
 cleanupGDIs hwnd = do

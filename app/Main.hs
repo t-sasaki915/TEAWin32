@@ -20,7 +20,7 @@ data Model = Model
 
 makeLenses ''Model
 
-data Msg = ButtonClicked deriving Eq
+data Msg = ButtonClicked deriving (Show, Eq)
 
 instance IsModel Model
 instance IsMsg Msg
@@ -43,7 +43,7 @@ update ButtonClicked model =
 
 view :: Model -> GUIComponents
 view model =
-    window "TEAWin32GUI-Main" Normal $ do
+    window "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal $ do
         windowTitle "TEAWin32GUI"
         windowIcon Application
         windowCursor IBeam
@@ -51,13 +51,13 @@ view model =
         windowPosition (0, 0)
         windowBrush (SolidBrush 255 255 255)
         windowChildren $ do
-            button $ do
+            button "TestButton" $ do
                 buttonLabel "TEST BUTTON"
                 buttonSize (100, 50)
                 buttonPosition (0, 0)
                 buttonClicked ButtonClicked
 
-            window "TEAWin32GUI-Sub" NormalChild $ do
+            window "TEAWin32GUI-Sub" "TEAWin32GUI-Sub" NormalChild $ do
                 windowTitle "HELLO"
                 windowIcon Exclamation
                 windowCursor Arrow
@@ -65,17 +65,17 @@ view model =
                 windowPosition (100, 100)
                 windowBrush (SolidBrush 255 0 0)
                 windowChildren $ do
-                    button $ do
+                    button "TestButton2" $ do
                         buttonLabel ("Clicked: " `append` Text.show (model ^. clickedCount))
                         buttonSize (100, 100)
                         buttonPosition (20, 50)
 
-                    button $ do
+                    button "TestButton3" $ do
                         buttonLabel "!?"
                         buttonSize (50, 50)
                         buttonPosition (100, 100)
 
-                    window "TEAWin32GUI-Sub-Sub" BorderlessChild $ do
+                    window "TEAWin32GUI-Sub-Sub" "TEAWin32GUI-Sub-Sub" BorderlessChild $ do
                         windowTitle "GOOD MORNING"
                         windowIcon Application
                         windowCursor Wait

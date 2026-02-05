@@ -10,6 +10,7 @@ import           Control.Monad.Writer                   (MonadWriter (tell),
 import           Data.Data                              (Typeable)
 import           Data.Text                              (Text)
 import           Framework.TEA                          (IsMsg)
+import           Graphics.GUI                           (UniqueId (..))
 import           Graphics.GUI.Component                 (GUIComponent (..),
                                                          GUIComponents)
 import           Graphics.GUI.Component.Button          (Button (Button))
@@ -24,8 +25,8 @@ buttonSize = tell . pure . ButtonProperty . ButtonSize
 buttonPosition :: (Int, Int) -> Writer [ButtonProperty] ()
 buttonPosition = tell . pure . ButtonProperty . ButtonPosition
 
-buttonClicked :: (Typeable a, IsMsg a) => a -> Writer [ButtonProperty] ()
+buttonClicked :: (Typeable a, Show a, IsMsg a) => a -> Writer [ButtonProperty] ()
 buttonClicked = tell . pure . ButtonProperty . ButtonClicked
 
-button :: Writer [ButtonProperty] () -> GUIComponents
-button = tell . pure . GUIComponent . Button . snd . runWriter
+button :: Text -> Writer [ButtonProperty] () -> GUIComponents
+button uniqueId = tell . pure . GUIComponent . Button (UniqueId uniqueId) . snd . runWriter

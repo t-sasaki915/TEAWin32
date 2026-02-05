@@ -1,5 +1,6 @@
 module Graphics.GUI
-    ( WindowStyle (..)
+    ( UniqueId (..)
+    , WindowStyle (..)
     , Icon (..)
     , Cursor (..)
     , Brush (..)
@@ -10,15 +11,21 @@ module Graphics.GUI
     ) where
 
 import           Data.Bits            ((.|.))
+import           Data.Text            (Text)
 import qualified Graphics.GUI.Foreign as Win32
 import qualified Graphics.Win32       as Win32
 import qualified System.Win32         as Win32
+
+newtype UniqueId = UniqueId Text deriving (Show, Eq)
+
+instance Ord UniqueId where
+    compare (UniqueId x) (UniqueId y) = compare x y
 
 data WindowStyle = Borderless
                  | Normal
                  | BorderlessChild
                  | NormalChild
-                 deriving Eq
+                 deriving (Show, Eq)
 
 toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
 toWin32WindowStyle Borderless      = Win32.wS_POPUP
@@ -32,7 +39,7 @@ data Icon = Application
           | Exclamation
           | Asterisk
           | FromResource Int
-          deriving Eq
+          deriving (Show, Eq)
 
 toWin32Icon :: Icon -> IO Win32.HICON
 toWin32Icon Application      = Win32.loadIcon Nothing Win32.iDI_APPLICATION
@@ -53,7 +60,7 @@ data Cursor = Arrow
             | SizeNESW
             | SizeWE
             | SizeNS
-            deriving Eq
+            deriving (Show, Eq)
 
 toWin32Cursor :: Cursor -> Win32.Cursor
 toWin32Cursor Arrow    = Win32.iDC_ARROW
@@ -66,7 +73,7 @@ toWin32Cursor SizeNESW = Win32.iDC_SIZENESW
 toWin32Cursor SizeWE   = Win32.iDC_SIZEWE
 toWin32Cursor SizeNS   = Win32.iDC_SIZENS
 
-data Brush = SolidBrush Int Int Int deriving Eq
+data Brush = SolidBrush Int Int Int deriving (Show, Eq)
 
 toWin32Brush :: Brush -> IO Win32.HBRUSH
 toWin32Brush (SolidBrush r g b) = Win32.createSolidBrush (Win32.rgb (fromIntegral r) (fromIntegral g) (fromIntegral b))

@@ -8,13 +8,16 @@ module Graphics.GUI.Component.Property
 import           Data.Data      (Typeable, cast)
 import qualified Graphics.Win32 as Win32
 
-data GUIComponentProperty = forall a. (Typeable a, IsGUIComponentProperty a) => GUIComponentProperty a
+data GUIComponentProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a) => GUIComponentProperty a
 
 instance Eq GUIComponentProperty where
     (GUIComponentProperty x) == (GUIComponentProperty y) =
         case cast y of
             Just y' -> x == y'
             Nothing -> False
+
+instance Show GUIComponentProperty where
+    show (GUIComponentProperty x) = show x
 
 class Eq a => IsGUIComponentProperty a where
     applyProperty :: a -> Win32.HWND -> IO ()

@@ -13,6 +13,7 @@ import           Control.Monad.Writer                   (MonadWriter (tell),
                                                          Writer, runWriter)
 import           Data.Text                              (Text)
 import           Graphics.GUI                           (Brush, Cursor, Icon,
+                                                         UniqueId (..),
                                                          WindowStyle)
 import           Graphics.GUI.Component                 (GUIComponent (GUIComponent),
                                                          GUIComponents)
@@ -41,7 +42,7 @@ windowChildren :: Writer [GUIComponent] () -> Writer [WindowProperty] ()
 windowChildren children =
     tell $ pure $ WindowProperty $ WindowChildren (snd $ runWriter children)
 
-window :: Text -> WindowStyle -> Writer [WindowProperty] () -> GUIComponents
-window windowClass windowStyle windowProperties =
+window :: Text -> Text -> WindowStyle -> Writer [WindowProperty] () -> GUIComponents
+window windowUniqueId windowClass windowStyle windowProperties =
     tell $ pure $ GUIComponent $
-        Window windowClass windowStyle (snd $ runWriter windowProperties)
+        Window (UniqueId windowUniqueId) windowClass windowStyle (snd $ runWriter windowProperties)

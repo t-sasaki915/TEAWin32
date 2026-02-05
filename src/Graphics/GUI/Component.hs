@@ -8,6 +8,7 @@ module Graphics.GUI.Component
 
 import           Control.Monad.Writer            (Writer)
 import           Data.Data                       (Typeable, cast)
+import           Graphics.GUI                    (UniqueId)
 import           Graphics.GUI.Component.Property (GUIComponentProperty)
 import qualified Graphics.Win32                  as Win32
 
@@ -18,7 +19,12 @@ class Eq a => IsGUIComponent a where
 
     getProperties :: a -> [GUIComponentProperty]
 
-data GUIComponent = forall a. (Typeable a, Eq a, IsGUIComponent a) => GUIComponent a
+    getUniqueId :: a -> UniqueId
+
+data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
+
+instance Show GUIComponent where
+    show (GUIComponent a) = show a
 
 instance Eq GUIComponent where
     (GUIComponent a) == (GUIComponent b) =
@@ -30,3 +36,5 @@ instance IsGUIComponent GUIComponent where
     render (GUIComponent a) = render a
 
     getProperties (GUIComponent a) = getProperties a
+
+    getUniqueId (GUIComponent a) = getUniqueId a
