@@ -48,7 +48,7 @@ instance IsGUIComponent Window where
                     parentHWND
                     Nothing
                     mainInstance
-                    typicalWindowProc
+                    defaultWindowProc
 
         mapM_ (`applyProperty` window) windowProperties
 
@@ -59,8 +59,8 @@ instance IsGUIComponent Window where
 
         pure window
 
-typicalWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-typicalWindowProc hwnd wMsg wParam lParam
+defaultWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
+defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
         remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
