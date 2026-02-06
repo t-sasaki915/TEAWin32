@@ -4,7 +4,6 @@ module Main (main) where
 
 import           Control.Lens               (makeLenses, over, (^.))
 import           Control.Monad              (when)
-import           Data.Text                  (append)
 import qualified Data.Text                  as Text
 import           Framework.TEA              (GUIComponents, IsModel, IsMsg,
                                              runTEA)
@@ -66,6 +65,11 @@ view model = do
                 buttonPosition (0, 0)
                 buttonClicked ButtonClicked
 
+            button "TestButton4" $ do
+                        buttonLabel ("Click Count 1: " <> Text.show (model ^. clickedCount))
+                        buttonSize (150, 100)
+                        buttonPosition (150, 100)
+
             window "TEAWin32GUI-Sub" "TEAWin32GUI-Sub" NormalChild $ do
                 windowTitle "HELLO"
                 windowIcon Exclamation
@@ -75,8 +79,8 @@ view model = do
                 windowBrush (SolidBrush 255 0 0)
                 windowChildren $ do
                     button "TestButton2" $ do
-                        --buttonLabel ("Clicked: " `append` Text.show (model ^. clickedCount))
-                        buttonSize (100, 100)
+                        buttonLabel ("Click Count 2: " <> Text.show (model ^. clickedCount))
+                        buttonSize (150, 100)
                         buttonPosition (20, 50)
 
                     button "TestButton3" $ do
