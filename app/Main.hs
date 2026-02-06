@@ -51,10 +51,11 @@ view model = do
             windowSize (400, 10)
             windowPosition (0, 0)
 
-    window "TEAWin32GUI-Main" ("TEAWin32GUI-Main" <> Text.show (model ^. clickedCount)) Normal $ do
-        windowTitle "TEAWin32GUI"
+    window "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal $ do
+        windowTitle ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
         windowIcon Application
-        windowCursor IBeam
+        when (even (model ^. clickedCount)) $
+            windowCursor IBeam
         windowSize (model ^. displayWidth, model ^. displayHeight)
         windowPosition (0, 0)
         windowBrush (SolidBrush 255 255 255)
@@ -74,7 +75,7 @@ view model = do
                 windowBrush (SolidBrush 255 0 0)
                 windowChildren $ do
                     button "TestButton2" $ do
-                        buttonLabel ("Clicked: " `append` Text.show (model ^. clickedCount))
+                        --buttonLabel ("Clicked: " `append` Text.show (model ^. clickedCount))
                         buttonSize (100, 100)
                         buttonPosition (20, 50)
 

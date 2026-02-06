@@ -44,6 +44,8 @@ instance IsGUIComponentProperty ButtonProperty where
 
     unapplyProperty (ButtonProperty x) = unapplyProperty x
 
+    getPropertyName (ButtonProperty x) = getPropertyName x
+
 newtype ButtonLabel    = ButtonLabel    Text       deriving (Show, Eq)
 newtype ButtonSize     = ButtonSize     (Int, Int) deriving (Show, Eq)
 newtype ButtonPosition = ButtonPosition (Int, Int) deriving (Show, Eq)
@@ -64,6 +66,8 @@ instance IsButtonProperty ButtonPosition
 instance IsButtonProperty ButtonClicked
 
 instance IsGUIComponentProperty ButtonLabel where
+    getPropertyName _ = "ButtonLabel"
+
     applyProperty (ButtonLabel label) buttonHWND =
         Win32.setWindowText buttonHWND (Text.unpack label)
 
@@ -72,6 +76,8 @@ instance IsGUIComponentProperty ButtonLabel where
     unapplyProperty _ = applyProperty (ButtonLabel "")
 
 instance IsGUIComponentProperty ButtonSize where
+    getPropertyName _ = "ButtonSize"
+
     applyProperty (ButtonSize (width, height)) buttonHWND =
         void $
             Win32.c_SetWindowPos buttonHWND
@@ -87,6 +93,8 @@ instance IsGUIComponentProperty ButtonSize where
     unapplyProperty _ = applyProperty (ButtonSize (0, 0))
 
 instance IsGUIComponentProperty ButtonPosition where
+    getPropertyName _ = "ButtonPosition"
+
     applyProperty (ButtonPosition (x, y)) buttonHWND =
         void $
             Win32.c_SetWindowPos
@@ -103,6 +111,8 @@ instance IsGUIComponentProperty ButtonPosition where
     unapplyProperty _ = applyProperty (ButtonPosition (0, 0))
 
 instance IsGUIComponentProperty ButtonClicked where
+    getPropertyName _ = "ButtonClicked"
+
     applyProperty (ButtonClicked msg) buttonHWND =
         void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \a ->
             let updatedMap = Map.insert buttonHWND (TEAInternal.Msg msg) a in

@@ -48,6 +48,8 @@ instance IsGUIComponentProperty WindowProperty where
 
     unapplyProperty (WindowProperty x) = unapplyProperty x
 
+    getPropertyName (WindowProperty x) = getPropertyName x
+
 newtype WindowTitle    = WindowTitle    Text           deriving (Show, Eq)
 newtype WindowIcon     = WindowIcon     Icon           deriving (Show, Eq)
 newtype WindowCursor   = WindowCursor   Cursor         deriving (Show, Eq)
@@ -65,6 +67,8 @@ instance IsWindowProperty WindowBrush
 instance IsWindowProperty WindowChildren
 
 instance IsGUIComponentProperty WindowTitle where
+    getPropertyName _ = "WindowTitle"
+
     applyProperty (WindowTitle title) windowHWND =
         Win32.setWindowText windowHWND (Text.unpack title)
 
@@ -73,6 +77,8 @@ instance IsGUIComponentProperty WindowTitle where
     unapplyProperty _ = applyProperty (WindowTitle "")
 
 instance IsGUIComponentProperty WindowIcon where
+    getPropertyName _ = "WindowIcon"
+
     applyProperty (WindowIcon icon) windowHWND =
         toWin32Icon icon >>= \icon' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon'
@@ -83,6 +89,8 @@ instance IsGUIComponentProperty WindowIcon where
         void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON Win32.nullPtr
 
 instance IsGUIComponentProperty WindowCursor where
+    getPropertyName _ = "WindowCursor"
+
     applyProperty (WindowCursor cursor) windowHWND =
         Win32.loadCursor Nothing (toWin32Cursor cursor) >>= \cursor' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor'
@@ -93,6 +101,8 @@ instance IsGUIComponentProperty WindowCursor where
         void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR Win32.nullPtr
 
 instance IsGUIComponentProperty WindowSize where
+    getPropertyName _ = "WindowSize"
+
     applyProperty (WindowSize (width, height)) windowHWND =
         void $
             Win32.c_SetWindowPos windowHWND
@@ -108,6 +118,8 @@ instance IsGUIComponentProperty WindowSize where
     unapplyProperty _ = applyProperty (WindowSize (0, 0))
 
 instance IsGUIComponentProperty WindowPosition where
+    getPropertyName _ = "WindowPosition"
+
     applyProperty (WindowPosition (x, y)) windowHWND =
         void $
             Win32.c_SetWindowPos
@@ -125,6 +137,7 @@ instance IsGUIComponentProperty WindowPosition where
 
 instance IsGUIComponentProperty WindowBrush where
     -- TODO
+    getPropertyName _ = "WindowBrush"
     applyProperty (WindowBrush brush) windowHWND = do
         unapplyProperty (WindowBrush brush) windowHWND
 
@@ -141,11 +154,13 @@ instance IsGUIComponentProperty WindowBrush where
             void $ Win32.c_DeleteObject (intPtrToPtr $ fromIntegral oldBrush)
 
 instance IsGUIComponentProperty WindowChildren where
+    getPropertyName _ = "WindowChildren"
+
     applyProperty (WindowChildren children) windowHWND =
         forM_ children $ \(GUIComponent child) ->
             render child (Just windowHWND)
 
-    updateProperty _ _ = pure ()
+    updateProperty _ _ = putStrLn "WindowChildren Update!!!!"
 
     unapplyProperty _ windowHWND =
         Internal.withChildWindows windowHWND $ \children ->

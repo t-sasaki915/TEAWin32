@@ -14,18 +14,20 @@ module Framework.TEA.Internal
     , performUpdate
     ) where
 
-import           Control.Monad          (forM_, void)
-import           Control.Monad.Writer   (runWriter)
-import           Data.Data              (Typeable)
-import           Data.IORef             (IORef, atomicModifyIORef', newIORef,
-                                         readIORef)
-import           Data.Map               (Map)
-import qualified Data.Map               as Map
-import           GHC.IO                 (unsafePerformIO)
-import           Graphics.GUI           (UniqueId)
-import           Graphics.GUI.Component (GUIComponent, GUIComponents,
-                                         IsGUIComponent (..))
-import qualified Graphics.Win32         as Win32
+import           Control.Monad                   (forM_, void)
+import           Control.Monad.Writer            (runWriter)
+import           Data.Data                       (Typeable)
+import           Data.IORef                      (IORef, atomicModifyIORef',
+                                                  newIORef, readIORef)
+import           Data.Map                        (Map)
+import qualified Data.Map                        as Map
+import           GHC.IO                          (unsafePerformIO)
+import           Graphics.GUI                    (UniqueId)
+import           Graphics.GUI.Component          (GUIComponent, GUIComponents,
+                                                  IsGUIComponent (..))
+import           Graphics.GUI.Component.Property (GUIComponentProperty,
+                                                  IsGUIComponentProperty (..))
+import qualified Graphics.Win32                  as Win32
 
 class IsModel a
 class Eq a => IsMsg a
@@ -88,8 +90,23 @@ performUpdate msg = do
             Just (hwnd, _) -> render componentToRedraw Nothing >> Win32.destroyWindow hwnd
             Nothing        -> error "Tried to redraw a component that was not in the map."
 
-    forM_ propertyChanged $ \propertyChanged ->
-        putStrLn "PROPERTY CHANGE!"
+    forM_ propertyChanged $ \newComponent -> do
+        let uniqueId = getUniqueId newComponent
+
+        case Map.lookup uniqueId guiComponentMap of
+            Just (hwnd, oldComponent) -> do
+                let (addedProps, deletedProps, changedProps) = compareProperties (getProperties newComponent) (getProperties oldComponent)
+
+                mapM_ (`applyProperty` hwnd) addedProps
+                mapM_ (`unapplyProperty` hwnd) deletedProps
+                mapM_ (`updateProperty` hwnd) changedProps
+
+                void $ atomicModifyIORef' guiComponentMapRef $ \compMap ->
+                    let newCompMap = Map.update (const $ Just (hwnd, newComponent)) uniqueId compMap in
+                        (newCompMap, newCompMap)
+
+            Nothing ->
+                error "Tried to update the properties of a component that was not in the map."
 
     void $ atomicModifyIORef' canTerminateProgrammeRef (const (True, True))
 
@@ -115,3 +132,19 @@ compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
                             if doesNeedToRedraw oldValue newValue
                                 then (newValue : redr, propc)
                                 else (redr, newValue : propc)
+
+compareProperties :: [GUIComponentProperty] -> [GUIComponentProperty] -> ([GUIComponentProperty], [GUIComponentProperty], [GUIComponentProperty])
+compareProperties new old = (added, deleted, changed)
+    where
+        newMap = Map.fromList [ (getPropertyName x, x) | x <- new ]
+        oldMap = Map.fromList [ (getPropertyName x, x) | x <- old ]
+
+        added   = Map.elems $ Map.difference newMap oldMap
+        deleted = Map.elems $ Map.difference oldMap newMap
+
+        commonKeys = Map.keys $ Map.intersection newMap oldMap
+        changed = foldr (checkChange newMap oldMap) [] commonKeys
+
+        checkChange nMap oMap k chgd
+            | nMap Map.! k == oMap Map.! k = chgd
+            | otherwise                    = nMap Map.! k : chgd
