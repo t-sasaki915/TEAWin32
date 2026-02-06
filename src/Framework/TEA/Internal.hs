@@ -9,11 +9,12 @@ module Framework.TEA.Internal
     , buttonClickEventHandlersRef
     , updateFuncRef
     , viewFuncRef
-    , lastGUIComponentsRef
     , guiComponentMapRef
+    , canTerminateProgrammeRef
     , performUpdate
     ) where
 
+import           Control.Monad          (forM_, void)
 import           Control.Monad.Writer   (runWriter)
 import           Data.Data              (Typeable)
 import           Data.IORef             (IORef, atomicModifyIORef', newIORef,
@@ -44,10 +45,6 @@ viewFuncRef :: IORef (Model -> GUIComponents)
 viewFuncRef = unsafePerformIO (newIORef (const $ pure ()))
 {-# NOINLINE viewFuncRef #-}
 
-lastGUIComponentsRef :: IORef [GUIComponent]
-lastGUIComponentsRef = unsafePerformIO (newIORef [])
-{-# NOINLINE lastGUIComponentsRef #-}
-
 buttonClickEventHandlersRef :: IORef (Map Win32.HWND Msg)
 buttonClickEventHandlersRef = unsafePerformIO (newIORef mempty)
 {-# NOINLINE buttonClickEventHandlersRef #-}
@@ -55,6 +52,10 @@ buttonClickEventHandlersRef = unsafePerformIO (newIORef mempty)
 guiComponentMapRef :: IORef (Map UniqueId (Win32.HWND, GUIComponent))
 guiComponentMapRef = unsafePerformIO (newIORef mempty)
 {-# NOINLINE guiComponentMapRef #-}
+
+canTerminateProgrammeRef :: IORef Bool
+canTerminateProgrammeRef = unsafePerformIO (newIORef True)
+{-# NOINLINE canTerminateProgrammeRef #-}
 
 performUpdate :: Msg -> IO ()
 performUpdate msg = do
@@ -64,21 +65,37 @@ performUpdate msg = do
     newModel <- updateFunc msg currentModel
     _        <- atomicModifyIORef' modelRef (const (newModel, newModel))
 
-    viewFunc          <- readIORef viewFuncRef
-    lastGUIComponents <- readIORef lastGUIComponentsRef
+    guiComponentMap <- readIORef guiComponentMapRef
+
+    viewFunc             <- readIORef viewFuncRef
     let newGUIComponents = snd $ runWriter (viewFunc newModel)
+        currentGUIComponents = snd <$> Map.elems guiComponentMap
 
-    let (added, deleted, recreate, propertyChanged) = compareGUIComponents newGUIComponents lastGUIComponents
+    let (added, deleted, redraw, propertyChanged) = compareGUIComponents newGUIComponents currentGUIComponents
 
-    print (added)
-    print (deleted)
-    print ( recreate)
-    print ( propertyChanged)
+    _ <- atomicModifyIORef' canTerminateProgrammeRef (const (False, False))
 
-    pure ()
+    forM_ added $ \addedComponent ->
+        render addedComponent Nothing
+
+    forM_ deleted $ \deletedComponent ->
+        case Map.lookup (getUniqueId deletedComponent) guiComponentMap of
+            Just (hwnd, _) -> Win32.destroyWindow hwnd
+            Nothing        -> error "Tried to delete a component that was not in the map."
+
+    forM_ redraw $ \componentToRedraw ->
+        case Map.lookup (getUniqueId componentToRedraw) guiComponentMap of
+            Just (hwnd, _) -> render componentToRedraw Nothing >> Win32.destroyWindow hwnd
+            Nothing        -> error "Tried to redraw a component that was not in the map."
+
+    forM_ propertyChanged $ \propertyChanged ->
+        putStrLn "PROPERTY CHANGE!"
+
+    void $ atomicModifyIORef' canTerminateProgrammeRef (const (True, True))
+
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> ([GUIComponent], [GUIComponent], [GUIComponent], [GUIComponent])
-compareGUIComponents new old = (added, deleted, recreate, propertyChanged)
+compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
     where
         newMap = Map.fromList [ (getUniqueId x, x) | x <- new ]
         oldMap = Map.fromList [ (getUniqueId x, x) | x <- old ]
@@ -87,14 +104,14 @@ compareGUIComponents new old = (added, deleted, recreate, propertyChanged)
         deleted = Map.elems $ Map.difference oldMap newMap
 
         commonKeys = Map.keys $ Map.intersection newMap oldMap
-        (recreate, propertyChanged) = foldr (checkChange newMap oldMap) ([], []) commonKeys
+        (redraw, propertyChanged) = foldr (checkChange newMap oldMap) ([], []) commonKeys
 
-        checkChange nMap oMap k (recr, propc) =
+        checkChange nMap oMap k (redr, propc) =
             let newValue = nMap Map.! k
                 oldValue = oMap Map.! k in
                     if newValue == oldValue
-                        then (recreate, propertyChanged)
+                        then (redr, propc)
                         else
-                            if getProperties newValue == getProperties oldValue
-                                then (newValue : recr, propc)
-                                else (recr, newValue : propc)
+                            if doesNeedToRedraw oldValue newValue
+                                then (newValue : redr, propc)
+                                else (redr, newValue : propc)

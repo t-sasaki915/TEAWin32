@@ -21,6 +21,8 @@ class Eq a => IsGUIComponent a where
 
     getUniqueId :: a -> UniqueId
 
+    doesNeedToRedraw :: a -> a -> Bool
+
 data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
 
 instance Show GUIComponent where
@@ -38,3 +40,8 @@ instance IsGUIComponent GUIComponent where
     getProperties (GUIComponent a) = getProperties a
 
     getUniqueId (GUIComponent a) = getUniqueId a
+
+    doesNeedToRedraw (GUIComponent a) (GUIComponent b) =
+        case cast b of
+            Just b' -> doesNeedToRedraw a b'
+            Nothing -> True

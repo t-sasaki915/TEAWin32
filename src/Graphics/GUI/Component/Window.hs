@@ -4,6 +4,7 @@ import           Control.Monad                          (void, when)
 import           Data.IORef                             (atomicModifyIORef',
                                                          readIORef)
 import qualified Data.Map                               as Map
+import           Data.Maybe                             (isNothing)
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
 import           Foreign                                (freeHaskellFunPtr,
@@ -27,6 +28,9 @@ instance IsGUIComponent Window where
     getProperties (Window _ _ _ properties) = GUIComponentProperty <$> properties
 
     getUniqueId (Window uniqueId _ _ _) = uniqueId
+
+    doesNeedToRedraw (Window uniqueId1 className1 style1 _) (Window uniqueId2 className2 style2 _) =
+        uniqueId1 /= uniqueId2 || className1 /= className2 || style1 /= style2
 
     render component@(Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
@@ -63,9 +67,10 @@ instance IsGUIComponent Window where
 
         void $ atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, n + 1)
 
-        void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \x ->
-            let newMap = Map.insert windowUniqueId (window, GUIComponent component) x in
-                (newMap, newMap)
+        when (isNothing parentHWND) $
+            void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \x ->
+                let newMap = Map.insert windowUniqueId (window, GUIComponent component) x in
+                    (newMap, newMap)
 
         pure window
 
@@ -74,13 +79,14 @@ defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
         remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
-        when (remainingWindow <= 0) $
-            Win32.postQuitMessage 0
-
         cleanupGDIs hwnd
         cleanupEventHandlers hwnd
-        unregisterChildComponent hwnd
         unregisterComponent hwnd
+
+        canTerminateProgramme <- readIORef TEAInternal.canTerminateProgrammeRef
+
+        when (remainingWindow <= 0 && canTerminateProgramme) $
+            Win32.postQuitMessage 0
 
         pure 0
 
@@ -108,11 +114,6 @@ cleanupEventHandlers hwnd =
         void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
             let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= hwnd) handlers in
                 (newHandlers, newHandlers)
-
-unregisterChildComponent :: Win32.HWND -> IO ()
-unregisterChildComponent hwnd =
-    Internal.withChildWindows hwnd $ \children ->
-        mapM_ unregisterComponent children
 
 unregisterComponent :: Win32.HWND -> IO ()
 unregisterComponent targetHWND =

@@ -42,8 +42,6 @@ runTEA init update view = do
 
     let initGUIComponents = fmap snd runWriter (view initModel)
 
-    _ <- atomicModifyIORef' lastGUIComponentsRef (const (initGUIComponents, initGUIComponents))
-
     forM_ initGUIComponents $ \guiComponent ->
         render guiComponent Nothing
 

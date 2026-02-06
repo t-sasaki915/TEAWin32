@@ -3,6 +3,7 @@
 module Main (main) where
 
 import           Control.Lens               (makeLenses, over, (^.))
+import           Control.Monad              (when)
 import           Data.Text                  (append)
 import qualified Data.Text                  as Text
 import           Framework.TEA              (GUIComponents, IsModel, IsMsg,
@@ -42,8 +43,15 @@ update ButtonClicked model =
         pure (over clickedCount (+1) model)
 
 view :: Model -> GUIComponents
-view model =
-    window "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal $ do
+view model = do
+    when (even (model ^. clickedCount)) $
+        window "TEAWin32GUI-SubSubSub" "TEAWin32GUI-SubSubSub" Normal $ do
+            windowTitle "Count is even!"
+            windowIcon Exclamation
+            windowSize (400, 10)
+            windowPosition (0, 0)
+
+    window "TEAWin32GUI-Main" ("TEAWin32GUI-Main" <> Text.show (model ^. clickedCount)) Normal $ do
         windowTitle "TEAWin32GUI"
         windowIcon Application
         windowCursor IBeam
