@@ -6,7 +6,7 @@ import           Data.IORef                             (atomicModifyIORef',
                                                          readIORef)
 import qualified Data.List.Extra                        as List
 import qualified Data.Map                               as Map
-import           Data.Maybe                             (fromMaybe, isNothing)
+import           Data.Maybe                             (fromMaybe)
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
 import           Foreign                                (freeHaskellFunPtr,
@@ -14,8 +14,7 @@ import           Foreign                                (freeHaskellFunPtr,
 import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (UniqueId, WindowStyle,
                                                          toWin32WindowStyle)
-import           Graphics.GUI.Component                 (GUIComponent (..),
-                                                         IsGUIComponent (..))
+import           Graphics.GUI.Component                 (IsGUIComponent (..))
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowChildren (..),
@@ -37,11 +36,12 @@ instance IsGUIComponent Window where
 
     getChildren (Window _ _ _ properties) = fromMaybe [] $ List.firstJust f properties
         where
-            f (WindowProperty x) = case cast x of
+            f (WindowProperty x) =
+                case cast x of
                     Just (WindowChildren y) -> Just y
                     _                       -> Nothing
 
-    render windowComponent@(Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
+    render (Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
 
         let windowClass = Win32.mkClassName (Text.unpack windowClassName)
@@ -76,10 +76,9 @@ instance IsGUIComponent Window where
 
         void $ atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, n + 1)
 
-        when (isNothing parentHWND) $ do
-            void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \x ->
-                let newMap = Map.insert windowUniqueId (window, GUIComponent windowComponent) x in
-                    (newMap, newMap)
+        void $ atomicModifyIORef' TEAInternal.uniqueIdAndHWNDMapRef $ \hwndMap ->
+            let newHWNDMap = Map.insert windowUniqueId window hwndMap in
+                (newHWNDMap, newHWNDMap)
 
         pure window
 
@@ -90,11 +89,9 @@ defaultWindowProc hwnd wMsg wParam lParam
 
         cleanupGDIs hwnd
         cleanupEventHandlers hwnd
-        unregisterComponent hwnd
+        unregisterHWND hwnd
 
-        canTerminateProgramme <- readIORef TEAInternal.canTerminateProgrammeRef
-
-        when (remainingWindow <= 0 && canTerminateProgramme) $
+        when (remainingWindow <= 0) $
             Win32.postQuitMessage 0
 
         pure 0
@@ -124,11 +121,15 @@ cleanupEventHandlers hwnd =
             let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= hwnd) handlers in
                 (newHandlers, newHandlers)
 
-unregisterComponent :: Win32.HWND -> IO ()
-unregisterComponent targetHWND =
-    void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \componentMap ->
-        let newComponentMap = Map.filter (\(hwnd, _) -> hwnd /= targetHWND) componentMap in
-            (newComponentMap, newComponentMap)
+unregisterHWND :: Win32.HWND -> IO ()
+unregisterHWND targetHWND =
+    unregister targetHWND >>
+        Internal.withChildWindows targetHWND (mapM_ unregister)
+    where
+        unregister hwnd =
+            void $ atomicModifyIORef' TEAInternal.uniqueIdAndHWNDMapRef $ \hwndMap ->
+                let newHWNDMap = Map.filter (/= hwnd) hwndMap in
+                    (newHWNDMap, newHWNDMap)
 
 cleanupGDIs :: Win32.HWND -> IO ()
 cleanupGDIs hwnd = do

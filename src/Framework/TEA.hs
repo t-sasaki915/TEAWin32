@@ -45,6 +45,8 @@ runTEA init update view = do
     forM_ initGUIComponents $ \guiComponent ->
         render guiComponent Nothing
 
+    _ <- atomicModifyIORef' currentGUIComponentsRef (const (initGUIComponents, initGUIComponents))
+
     messagePump
 
 messagePump :: IO ()

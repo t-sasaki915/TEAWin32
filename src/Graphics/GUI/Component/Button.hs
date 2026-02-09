@@ -1,8 +1,12 @@
 module Graphics.GUI.Component.Button (Button (..)) where
 
+import           Control.Monad                          (void)
 import           Data.Bits                              ((.|.))
+import           Data.IORef                             (atomicModifyIORef')
+import qualified Data.Map                               as Map
 import           Data.Maybe                             (fromJust)
 import           Foreign                                (intPtrToPtr)
+import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (UniqueId)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
 import           Graphics.GUI.Component.Button.Property (ButtonProperty)
@@ -21,7 +25,7 @@ instance IsGUIComponent Button where
 
     getChildren _ = []
 
-    render (Button _ buttonProperties) parentHWND = do
+    render (Button buttonUniqueId buttonProperties) parentHWND = do
         parentInstance <- Win32.c_GetWindowLongPtr (fromJust parentHWND) (-6)
 
         button <- Win32.createWindow
@@ -38,5 +42,9 @@ instance IsGUIComponent Button where
             (const $ const $ const $ const $ pure 0)
 
         mapM_ (`applyProperty` button) buttonProperties
+
+        void $ atomicModifyIORef' TEAInternal.uniqueIdAndHWNDMapRef $ \hwndMap ->
+            let newHWNDMap = Map.insert buttonUniqueId button hwndMap in
+                (newHWNDMap, newHWNDMap)
 
         pure button
