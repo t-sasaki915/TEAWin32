@@ -38,6 +38,7 @@ executable TEAWin32GUI-Experiment
 
 library
   exposed-modules:
+      Data.List.Extra
       Framework.TEA.Internal
       Framework.TEA
       Graphics.GUI.Component.Button.DSL

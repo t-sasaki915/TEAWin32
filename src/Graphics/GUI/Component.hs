@@ -23,6 +23,8 @@ class Eq a => IsGUIComponent a where
 
     doesNeedToRedraw :: a -> a -> Bool
 
+    getChildren :: a -> [GUIComponent]
+
 data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
 
 instance Show GUIComponent where
@@ -45,3 +47,5 @@ instance IsGUIComponent GUIComponent where
         case cast b of
             Just b' -> doesNeedToRedraw a b'
             Nothing -> True
+    
+    getChildren (GUIComponent a) = getChildren a
