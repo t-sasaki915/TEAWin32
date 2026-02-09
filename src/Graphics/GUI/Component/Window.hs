@@ -77,10 +77,6 @@ instance IsGUIComponent Window where
         void $ atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, n + 1)
 
         when (isNothing parentHWND) $ do
-            void $ atomicModifyIORef' TEAInternal.guiComponentMapRef' $ \x ->
-                let newMap = Map.insert windowUniqueId (GUIComponent windowComponent) x in
-                    (newMap, newMap)
-
             void $ atomicModifyIORef' TEAInternal.guiComponentMapRef $ \x ->
                 let newMap = Map.insert windowUniqueId (window, GUIComponent windowComponent) x in
                     (newMap, newMap)

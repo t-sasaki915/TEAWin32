@@ -10,8 +10,6 @@ import qualified Graphics.GUI.Foreign as Win32
 import qualified Graphics.Win32       as Win32
 import           System.IO.Unsafe     (unsafePerformIO)
 
-data 
-
 activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)
 {-# NOINLINE activeWindowCountRef #-}

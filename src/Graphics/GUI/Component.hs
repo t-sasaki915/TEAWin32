@@ -4,10 +4,12 @@ module Graphics.GUI.Component
     ( GUIComponents
     , IsGUIComponent (..)
     , GUIComponent (..)
+    , compareGUIComponents
     ) where
 
 import           Control.Monad.Writer            (Writer)
 import           Data.Data                       (Typeable, cast)
+import qualified Data.Map                        as Map
 import           Graphics.GUI                    (UniqueId)
 import           Graphics.GUI.Component.Property (GUIComponentProperty)
 import qualified Graphics.Win32                  as Win32
@@ -47,5 +49,28 @@ instance IsGUIComponent GUIComponent where
         case cast b of
             Just b' -> doesNeedToRedraw a b'
             Nothing -> True
-    
+
     getChildren (GUIComponent a) = getChildren a
+
+compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> ([GUIComponent], [GUIComponent], [GUIComponent], [(GUIComponent, GUIComponent)])
+compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
+    where
+        newMap = Map.fromList [ (getUniqueId x, x) | x <- new ]
+        oldMap = Map.fromList [ (getUniqueId x, x) | x <- old ]
+
+        added   = Map.elems $ Map.difference newMap oldMap
+        deleted = Map.elems $ Map.difference oldMap newMap
+
+        commonKeys = Map.keys $ Map.intersection newMap oldMap
+        (redraw, propertyChanged) = foldr (checkChange newMap oldMap) ([], []) commonKeys
+
+        checkChange nMap oMap k (redr, propc) =
+            let newValue = nMap Map.! k
+                oldValue = oMap Map.! k in
+                    if newValue == oldValue
+                        then (redr, propc)
+                        else
+                            if doesNeedToRedraw oldValue newValue
+                                then (newValue : redr, propc)
+                                else (redr, (newValue, oldValue) : propc)
+

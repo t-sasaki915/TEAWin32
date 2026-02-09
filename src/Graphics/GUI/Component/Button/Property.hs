@@ -40,7 +40,10 @@ instance IsButtonProperty ButtonProperty
 instance IsGUIComponentProperty ButtonProperty where
     applyProperty (ButtonProperty x) = applyProperty x
 
-    updateProperty (ButtonProperty x) = updateProperty x
+    updateProperty (ButtonProperty new) (ButtonProperty old) =
+        case cast old of
+            Just old' -> updateProperty new old'
+            Nothing   -> error "Failed to cast ButtonProperty"
 
     unapplyProperty (ButtonProperty x) = unapplyProperty x
 
@@ -71,7 +74,7 @@ instance IsGUIComponentProperty ButtonLabel where
     applyProperty (ButtonLabel label) buttonHWND =
         Win32.setWindowText buttonHWND (Text.unpack label)
 
-    updateProperty = applyProperty
+    updateProperty newProp _ = applyProperty newProp
 
     unapplyProperty _ = applyProperty (ButtonLabel "")
 
@@ -88,7 +91,7 @@ instance IsGUIComponentProperty ButtonSize where
                 (fromIntegral height)
                 (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-    updateProperty = applyProperty
+    updateProperty newProp _ = applyProperty newProp
 
     unapplyProperty _ = applyProperty (ButtonSize (0, 0))
 
@@ -106,7 +109,7 @@ instance IsGUIComponentProperty ButtonPosition where
                 0
                 (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-    updateProperty = applyProperty
+    updateProperty newProp _ = applyProperty newProp
 
     unapplyProperty _ = applyProperty (ButtonPosition (0, 0))
 
@@ -118,7 +121,7 @@ instance IsGUIComponentProperty ButtonClicked where
             let updatedMap = Map.insert buttonHWND (TEAInternal.Msg msg) a in
                 (updatedMap, updatedMap)
 
-    updateProperty = applyProperty
+    updateProperty newProp _ = applyProperty newProp
 
     unapplyProperty _ buttonHWND =
         void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \a ->
