@@ -33,19 +33,19 @@ import qualified Graphics.Win32                  as Win32
 class IsModel a
 class Eq a => IsMsg a
 
-data Model = forall a. (Typeable a, IsModel a) => Model a | NoModel
+data Model = forall a. (Typeable a, IsModel a) => Model a
 data Msg = forall a. (Typeable a, IsMsg a) => Msg a
 
 modelRef :: IORef Model
-modelRef = unsafePerformIO (newIORef NoModel)
+modelRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
 {-# NOINLINE modelRef #-}
 
 updateFuncRef :: IORef (Msg -> Model -> IO Model)
-updateFuncRef = unsafePerformIO (newIORef (const $ const $ pure NoModel))
+updateFuncRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
 {-# NOINLINE updateFuncRef #-}
 
 viewFuncRef :: IORef (Model -> GUIComponents)
-viewFuncRef = unsafePerformIO (newIORef (const $ pure ()))
+viewFuncRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
 {-# NOINLINE viewFuncRef #-}
 
 buttonClickEventHandlersRef :: IORef (Map Win32.HWND Msg)

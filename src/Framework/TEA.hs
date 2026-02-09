@@ -28,14 +28,10 @@ runTEA init update view = do
                 (Just msg', Just model') -> update msg' model' <&> Model
                 _                        -> error "Failed to cast Msg and Model."
 
-        update' _ NoModel = error "TEA is not initialised."
-
         view' (Model model) =
             case cast model of
                 Just model' -> view model'
                 _           -> error "Failed to cast Model."
-
-        view' NoModel = error "TEA is not initialised"
 
     _ <- atomicModifyIORef' updateFuncRef (const (update', update'))
     _ <- atomicModifyIORef' viewFuncRef (const (view', view'))
