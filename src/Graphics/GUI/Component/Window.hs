@@ -1,6 +1,6 @@
 module Graphics.GUI.Component.Window (Window (..)) where
 
-import           Control.Monad                          (void, when)
+import           Control.Monad                          (forM_, void, when)
 import           Data.IORef                             (atomicModifyIORef',
                                                          readIORef)
 import qualified Data.Map                               as Map
@@ -12,6 +12,7 @@ import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (UniqueId, WindowStyle,
                                                          toWin32WindowStyle)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
+import qualified Graphics.GUI.Component.Internal        as ComponentInternal
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
@@ -67,6 +68,9 @@ instance IsGUIComponent Window where
 
         TEAInternal.registerHWND windowUniqueId window
 
+        ComponentInternal.setComponentType "WINDOW" window
+        ComponentInternal.setUniqueIdToHWND windowUniqueId window
+
         pure window
 
 defaultWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
@@ -74,8 +78,9 @@ defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
         remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
-        cleanupGDIs hwnd
         cleanupEventHandlers hwnd
+        cleanupProps hwnd
+        cleanupGDIs hwnd
         unregisterHWND hwnd
 
         when (remainingWindow <= 0) $
@@ -107,6 +112,16 @@ cleanupEventHandlers hwnd =
         void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
             let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= hwnd) handlers in
                 (newHandlers, newHandlers)
+
+cleanupProps :: Win32.HWND -> IO ()
+cleanupProps hwnd = do
+    ComponentInternal.unregisterComponentType hwnd
+    ComponentInternal.unregisterUniqueIdFromHWND hwnd
+
+    Internal.withChildWindows hwnd $ \children ->
+        forM_ children $ \child -> do
+            ComponentInternal.unregisterComponentType child
+            ComponentInternal.unregisterUniqueIdFromHWND child
 
 unregisterHWND :: Win32.HWND -> IO ()
 unregisterHWND targetHWND =

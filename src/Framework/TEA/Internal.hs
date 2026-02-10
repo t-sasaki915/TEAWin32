@@ -16,7 +16,7 @@ module Framework.TEA.Internal
 
 import           Control.Monad                            (forM_, void)
 import           Control.Monad.Writer                     (runWriter)
-import           Data.Data                                (Typeable)
+import           Data.Data                                (Typeable, cast)
 import           Data.IORef                               (IORef,
                                                            atomicModifyIORef',
                                                            newIORef, readIORef)
@@ -27,13 +27,23 @@ import           Graphics.GUI                             (UniqueId)
 import           Graphics.GUI.Component                   (GUIComponent,
                                                            GUIComponents,
                                                            IsGUIComponent (..))
-import           Graphics.GUI.Component.Internal          (compareGUIComponents)
+import           Graphics.GUI.Component.Internal          (compareGUIComponents,
+                                                           restoreComponentFromHWND)
 import           Graphics.GUI.Component.Property          (IsGUIComponentProperty (..))
 import           Graphics.GUI.Component.Property.Internal (compareProperties)
 import qualified Graphics.Win32                           as Win32
 
 data Model = forall a. Typeable a => Model a
-data Msg = forall a. Typeable a => Msg a
+data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
+
+instance Show Msg where
+    show (Msg a) = show a
+
+instance Eq Msg where
+    (Msg a) == (Msg b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
 
 modelRef :: IORef Model
 modelRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
@@ -136,6 +146,7 @@ updateChildren newChildren oldChildren targetHWND = do
 
         case Map.lookup uniqueId uniqueIdAndHWNDMap of
             Just hwnd -> do
+                restoreComponentFromHWND hwnd >>= print
                 let (addedProps, deletedProps, changedProps) = compareProperties (getProperties newComponent) (getProperties oldComponent)
 
                 mapM_ (`applyProperty` hwnd) addedProps

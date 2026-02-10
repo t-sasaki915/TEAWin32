@@ -7,6 +7,7 @@ import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (UniqueId)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
 import           Graphics.GUI.Component.Button.Property (ButtonProperty)
+import qualified Graphics.GUI.Component.Internal        as ComponentInternal
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import qualified Graphics.Win32                         as Win32
@@ -39,5 +40,8 @@ instance IsGUIComponent Button where
         mapM_ (`applyProperty` button) buttonProperties
 
         TEAInternal.registerHWND buttonUniqueId button
+
+        ComponentInternal.setComponentType "BUTTON" button
+        ComponentInternal.setUniqueIdToHWND buttonUniqueId button
 
         pure button

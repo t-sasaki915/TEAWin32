@@ -1,6 +1,7 @@
 module Graphics.GUI.Component.Property.Internal (compareProperties) where
 
 import qualified Data.Map                        as Map
+import Data.Map ((!))
 import           Graphics.GUI.Component.Property (GUIComponentProperty,
                                                   IsGUIComponentProperty (..))
 
@@ -17,5 +18,5 @@ compareProperties new old = (added, deleted, changed)
         changed = foldr (checkChange newMap oldMap) [] commonKeys
 
         checkChange nMap oMap k chgd
-            | nMap Map.! k == oMap Map.! k = chgd
-            | otherwise                    = (nMap Map.! k, oMap Map.! k) : chgd
+            | nMap ! k == oMap ! k = chgd
+            | otherwise                    = (nMap ! k, oMap ! k) : chgd

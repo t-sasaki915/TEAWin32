@@ -17,6 +17,7 @@ import qualified Data.Map                        as Map
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
 import qualified Framework.TEA.Internal          as TEAInternal
+import qualified Graphics.GUI.Component.Internal as ComponentInternal
 import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
 import qualified Graphics.GUI.Foreign            as Win32
 import qualified Graphics.Win32                  as Win32
@@ -71,59 +72,100 @@ instance IsGUIComponentProperty ButtonLabel where
     getPropertyName _ = "ButtonLabel"
 
     applyProperty (ButtonLabel label) buttonHWND =
-        Win32.setWindowText buttonHWND (Text.unpack label)
+        Win32.setWindowText buttonHWND (Text.unpack label) >>
+            ComponentInternal.setFlag "BUTTONLABEL_SET" buttonHWND
 
-    updateProperty newProp _ = applyProperty newProp
+    updateProperty (ButtonLabel newLabel) _ buttonHWND =
+        Win32.setWindowText buttonHWND (Text.unpack newLabel)
 
-    unapplyProperty _ = applyProperty (ButtonLabel "")
+    unapplyProperty _ buttonHWND =
+        Win32.setWindowText buttonHWND "" >>
+            ComponentInternal.unsetFlag "BUTTONLABEL_SET" buttonHWND
 
 instance IsGUIComponentProperty ButtonSize where
     getPropertyName _ = "ButtonSize"
 
     applyProperty (ButtonSize (width, height)) buttonHWND =
-        void $
-            Win32.c_SetWindowPos buttonHWND
-                Win32.nullPtr
-                0
-                0
-                (fromIntegral width)
-                (fromIntegral height)
-                (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+        Win32.c_SetWindowPos buttonHWND
+            Win32.nullPtr
+            0
+            0
+            (fromIntegral width)
+            (fromIntegral height)
+            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.setFlag "BUTTONSIZE_SET" buttonHWND
 
-    updateProperty newProp _ = applyProperty newProp
+    updateProperty (ButtonSize (width, height)) _ buttonHWND =
+        void $ Win32.c_SetWindowPos buttonHWND
+            Win32.nullPtr
+            0
+            0
+            (fromIntegral width)
+            (fromIntegral height)
+            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-    unapplyProperty _ = applyProperty (ButtonSize (0, 0))
+    unapplyProperty _ buttonHWND =
+        Win32.c_SetWindowPos buttonHWND
+            Win32.nullPtr
+            0
+            0
+            0
+            0
+            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.unsetFlag "BUTTONSIZE_SET" buttonHWND
 
 instance IsGUIComponentProperty ButtonPosition where
     getPropertyName _ = "ButtonPosition"
 
     applyProperty (ButtonPosition (x, y)) buttonHWND =
-        void $
-            Win32.c_SetWindowPos
-                buttonHWND
-                Win32.nullPtr
-                (fromIntegral x)
-                (fromIntegral y)
-                0
-                0
-                (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+        Win32.c_SetWindowPos
+            buttonHWND
+            Win32.nullPtr
+            (fromIntegral x)
+            (fromIntegral y)
+            0
+            0
+            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.setFlag "BUTTONPOSITION_SET" buttonHWND
 
-    updateProperty newProp _ = applyProperty newProp
+    updateProperty (ButtonPosition (x, y)) _ buttonHWND =
+        void $ Win32.c_SetWindowPos
+            buttonHWND
+            Win32.nullPtr
+            (fromIntegral x)
+            (fromIntegral y)
+            0
+            0
+            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-    unapplyProperty _ = applyProperty (ButtonPosition (0, 0))
+    unapplyProperty _ buttonHWND =
+        Win32.c_SetWindowPos
+            buttonHWND
+            Win32.nullPtr
+            0
+            0
+            0
+            0
+            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.unsetFlag "BUTTONPOSITION_SET" buttonHWND
 
 instance IsGUIComponentProperty ButtonClicked where
     getPropertyName _ = "ButtonClicked"
 
     applyProperty (ButtonClicked msg) buttonHWND =
+        atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef (\a ->
+            let updatedMap = Map.insert buttonHWND (TEAInternal.Msg msg) a in
+                (updatedMap, updatedMap)) >>
+                    ComponentInternal.setFlag "BUTTONCLICKED_SET" buttonHWND
+
+    updateProperty (ButtonClicked msg) _ buttonHWND =
         void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \a ->
             let updatedMap = Map.insert buttonHWND (TEAInternal.Msg msg) a in
                 (updatedMap, updatedMap)
 
-    updateProperty newProp _ = applyProperty newProp
-
     unapplyProperty _ buttonHWND =
-        void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \a ->
+        void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef (\a ->
             let updatedMap = Map.delete buttonHWND a in
-                (updatedMap, updatedMap)
+                (updatedMap, updatedMap)) >>
+                    ComponentInternal.unsetFlag "BUTTONCLICKED_SET" buttonHWND
 
