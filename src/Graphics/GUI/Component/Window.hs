@@ -1,12 +1,9 @@
 module Graphics.GUI.Component.Window (Window (..)) where
 
 import           Control.Monad                          (void, when)
-import           Data.Data                              (cast)
 import           Data.IORef                             (atomicModifyIORef',
                                                          readIORef)
-import qualified Data.List.Extra                        as List
 import qualified Data.Map                               as Map
-import           Data.Maybe                             (fromMaybe)
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
 import           Foreign                                (freeHaskellFunPtr,
@@ -17,8 +14,7 @@ import           Graphics.GUI                           (UniqueId, WindowStyle,
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
-import           Graphics.GUI.Component.Window.Property (WindowChildren (..),
-                                                         WindowProperty (..))
+import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
 import qualified Graphics.GUI.Foreign                   as Win32
 import qualified Graphics.GUI.Internal                  as Internal
 import qualified Graphics.Win32                         as Win32
@@ -33,13 +29,6 @@ instance IsGUIComponent Window where
 
     doesNeedToRedraw (Window uniqueId1 className1 style1 _) (Window uniqueId2 className2 style2 _) =
         uniqueId1 /= uniqueId2 || className1 /= className2 || style1 /= style2
-
-    getChildren (Window _ _ _ properties) = fromMaybe [] $ List.firstJust f properties
-        where
-            f (WindowProperty x) =
-                case cast x of
-                    Just (WindowChildren y) -> Just y
-                    _                       -> Nothing
 
     render (Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
@@ -76,9 +65,7 @@ instance IsGUIComponent Window where
 
         void $ atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, n + 1)
 
-        void $ atomicModifyIORef' TEAInternal.uniqueIdAndHWNDMapRef $ \hwndMap ->
-            let newHWNDMap = Map.insert windowUniqueId window hwndMap in
-                (newHWNDMap, newHWNDMap)
+        TEAInternal.registerHWND windowUniqueId window
 
         pure window
 

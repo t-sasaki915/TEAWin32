@@ -3,11 +3,9 @@
 module Graphics.GUI.Component.Property
     ( GUIComponentProperty (..)
     , IsGUIComponentProperty (..)
-    , compareProperties
     ) where
 
 import           Data.Data      (Typeable, cast)
-import qualified Data.Map       as Map
 import           Data.Text      (Text)
 import qualified Graphics.Win32 as Win32
 
@@ -42,20 +40,3 @@ instance IsGUIComponentProperty GUIComponentProperty where
     unapplyProperty (GUIComponentProperty x) = unapplyProperty x
 
     getPropertyName (GUIComponentProperty x) = getPropertyName x
-
-compareProperties :: [GUIComponentProperty] -> [GUIComponentProperty] -> ([GUIComponentProperty], [GUIComponentProperty], [(GUIComponentProperty, GUIComponentProperty)])
-compareProperties new old = (added, deleted, changed)
-    where
-        newMap = Map.fromList [ (getPropertyName x, x) | x <- new ]
-        oldMap = Map.fromList [ (getPropertyName x, x) | x <- old ]
-
-        added   = Map.elems $ Map.difference newMap oldMap
-        deleted = Map.elems $ Map.difference oldMap newMap
-
-        commonKeys = Map.keys $ Map.intersection newMap oldMap
-        changed = foldr (checkChange newMap oldMap) [] commonKeys
-
-        checkChange nMap oMap k chgd
-            | nMap Map.! k == oMap Map.! k = chgd
-            | otherwise                    = (nMap Map.! k, oMap Map.! k) : chgd
-

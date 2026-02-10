@@ -1,9 +1,6 @@
 module Graphics.GUI.Component.Button (Button (..)) where
 
-import           Control.Monad                          (void)
 import           Data.Bits                              ((.|.))
-import           Data.IORef                             (atomicModifyIORef')
-import qualified Data.Map                               as Map
 import           Data.Maybe                             (fromJust)
 import           Foreign                                (intPtrToPtr)
 import qualified Framework.TEA.Internal                 as TEAInternal
@@ -23,8 +20,6 @@ instance IsGUIComponent Button where
 
     doesNeedToRedraw (Button uniqueId1 _) (Button uniqueId2 _) = uniqueId1 /= uniqueId2
 
-    getChildren _ = []
-
     render (Button buttonUniqueId buttonProperties) parentHWND = do
         parentInstance <- Win32.c_GetWindowLongPtr (fromJust parentHWND) (-6)
 
@@ -43,8 +38,6 @@ instance IsGUIComponent Button where
 
         mapM_ (`applyProperty` button) buttonProperties
 
-        void $ atomicModifyIORef' TEAInternal.uniqueIdAndHWNDMapRef $ \hwndMap ->
-            let newHWNDMap = Map.insert buttonUniqueId button hwndMap in
-                (newHWNDMap, newHWNDMap)
+        TEAInternal.registerHWND buttonUniqueId button
 
         pure button

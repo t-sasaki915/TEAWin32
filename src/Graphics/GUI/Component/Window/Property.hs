@@ -15,18 +15,14 @@ module Graphics.GUI.Component.Window.Property
 import           Control.Monad                   (forM_, void)
 import           Data.Bits                       ((.|.))
 import           Data.Data                       (Typeable, cast)
-import           Data.IORef                      (readIORef)
-import qualified Data.Map                        as Map
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
 import           Foreign                         (intPtrToPtr)
 import qualified Framework.TEA.Internal          as TEAInternal
 import           Graphics.GUI
 import           Graphics.GUI.Component          (GUIComponent (..),
-                                                  IsGUIComponent (getProperties, getUniqueId, render),
-                                                  compareGUIComponents)
-import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..),
-                                                  compareProperties)
+                                                  IsGUIComponent (render))
+import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
 import qualified Graphics.GUI.Foreign            as Win32
 import qualified Graphics.GUI.Internal           as Internal
 import qualified Graphics.Win32                  as Win32
@@ -168,39 +164,8 @@ instance IsGUIComponentProperty WindowChildren where
         forM_ children $ \(GUIComponent child) ->
             render child (Just windowHWND)
 
-    updateProperty (WindowChildren newChildren) (WindowChildren oldChildren) windowHWND = do
-        let (added, deleted, redraw, propertyChanged) = compareGUIComponents newChildren oldChildren
-
-        uniqueIdAndHWNDMap <- readIORef TEAInternal.uniqueIdAndHWNDMapRef
-
-        forM_ added $ \addedComponent ->
-            render addedComponent (Just windowHWND)
-
-        forM_ deleted $ \deletedComponent ->
-            case Map.lookup (getUniqueId deletedComponent) uniqueIdAndHWNDMap of
-                Just hwnd -> Win32.destroyWindow hwnd
-                Nothing   -> error "Tried to delete a component that was not in the map."
-
-        forM_ redraw $ \componentToRedraw ->
-            case Map.lookup (getUniqueId componentToRedraw) uniqueIdAndHWNDMap of
-                Just hwnd -> render componentToRedraw (Just windowHWND) >> Win32.destroyWindow hwnd
-                Nothing   -> error "Tried to redraw a component that was not in the map."
-
-        forM_ propertyChanged $ \(newComponent, oldComponent) -> do
-            let uniqueId = getUniqueId newComponent
-
-            case Map.lookup uniqueId uniqueIdAndHWNDMap of
-                Just hwnd -> do
-                    let (addedProps, deletedProps, changedProps) = compareProperties (getProperties newComponent) (getProperties oldComponent)
-
-                    mapM_ (`applyProperty` hwnd) addedProps
-                    mapM_ (`unapplyProperty` hwnd) deletedProps
-
-                    forM_ changedProps $ \(newProp, oldProp) ->
-                        updateProperty newProp oldProp hwnd
-
-                Nothing ->
-                    error "Tried to update the properties of a component that was not in the map."
+    updateProperty (WindowChildren newChildren) (WindowChildren oldChildren) =
+        TEAInternal.updateChildren newChildren oldChildren
 
     unapplyProperty _ windowHWND =
         Internal.withChildWindows windowHWND $ \children ->
