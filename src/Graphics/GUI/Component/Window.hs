@@ -92,7 +92,7 @@ defaultWindowProc hwnd wMsg wParam lParam
                 buttonClickEventHandlers <- readIORef TEAInternal.buttonClickEventHandlersRef
 
                 case Map.lookup targetHWND buttonClickEventHandlers of
-                    Just action -> TEAInternal.performUpdate action >> pure 0
+                    Just action -> TEAInternal.issueMsg action >> pure 0
                     Nothing     -> Win32.defWindowProc (Just hwnd) wMsg wParam lParam
 
             _ ->

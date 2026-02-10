@@ -10,7 +10,7 @@ module Framework.TEA.Internal
     , currentGUIComponentsRef
     , uniqueIdAndHWNDMapRef
     , registerHWND
-    , performUpdate
+    , issueMsg
     , updateChildren
     ) where
 
@@ -65,8 +65,8 @@ registerHWND uniqueId hwnd =
         let newHWNDMap = Map.insert uniqueId hwnd hwndMap in
             (newHWNDMap, newHWNDMap)
 
-performUpdate :: Msg -> IO ()
-performUpdate msg = do
+issueMsg :: Msg -> IO ()
+issueMsg msg = do
     updateFunc   <- readIORef updateFuncRef
     currentModel <- readIORef modelRef
 
