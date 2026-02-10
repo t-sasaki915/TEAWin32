@@ -7,7 +7,6 @@ module Framework.TEA.Internal
     , buttonClickEventHandlersRef
     , updateFuncRef
     , viewFuncRef
-    , currentGUIComponentsRef
     , uniqueIdAndHWNDMapRef
     , registerHWND
     , issueMsg
@@ -15,7 +14,7 @@ module Framework.TEA.Internal
     ) where
 
 import           Control.Monad                            (forM_, void)
-import           Control.Monad.Writer                     (runWriter)
+import           Control.Monad.Writer                     (execWriter)
 import           Data.Data                                (Typeable, cast)
 import           Data.IORef                               (IORef,
                                                            atomicModifyIORef',
@@ -27,10 +26,10 @@ import           Graphics.GUI                             (UniqueId)
 import           Graphics.GUI.Component                   (GUIComponent,
                                                            GUIComponents,
                                                            IsGUIComponent (..))
-import           Graphics.GUI.Component.Internal          (compareGUIComponents,
-                                                           restoreComponentFromHWND)
+import qualified Graphics.GUI.Component.Internal          as ComponentInternal
 import           Graphics.GUI.Component.Property          (IsGUIComponentProperty (..))
 import           Graphics.GUI.Component.Property.Internal (compareProperties)
+import qualified Graphics.GUI.Internal                    as GUIInternal
 import qualified Graphics.Win32                           as Win32
 
 data Model = forall a. Typeable a => Model a
@@ -61,10 +60,6 @@ buttonClickEventHandlersRef :: IORef (Map Win32.HWND Msg)
 buttonClickEventHandlersRef = unsafePerformIO (newIORef mempty)
 {-# NOINLINE buttonClickEventHandlersRef #-}
 
-currentGUIComponentsRef :: IORef [GUIComponent]
-currentGUIComponentsRef = unsafePerformIO (newIORef mempty)
-{-# NOINLINE currentGUIComponentsRef #-}
-
 uniqueIdAndHWNDMapRef :: IORef (Map UniqueId Win32.HWND)
 uniqueIdAndHWNDMapRef = unsafePerformIO (newIORef mempty)
 {-# NOINLINE uniqueIdAndHWNDMapRef #-}
@@ -83,13 +78,13 @@ issueMsg msg = do
     newModel <- updateFunc msg currentModel
     _        <- atomicModifyIORef' modelRef (const (newModel, newModel))
 
-    currentGUIComponents <- readIORef currentGUIComponentsRef
+    currentGUIComponents <- GUIInternal.withParentWindows (mapM ComponentInternal.restoreComponentFromHWND)
     uniqueIdAndHWNDMap   <- readIORef uniqueIdAndHWNDMapRef
 
     viewFunc <- readIORef viewFuncRef
-    let newGUIComponents = snd $ runWriter (viewFunc newModel)
+    let newGUIComponents = execWriter (viewFunc newModel)
 
-    let (added, deleted, redraw, propertyChanged) = compareGUIComponents newGUIComponents currentGUIComponents
+    let (added, deleted, redraw, propertyChanged) = ComponentInternal.compareGUIComponents newGUIComponents currentGUIComponents
 
     forM_ added $ \addedComponent ->
         render addedComponent Nothing
@@ -120,12 +115,16 @@ issueMsg msg = do
             Nothing ->
                 error "Tried to update the properties of a component that was not in the map."
 
-    void $ atomicModifyIORef' currentGUIComponentsRef (const (newGUIComponents, newGUIComponents))
-
 updateChildren :: [GUIComponent] -> [GUIComponent] -> Win32.HWND -> IO ()
 updateChildren newChildren oldChildren targetHWND = do
-    let (added, deleted, redraw, propertyChanged) = compareGUIComponents newChildren oldChildren
+    let (added, deleted, redraw, propertyChanged) = ComponentInternal.compareGUIComponents newChildren oldChildren
 
+    putStrLn "=================================="
+    print (map getUniqueId added)
+    print (map getUniqueId deleted)
+    print (map getUniqueId redraw)
+    print (map getUniqueId (map fst propertyChanged))
+    putStrLn "=================================="
     uniqueIdAndHWNDMap <- readIORef uniqueIdAndHWNDMapRef
 
     forM_ added $ \addedComponent ->
@@ -146,7 +145,6 @@ updateChildren newChildren oldChildren targetHWND = do
 
         case Map.lookup uniqueId uniqueIdAndHWNDMap of
             Just hwnd -> do
-                restoreComponentFromHWND hwnd >>= print
                 let (addedProps, deletedProps, changedProps) = compareProperties (getProperties newComponent) (getProperties oldComponent)
 
                 mapM_ (`applyProperty` hwnd) addedProps
@@ -155,5 +153,8 @@ updateChildren newChildren oldChildren targetHWND = do
                 forM_ changedProps $ \(newProp, oldProp) ->
                     updateProperty newProp oldProp hwnd
 
-            Nothing ->
+            Nothing -> do
+                print uniqueIdAndHWNDMap
+                print newComponent
+                print oldComponent
                 error "Tried to update the properties of a component that was not in the map."

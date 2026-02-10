@@ -5,12 +5,14 @@ module Graphics.GUI
     , Cursor (..)
     , Brush (..)
     , toWin32WindowStyle
+    , fromWin32WindowStyle
     , toWin32Icon
     , toWin32Cursor
+    , fromWin32Cursor
     , toWin32Brush
     ) where
 
-import           Data.Bits            ((.|.))
+import           Data.Bits            ((.&.), (.|.))
 import           Data.Text            (Text)
 import qualified Graphics.GUI.Foreign as Win32
 import qualified Graphics.Win32       as Win32
@@ -32,6 +34,15 @@ toWin32WindowStyle Borderless      = Win32.wS_POPUP
 toWin32WindowStyle Normal          = Win32.wS_OVERLAPPEDWINDOW
 toWin32WindowStyle BorderlessChild = Win32.wS_CHILD
 toWin32WindowStyle NormalChild     = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD
+
+fromWin32WindowStyle :: Win32.WindowStyle -> WindowStyle
+fromWin32WindowStyle windowStyle
+    | windowStyle `hasAll` (Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD) = NormalChild
+    | windowStyle `hasAll` Win32.wS_POPUP                                 = Borderless
+    | windowStyle `hasAll` Win32.wS_OVERLAPPEDWINDOW                      = Normal
+    | windowStyle `hasAll` Win32.wS_CHILD                                 = BorderlessChild
+    | otherwise                                                           = error "Unknown WindowStyle"
+    where hasAll a b = (a .&. b) == b
 
 data Icon = Application
           | Hand
@@ -72,6 +83,18 @@ toWin32Cursor SizeNWSE = Win32.iDC_SIZENWSE
 toWin32Cursor SizeNESW = Win32.iDC_SIZENESW
 toWin32Cursor SizeWE   = Win32.iDC_SIZEWE
 toWin32Cursor SizeNS   = Win32.iDC_SIZENS
+
+fromWin32Cursor :: Win32.Cursor -> Cursor
+fromWin32Cursor cursor
+    | cursor == Win32.iDC_ARROW    = Arrow
+    | cursor == Win32.iDC_IBEAM    = IBeam
+    | cursor == Win32.iDC_WAIT     = Wait
+    | cursor == Win32.iDC_CROSS    = Cross
+    | cursor == Win32.iDC_UPARROW  = Uparrow
+    | cursor == Win32.iDC_SIZENWSE = SizeNWSE
+    | cursor == Win32.iDC_SIZENESW = SizeNESW
+    | cursor == Win32.iDC_SIZEWE   = SizeWE
+    | otherwise                    = SizeNS
 
 data Brush = SolidBrush Int Int Int deriving (Show, Eq)
 

@@ -52,7 +52,7 @@ view model = do
         when (even (model ^. clickedCount)) $
             windowCursor IBeam
         windowSize (model ^. displayWidth, model ^. displayHeight)
-        windowPosition (0, 0)
+        --windowPosition (0, 0)
         windowBrush (SolidBrush 255 255 255)
         windowChildren $ do
             button "TestButton" $ do

@@ -12,8 +12,10 @@ module Graphics.GUI.Foreign
     , c_DeleteObject
     , c_EnumChildWindows
     , c_GetClassName
+    , c_EnumThreadWindows
     , makePropEnumProcEx
     , makeEnumWindowProc
+    , gWL_STYLE
     , gCLP_HICON
     , gCLP_HCURSOR
     , gCLP_HBRBACKGROUND
@@ -23,48 +25,53 @@ module Graphics.GUI.Foreign
 import           Data.Int       (Int32)
 import           Foreign        (FunPtr, Ptr, intPtrToPtr)
 import           Foreign.C      (CIntPtr (..))
-import           Graphics.Win32 (BOOL, HANDLE, HWND, INT, LPARAM, LPCTSTR,
-                                 LPCWSTR, LPWSTR, UINT)
+import qualified Graphics.Win32 as Win32
 
-foreign import stdcall "windows.h SetClassLongPtrW"
-    c_SetClassLongPtr :: HWND -> Int32 -> Ptr () -> IO (Ptr ())
+foreign import ccall "SetClassLongPtrW"
+    c_SetClassLongPtr :: Win32.HWND -> Int32 -> Ptr () -> IO (Ptr ())
 
-foreign import stdcall "windows.h SetWindowPos"
-    c_SetWindowPos :: HWND -> HWND -> Int32 -> Int32 -> Int32 -> Int32 -> UINT -> IO BOOL
+foreign import ccall "SetWindowPos"
+    c_SetWindowPos :: Win32.HWND -> Win32.HWND -> Int32 -> Int32 -> Int32 -> Int32 -> Win32.UINT -> IO Win32.BOOL
 
 foreign import ccall "GetClassLongPtrW"
-    c_GetClassLongPtr :: HWND -> Int32 -> IO CIntPtr
+    c_GetClassLongPtr :: Win32.HWND -> Int32 -> IO CIntPtr
 
 foreign import ccall "SetPropW"
-    c_SetProp :: HWND -> LPCTSTR -> HANDLE -> IO Bool
+    c_SetProp :: Win32.HWND -> Win32.LPCTSTR -> Win32.HANDLE -> IO Bool
 
 foreign import ccall "GetPropW"
-    c_GetProp :: HWND -> LPCWSTR -> IO HANDLE
+    c_GetProp :: Win32.HWND -> Win32.LPCWSTR -> IO Win32.HANDLE
 
 foreign import ccall "RemovePropW"
-    c_RemoveProp :: HWND -> LPCWSTR -> IO HANDLE
+    c_RemoveProp :: Win32.HWND -> Win32.LPCWSTR -> IO Win32.HANDLE
 
 foreign import ccall "GetClassNameW"
-    c_GetClassName :: HWND -> LPWSTR -> Int -> IO Int
+    c_GetClassName :: Win32.HWND -> Win32.LPWSTR -> Int -> IO Int
 
-type PropEnumProcEx = HWND -> LPCTSTR -> HANDLE -> CIntPtr -> IO BOOL
+type PropEnumProcEx = Win32.HWND -> Win32.LPCTSTR -> Win32.HANDLE -> CIntPtr -> IO Win32.BOOL
 
 foreign import ccall "wrapper"
     makePropEnumProcEx :: PropEnumProcEx -> IO (FunPtr PropEnumProcEx)
 
 foreign import ccall "EnumPropsExW"
-    c_EnumPropsEx :: HWND -> FunPtr PropEnumProcEx -> CIntPtr -> IO INT
+    c_EnumPropsEx :: Win32.HWND -> FunPtr PropEnumProcEx -> CIntPtr -> IO Win32.INT
 
 foreign import ccall "DeleteObject"
-    c_DeleteObject :: Ptr () -> IO BOOL
+    c_DeleteObject :: Ptr () -> IO Win32.BOOL
 
-type WindowEnumProc = HWND -> LPARAM -> IO BOOL
+type WindowEnumProc = Win32.HWND -> Win32.LPARAM -> IO Win32.BOOL
 
-foreign import stdcall "wrapper"
+foreign import ccall "wrapper"
     makeEnumWindowProc :: WindowEnumProc -> IO (FunPtr WindowEnumProc)
 
-foreign import stdcall "windows.h EnumChildWindows"
-    c_EnumChildWindows :: HWND -> FunPtr WindowEnumProc -> LPARAM -> IO BOOL
+foreign import ccall "EnumChildWindows"
+    c_EnumChildWindows :: Win32.HWND -> FunPtr WindowEnumProc -> Win32.LPARAM -> IO Win32.BOOL
+
+foreign import ccall "EnumThreadWindows"
+    c_EnumThreadWindows :: Win32.DWORD -> FunPtr WindowEnumProc -> Win32.LPARAM -> IO Win32.BOOL
+
+gWL_STYLE :: Int32
+gWL_STYLE = -16
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14
@@ -75,5 +82,5 @@ gCLP_HCURSOR = -12
 gCLP_HBRBACKGROUND :: Int32
 gCLP_HBRBACKGROUND = -10
 
-makeIntResource :: Int -> LPCTSTR
+makeIntResource :: Int -> Win32.LPCTSTR
 makeIntResource = intPtrToPtr . fromIntegral

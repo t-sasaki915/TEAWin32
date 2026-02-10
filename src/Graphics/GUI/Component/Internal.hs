@@ -12,22 +12,27 @@ module Graphics.GUI.Component.Internal
     , isFlagSet
     , unsetFlag
     , getRelativeRect
+    , getWindowStyle
+    , getWindowCursor
     , restoreComponentFromHWND
     ) where
 
 import                          Control.Monad                          (void,
                                                                         (>=>))
+import                          Data.Functor                           ((<&>))
 import                qualified Data.Map                               as Map
 import                          Data.Text                              (Text)
 import                qualified Data.Text                              as Text
 import                          Foreign                                hiding
                                                                        (new,
                                                                         void)
-import                          Graphics.GUI                           (UniqueId)
+import                          Graphics.GUI
 import                          Graphics.GUI.Component                 (GUIComponent,
                                                                         IsGUIComponent (..))
 import {-# SOURCE #-}           Graphics.GUI.Component.Button.Internal (restoreButtonFromHWND)
+import {-# SOURCE #-}           Graphics.GUI.Component.Window.Internal (restoreWindowFromHWND)
 import                qualified Graphics.GUI.Foreign                   as Win32
+import                qualified Graphics.GUI.Internal                  as GUIInternal
 import                qualified Graphics.Win32                         as Win32
 
 componentTypePropName :: String
@@ -92,13 +97,25 @@ unregisterUniqueIdFromHWND hwnd =
 
 getClassName :: Win32.HWND -> IO Text
 getClassName hwnd =
-    allocaArray 256 $ \pBuf ->
-        Text.pack <$> (Win32.c_GetClassName hwnd pBuf 256 >>= Win32.peekTString . intPtrToPtr . fromIntegral)
+    allocaArray 256 $ \pBuf -> do
+        Win32.c_GetClassName hwnd pBuf 256 >>
+            Win32.peekTString pBuf <&> Text.pack
 
 getWindowTitle :: Win32.HWND -> IO Text
-getWindowTitle hwnd = do
-    Win32.getWindowTextLength hwnd >>= \textLength ->
-        Text.pack <$> Win32.getWindowText hwnd (textLength + 1)
+getWindowTitle hwnd =
+    Win32.c_GetWindowTextLength hwnd >>= \case
+        0   -> pure ""
+        len -> allocaArray (len + 1) $ \pBuf ->
+            Win32.c_GetWindowText hwnd pBuf (len + 1) >>
+                Text.pack <$> Win32.peekTString pBuf
+
+getWindowStyle :: Win32.HWND -> IO WindowStyle
+getWindowStyle hwnd =
+    fromWin32WindowStyle . fromIntegral <$> Win32.c_GetWindowLongPtr hwnd Win32.gWL_STYLE
+
+getWindowCursor :: Win32.HWND -> IO Cursor
+getWindowCursor hwnd =
+    fromWin32Cursor . intPtrToPtr . fromIntegral <$> Win32.c_GetClassLongPtr hwnd Win32.gCLP_HCURSOR
 
 setFlag :: String -> Win32.HWND -> IO ()
 setFlag flagName hwnd =
@@ -120,18 +137,18 @@ getRelativeRect hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
     let (l, t, r, b) = (fromIntegral l', fromIntegral t', fromIntegral r', fromIntegral b')
 
-    parentHWND <- Win32.getParent hwnd
-
-    if parentHWND == Win32.nullPtr
-        then pure (l, t, r - l, b - t)
-        else do
+    GUIInternal.isParentWindow hwnd >>= \case
+        True  -> pure (l, t, r - l, b - t)
+        False -> do
+            parentHWND <- Win32.getParent hwnd
             (x, y) <- Win32.screenToClient parentHWND (fromIntegral l, fromIntegral t)
 
             pure (fromIntegral x, fromIntegral y, r - l, b - t)
 
-restoreComponentFromHWND :: Win32.HWND -> IO (Maybe GUIComponent)
+restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 restoreComponentFromHWND hwnd =
     getComponentType hwnd >>= \case
-        "BUTTON" -> Just <$> restoreButtonFromHWND hwnd
-        _        -> pure Nothing
+        "BUTTON" -> restoreButtonFromHWND hwnd
+        "WINDOW" -> restoreWindowFromHWND hwnd
+        _        -> error "Unrecognisable component type"
 

@@ -22,6 +22,7 @@ import qualified Framework.TEA.Internal          as TEAInternal
 import           Graphics.GUI
 import           Graphics.GUI.Component          (GUIComponent (..),
                                                   IsGUIComponent (render))
+import qualified Graphics.GUI.Component.Internal as ComponentInternal
 import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
 import qualified Graphics.GUI.Foreign            as Win32
 import qualified Graphics.GUI.Internal           as Internal
@@ -74,74 +75,119 @@ instance IsGUIComponentProperty WindowTitle where
     getPropertyName _ = "WindowTitle"
 
     applyProperty (WindowTitle title) windowHWND =
+        Win32.setWindowText windowHWND (Text.unpack title) >>
+            ComponentInternal.setFlag "WINDOWTITLE_SET" windowHWND
+
+    updateProperty (WindowTitle title) _ windowHWND =
         Win32.setWindowText windowHWND (Text.unpack title)
 
-    updateProperty newProp _ = applyProperty newProp
-
-    unapplyProperty _ = applyProperty (WindowTitle "")
+    unapplyProperty _ windowHWND =
+        Win32.setWindowText windowHWND "" >>
+            ComponentInternal.unsetFlag "WINDOWTITLE_SET" windowHWND
 
 instance IsGUIComponentProperty WindowIcon where
     getPropertyName _ = "WindowIcon"
 
     applyProperty (WindowIcon icon) windowHWND =
+        (toWin32Icon icon >>= \icon' ->
+            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon') >>
+                ComponentInternal.setFlag "WINDOWICON_SET" windowHWND
+
+    updateProperty (WindowIcon icon) _ windowHWND =
         toWin32Icon icon >>= \icon' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon'
 
-    updateProperty newProp _ = applyProperty newProp
-
     unapplyProperty _ windowHWND =
-        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON Win32.nullPtr
+        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON Win32.nullPtr >>
+            ComponentInternal.unsetFlag "WINDOWICON_SET" windowHWND
 
 instance IsGUIComponentProperty WindowCursor where
     getPropertyName _ = "WindowCursor"
 
     applyProperty (WindowCursor cursor) windowHWND =
+        (Win32.loadCursor Nothing (toWin32Cursor cursor) >>= \cursor' ->
+            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor') >>
+                ComponentInternal.setFlag "WINDOWCURSOR_SET" windowHWND
+
+    updateProperty (WindowCursor cursor) _ windowHWND =
         Win32.loadCursor Nothing (toWin32Cursor cursor) >>= \cursor' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor'
 
-    updateProperty newProp _ = applyProperty newProp
-
     unapplyProperty _ windowHWND =
-        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR Win32.nullPtr
+        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR Win32.nullPtr >>
+            ComponentInternal.unsetFlag "WINDOWCURSOR_SET" windowHWND
 
 instance IsGUIComponentProperty WindowSize where
     getPropertyName _ = "WindowSize"
 
     applyProperty (WindowSize (width, height)) windowHWND =
-        void $
-            Win32.c_SetWindowPos windowHWND
-                Win32.nullPtr
-                0
-                0
-                (fromIntegral width)
-                (fromIntegral height)
-                (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+        Win32.c_SetWindowPos windowHWND
+            Win32.nullPtr
+            0
+            0
+            (fromIntegral width)
+            (fromIntegral height)
+            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.setFlag "WINDOWSIZE_SET" windowHWND
 
-    updateProperty newProp _ = applyProperty newProp
+    updateProperty (WindowSize (width, height)) _ windowHWND =
+        void $ Win32.c_SetWindowPos windowHWND
+            Win32.nullPtr
+            0
+            0
+            (fromIntegral width)
+            (fromIntegral height)
+            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-    unapplyProperty _ = applyProperty (WindowSize (0, 0))
+    unapplyProperty _ windowHWND =
+        Win32.c_SetWindowPos windowHWND
+            Win32.nullPtr
+            0
+            0
+            0
+            0
+            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.unsetFlag "WINDOWSIZE_SET" windowHWND
 
 instance IsGUIComponentProperty WindowPosition where
     getPropertyName _ = "WindowPosition"
 
     applyProperty (WindowPosition (x, y)) windowHWND =
-        void $
-            Win32.c_SetWindowPos
-                windowHWND
-                Win32.nullPtr
-                (fromIntegral x)
-                (fromIntegral y)
-                0
-                0
-                (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+        Win32.c_SetWindowPos
+            windowHWND
+            Win32.nullPtr
+            (fromIntegral x)
+            (fromIntegral y)
+            0
+            0
+            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.setFlag "WINDOWPOSITION_SET" windowHWND
 
-    updateProperty newProp _ = applyProperty newProp
+    updateProperty (WindowPosition (x, y)) _ windowHWND =
+        void $ Win32.c_SetWindowPos
+            windowHWND
+            Win32.nullPtr
+            (fromIntegral x)
+            (fromIntegral y)
+            0
+            0
+            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-    unapplyProperty _ = applyProperty (WindowPosition (0, 0))
+    unapplyProperty _ windowHWND =
+        Win32.c_SetWindowPos
+            windowHWND
+            Win32.nullPtr
+            0
+            0
+            0
+            0
+            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
+                ComponentInternal.unsetFlag "WINDOWPOSITION_SET" windowHWND
 
 instance IsGUIComponentProperty WindowBrush where
     -- TODO
     getPropertyName _ = "WindowBrush"
+
     applyProperty (WindowBrush brush) windowHWND = do
         unapplyProperty (WindowBrush brush) windowHWND
 
@@ -151,22 +197,26 @@ instance IsGUIComponentProperty WindowBrush where
             Win32.withTString "WINDOW_BRUSH" $ \pName ->
                 void $ Win32.c_SetProp windowHWND pName brush'
 
+        ComponentInternal.setFlag "WINDOWBRUSH_SET" windowHWND
+
     updateProperty newProp _ = applyProperty newProp
 
     unapplyProperty _ windowHWND =
-        Win32.c_GetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND >>= \oldBrush ->
-            void $ Win32.c_DeleteObject (intPtrToPtr $ fromIntegral oldBrush)
+        (Win32.c_GetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND >>= \oldBrush ->
+            void $ Win32.c_DeleteObject (intPtrToPtr $ fromIntegral oldBrush)) >>
+                ComponentInternal.unsetFlag "WINDOWBRUSH_SET" windowHWND
 
 instance IsGUIComponentProperty WindowChildren where
     getPropertyName _ = "WindowChildren"
 
     applyProperty (WindowChildren children) windowHWND =
-        forM_ children $ \(GUIComponent child) ->
-            render child (Just windowHWND)
+        forM_ children (\(GUIComponent child) ->
+            render child (Just windowHWND)) >>
+                ComponentInternal.setFlag "WINDOWCHILDREN_SET" windowHWND
 
     updateProperty (WindowChildren newChildren) (WindowChildren oldChildren) =
         TEAInternal.updateChildren newChildren oldChildren
 
     unapplyProperty _ windowHWND =
-        Internal.withChildWindows windowHWND $ \children ->
-            mapM_ Win32.destroyWindow children
+        Internal.withChildWindows windowHWND (mapM_ Win32.destroyWindow) >>
+            ComponentInternal.unsetFlag "WINDOWCHILDREN_SET" windowHWND

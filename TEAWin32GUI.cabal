@@ -45,6 +45,7 @@ library
       Graphics.GUI.Component.Button.Property
       Graphics.GUI.Component.Property.Internal
       Graphics.GUI.Component.Window.DSL
+      Graphics.GUI.Component.Window.Internal
       Graphics.GUI.Component.Window.Property
       Graphics.GUI.Component.Button
       Graphics.GUI.Component.Internal

@@ -5,7 +5,7 @@ module Framework.TEA
 
 import           Control.Exception      (SomeException, try)
 import           Control.Monad          (forM_, void, when)
-import           Control.Monad.Writer   (runWriter)
+import           Control.Monad.Writer   (execWriter)
 import           Data.Data              (Typeable, cast)
 import           Data.Functor           ((<&>))
 import           Data.IORef             (atomicModifyIORef')
@@ -34,12 +34,10 @@ runTEA init update view = do
     _ <- atomicModifyIORef' updateFuncRef (const (update', update'))
     _ <- atomicModifyIORef' viewFuncRef (const (view', view'))
 
-    let initGUIComponents = fmap snd runWriter (view initModel)
+    let initGUIComponents = execWriter (view initModel)
 
     forM_ initGUIComponents $ \guiComponent ->
         render guiComponent Nothing
-
-    _ <- atomicModifyIORef' currentGUIComponentsRef (const (initGUIComponents, initGUIComponents))
 
     messagePump
 
