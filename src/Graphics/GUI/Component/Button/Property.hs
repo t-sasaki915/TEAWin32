@@ -16,7 +16,6 @@ import           Data.IORef                      (atomicModifyIORef')
 import qualified Data.Map                        as Map
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
-import           Framework.TEA                   (IsMsg)
 import qualified Framework.TEA.Internal          as TEAInternal
 import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
 import qualified Graphics.GUI.Foreign            as Win32
@@ -52,7 +51,7 @@ instance IsGUIComponentProperty ButtonProperty where
 newtype ButtonLabel    = ButtonLabel    Text       deriving (Show, Eq)
 newtype ButtonSize     = ButtonSize     (Int, Int) deriving (Show, Eq)
 newtype ButtonPosition = ButtonPosition (Int, Int) deriving (Show, Eq)
-data    ButtonClicked  = forall a. (Typeable a, Show a, IsMsg a) => ButtonClicked a
+data    ButtonClicked  = forall a. (Typeable a, Show a, Eq a) => ButtonClicked a
 
 instance Eq ButtonClicked where
     (ButtonClicked a) == (ButtonClicked b) =

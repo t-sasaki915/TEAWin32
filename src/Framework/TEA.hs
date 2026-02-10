@@ -1,7 +1,5 @@
 module Framework.TEA
     ( GUIComponents
-    , IsModel
-    , IsMsg
     , runTEA
     ) where
 
@@ -16,7 +14,7 @@ import           Graphics.GUI.Component (GUIComponents, IsGUIComponent (render))
 import qualified Graphics.Win32         as Win32
 import           Prelude                hiding (init)
 
-runTEA :: (Typeable model, Typeable msg, IsModel model) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
+runTEA :: (Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA init update view = do
     initModel <- init
 

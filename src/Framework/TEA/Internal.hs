@@ -1,9 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Framework.TEA.Internal
-    ( IsModel
-    , IsMsg
-    , Model (..)
+    ( Model (..)
     , Msg (..)
     , modelRef
     , buttonClickEventHandlersRef
@@ -34,11 +32,8 @@ import           Graphics.GUI.Component.Property          (IsGUIComponentPropert
 import           Graphics.GUI.Component.Property.Internal (compareProperties)
 import qualified Graphics.Win32                           as Win32
 
-class IsModel a
-class Eq a => IsMsg a
-
-data Model = forall a. (Typeable a, IsModel a) => Model a
-data Msg = forall a. (Typeable a, IsMsg a) => Msg a
+data Model = forall a. Typeable a => Model a
+data Msg = forall a. Typeable a => Msg a
 
 modelRef :: IORef Model
 modelRef = unsafePerformIO (newIORef (error "TEA is not initialised."))

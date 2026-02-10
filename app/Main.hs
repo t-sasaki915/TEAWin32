@@ -5,8 +5,7 @@ module Main (main) where
 import           Control.Lens               (makeLenses, over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
-import           Framework.TEA              (GUIComponents, IsModel, IsMsg,
-                                             runTEA)
+import           Framework.TEA              (GUIComponents, runTEA)
 import           Graphics.GUI.DSL
 import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
@@ -21,9 +20,6 @@ data Model = Model
 makeLenses ''Model
 
 data Msg = ButtonClicked deriving (Show, Eq)
-
-instance IsModel Model
-instance IsMsg Msg
 
 init :: IO Model
 init = do
