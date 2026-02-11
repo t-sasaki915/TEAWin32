@@ -34,6 +34,10 @@ restoreWindowFromHWND hwnd = do
             liftIO (ComponentInternal.getWindowTitle hwnd) >>= \windowTitle ->
                 tell [WindowProperty $ WindowTitle windowTitle]
 
+        when isWindowIconSet $
+            liftIO (ComponentInternal.getWindowIcon hwnd) >>= \windowIcon ->
+                tell [WindowProperty $ WindowIcon windowIcon]
+
         when isWindowCursorSet $
             liftIO (ComponentInternal.getWindowCursor hwnd) >>= \windowCursor ->
                 tell [WindowProperty $ WindowCursor windowCursor]

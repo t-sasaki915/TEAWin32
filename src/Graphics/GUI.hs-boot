@@ -1,4 +1,13 @@
-module Graphics.GUI (Cursor (..)) where
+module Graphics.GUI (Icon (..), Cursor (..)) where
+
+data Icon = Application
+          | Hand
+          | Question
+          | Exclamation
+          | Asterisk
+          | FromResource Int
+
+instance Ord Icon
 
 data Cursor = Arrow
             | IBeam

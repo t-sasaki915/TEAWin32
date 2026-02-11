@@ -7,24 +7,24 @@ module Graphics.GUI
     , toWin32WindowStyle
     , fromWin32WindowStyle
     , toWin32Icon
+    , fromWin32Icon
     , toWin32Cursor
     , fromWin32Cursor
     , toWin32Brush
     ) where
 
+import                          Control.Concurrent    (modifyMVar, readMVar)
 import                          Data.Bimap            ((!), (!>))
+import                qualified Data.Bimap            as Bimap
 import                          Data.Bits             ((.&.), (.|.))
-import                          Data.IORef            (readIORef)
 import                          Data.Text             (Text)
 import                qualified Graphics.GUI.Foreign  as Win32
-import {-# SOURCE #-}           Graphics.GUI.Internal (cursorCacheRef)
+import {-# SOURCE #-}           Graphics.GUI.Internal (cursorCacheRef,
+                                                       iconCacheRef)
 import                qualified Graphics.Win32        as Win32
 import                qualified System.Win32          as Win32
 
-newtype UniqueId = UniqueId Text deriving (Show, Eq)
-
-instance Ord UniqueId where
-    compare (UniqueId x) (UniqueId y) = compare x y
+newtype UniqueId = UniqueId Text deriving (Show, Eq, Ord)
 
 data WindowStyle = Borderless
                  | Normal
@@ -53,17 +53,26 @@ data Icon = Application
           | Exclamation
           | Asterisk
           | FromResource Int
-          deriving (Show, Eq)
+          deriving (Show, Eq, Ord)
 
-toWin32Icon :: Icon -> IO Win32.HICON
-toWin32Icon Application      = Win32.loadIcon Nothing Win32.iDI_APPLICATION
-toWin32Icon Hand             = Win32.loadIcon Nothing Win32.iDI_HAND
-toWin32Icon Question         = Win32.loadIcon Nothing Win32.iDI_QUESTION
-toWin32Icon Exclamation      = Win32.loadIcon Nothing Win32.iDI_EXCLAMATION
-toWin32Icon Asterisk         = Win32.loadIcon Nothing Win32.iDI_ASTERISK
-toWin32Icon (FromResource x) =
-    Win32.getModuleHandle Nothing >>= \hInstance ->
-        Win32.loadIcon (Just hInstance) (Win32.makeIntResource x)
+toWin32Icon :: Icon -> IO Win32.HANDLE
+toWin32Icon icon@(FromResource resourceId) =
+    modifyMVar iconCacheRef $ \iconCache ->
+        case Bimap.lookup icon iconCache of
+            Just hndl -> pure (iconCache, hndl)
+            Nothing ->
+                Win32.getModuleHandle Nothing >>= \hInstance ->
+                    Win32.loadIcon (Just hInstance) (Win32.makeIntResource resourceId) >>= \iconHandle ->
+                        pure (Bimap.insert icon iconHandle iconCache, iconHandle)
+
+toWin32Icon icon =
+    readMVar iconCacheRef >>= \iconCache ->
+        pure (iconCache ! icon)
+
+fromWin32Icon :: Win32.HANDLE -> IO Icon
+fromWin32Icon icon =
+    readMVar iconCacheRef >>= \iconCache ->
+        pure (iconCache !> icon)
 
 data Cursor = Arrow
             | IBeam
@@ -78,12 +87,12 @@ data Cursor = Arrow
 
 toWin32Cursor :: Cursor -> IO Win32.HANDLE
 toWin32Cursor cursor =
-    readIORef cursorCacheRef >>= \cursorCache ->
+    readMVar cursorCacheRef >>= \cursorCache ->
         pure (cursorCache ! cursor)
 
 fromWin32Cursor :: Win32.HANDLE -> IO Cursor
 fromWin32Cursor cursor =
-    readIORef cursorCacheRef >>= \cursorCache ->
+    readMVar cursorCacheRef >>= \cursorCache ->
         pure (cursorCache !> cursor)
 
 data Brush = SolidBrush Int Int Int deriving (Show, Eq)

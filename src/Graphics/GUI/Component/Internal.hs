@@ -13,6 +13,7 @@ module Graphics.GUI.Component.Internal
     , getRelativeRect
     , getWindowStyle
     , getWindowCursor
+    , getWindowIcon
     , setEventHandler
     , getEventHandler
     , getEventHandlerMaybe
@@ -156,6 +157,11 @@ getWindowTitle hwnd =
 getWindowStyle :: Win32.HWND -> IO WindowStyle
 getWindowStyle hwnd =
     fromWin32WindowStyle . fromIntegral <$> Win32.c_GetWindowLongPtr hwnd Win32.gWL_STYLE
+
+getWindowIcon :: Win32.HWND -> IO Icon
+getWindowIcon hwnd =
+    Win32.c_GetClassLongPtr hwnd Win32.gCLP_HICON >>=
+        fromWin32Icon . intPtrToPtr . fromIntegral
 
 getWindowCursor :: Win32.HWND -> IO Cursor
 getWindowCursor hwnd =

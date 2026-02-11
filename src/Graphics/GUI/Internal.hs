@@ -6,9 +6,13 @@ module Graphics.GUI.Internal
     , withTopLevelWindows
     , withImmediateChildWindows
     , cursorCacheRef
+    , iconCacheRef
     , initialiseCursorCache
+    , initialiseIconCache
     ) where
 
+import                          Control.Concurrent   (MVar, modifyMVar_,
+                                                      newMVar)
 import                          Control.Exception    (SomeException, try)
 import                          Control.Monad        (filterM)
 import                          Data.Bimap           (Bimap)
@@ -17,7 +21,7 @@ import                          Data.IORef           (IORef, atomicModifyIORef',
                                                       modifyIORef, newIORef,
                                                       readIORef)
 import                          Foreign              (freeHaskellFunPtr)
-import {-# SOURCE #-}           Graphics.GUI         (Cursor (..))
+import {-# SOURCE #-}           Graphics.GUI         (Cursor (..), Icon (..))
 import                qualified Graphics.GUI.Foreign as Win32
 import                qualified Graphics.Win32       as Win32
 import                          System.IO.Unsafe     (unsafePerformIO)
@@ -27,9 +31,13 @@ activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)
 {-# NOINLINE activeWindowCountRef #-}
 
-cursorCacheRef :: IORef (Bimap Cursor Win32.HANDLE)
-cursorCacheRef = unsafePerformIO (newIORef $ Bimap.fromList [])
+cursorCacheRef :: MVar (Bimap Cursor Win32.HANDLE)
+cursorCacheRef = unsafePerformIO (newMVar Bimap.empty)
 {-# NOINLINE cursorCacheRef #-}
+
+iconCacheRef :: MVar (Bimap Icon Win32.HANDLE)
+iconCacheRef = unsafePerformIO (newMVar Bimap.empty)
+{-# NOINLINE iconCacheRef #-}
 
 initialiseCursorCache :: IO ()
 initialiseCursorCache = do
@@ -46,9 +54,20 @@ initialiseCursorCache = do
             , (SizeNS  , Win32.iDC_SIZENS  )
             ]
 
-    atomicModifyIORef' cursorCacheRef (const (buildInCursorCache, ()))
+    modifyMVar_ cursorCacheRef (const $ pure buildInCursorCache)
 
-    pure ()
+initialiseIconCache :: IO ()
+initialiseIconCache = do
+    builtInIconCache <- Bimap.fromList <$>
+        mapM (\(a, b) -> Win32.loadIcon Nothing b >>= \b' -> pure (a, b'))
+            [ (Application, Win32.iDI_APPLICATION)
+            , (Hand,        Win32.iDI_HAND       )
+            , (Question,    Win32.iDI_QUESTION   )
+            , (Exclamation, Win32.iDI_EXCLAMATION)
+            , (Asterisk,    Win32.iDI_ASTERISK   )
+            ]
+
+    modifyMVar_ iconCacheRef (const $ pure builtInIconCache)
 
 withChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
 withChildWindows targetHWND func = do

@@ -11,13 +11,15 @@ import           Data.Functor           ((<&>))
 import           Data.IORef             (atomicModifyIORef')
 import           Framework.TEA.Internal
 import           Graphics.GUI.Component (GUIComponents, IsGUIComponent (render))
-import           Graphics.GUI.Internal  (initialiseCursorCache)
+import           Graphics.GUI.Internal  (initialiseCursorCache,
+                                         initialiseIconCache)
 import qualified Graphics.Win32         as Win32
 import           Prelude                hiding (init)
 
 runTEA :: (Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA init update view = do
     initialiseCursorCache
+    initialiseIconCache
 
     initModel <- init
 
