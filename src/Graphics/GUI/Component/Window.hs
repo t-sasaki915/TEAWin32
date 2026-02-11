@@ -1,11 +1,13 @@
 module Graphics.GUI.Component.Window (Window (..), destroyChildren) where
 
+import           Control.Exception                      (bracket)
 import           Control.Monad                          (unless, when)
 import           Data.IORef                             (atomicModifyIORef')
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
 import           Foreign                                (intPtrToPtr)
 import qualified Framework.TEA.Internal                 as TEAInternal
+import           Graphics.Drawing                       (toWin32Colour)
 import           Graphics.GUI                           (UniqueId, WindowStyle,
                                                          toWin32WindowStyle)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
@@ -14,6 +16,7 @@ import           Graphics.GUI.Component.Internal.Prop
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
+import qualified Graphics.GUI.Foreign                   as Win32
 import qualified Graphics.GUI.Internal                  as Internal
 import qualified Graphics.Win32                         as Win32
 import qualified System.Win32                           as Win32
@@ -96,6 +99,20 @@ defaultWindowProc hwnd wMsg wParam lParam
 
             _ ->
                 Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
+
+    | wMsg == Win32.wM_ERASEBKGND =
+        ComponentInternal.getWindowBackgroundColourMaybe hwnd >>= \case
+            Just backgroundColour -> do
+                let hdc = intPtrToPtr $ fromIntegral wParam
+
+                rect <- Win32.getClientRect hwnd
+                bracket (Win32.createSolidBrush (toWin32Colour backgroundColour)) Win32.c_DeleteObject $
+                    Win32.fillRect hdc rect
+
+                pure 1
+
+            Nothing ->
+                pure 0
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam

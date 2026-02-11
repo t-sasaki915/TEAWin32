@@ -8,7 +8,7 @@ module Graphics.GUI.Component.Window.Property
     , WindowCursor (..)
     , WindowSize (..)
     , WindowPosition (..)
-    , WindowBrush (..)
+    , WindowBackgroundColour (..)
     , WindowChildren (..)
     ) where
 
@@ -18,6 +18,7 @@ import                          Data.Data                       (Typeable, cast)
 import                          Data.Text                       (Text)
 import                qualified Data.Text                       as Text
 import                qualified Framework.TEA.Internal          as TEAInternal
+import                          Graphics.Drawing                (Colour)
 import                          Graphics.GUI
 import                          Graphics.GUI.Component          (GUIComponent (..),
                                                                  IsGUIComponent (render))
@@ -54,20 +55,20 @@ instance IsGUIComponentProperty WindowProperty where
 
     getPropertyName (WindowProperty x) = getPropertyName x
 
-newtype WindowTitle    = WindowTitle    Text           deriving (Show, Eq)
-newtype WindowIcon     = WindowIcon     Icon           deriving (Show, Eq)
-newtype WindowCursor   = WindowCursor   Cursor         deriving (Show, Eq)
-newtype WindowSize     = WindowSize     (Int, Int)     deriving (Show, Eq)
-newtype WindowPosition = WindowPosition (Int, Int)     deriving (Show, Eq)
-newtype WindowBrush    = WindowBrush    Brush          deriving (Show, Eq)
-newtype WindowChildren = WindowChildren [GUIComponent] deriving (Show, Eq)
+newtype WindowTitle            = WindowTitle            Text           deriving (Show, Eq)
+newtype WindowIcon             = WindowIcon             Icon           deriving (Show, Eq)
+newtype WindowCursor           = WindowCursor           Cursor         deriving (Show, Eq)
+newtype WindowSize             = WindowSize             (Int, Int)     deriving (Show, Eq)
+newtype WindowPosition         = WindowPosition         (Int, Int)     deriving (Show, Eq)
+newtype WindowBackgroundColour = WindowBackgroundColour Colour         deriving (Show, Eq)
+newtype WindowChildren         = WindowChildren         [GUIComponent] deriving (Show, Eq)
 
 instance IsWindowProperty WindowTitle
 instance IsWindowProperty WindowIcon
 instance IsWindowProperty WindowCursor
 instance IsWindowProperty WindowSize
 instance IsWindowProperty WindowPosition
-instance IsWindowProperty WindowBrush
+instance IsWindowProperty WindowBackgroundColour
 instance IsWindowProperty WindowChildren
 
 instance IsGUIComponentProperty WindowTitle where
@@ -183,25 +184,22 @@ instance IsGUIComponentProperty WindowPosition where
             (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
                 ComponentInternal.unsetFlag "WINDOWPOSITION_SET" windowHWND
 
-instance IsGUIComponentProperty WindowBrush where
-    -- TODO
-    getPropertyName _ = "WindowBrush"
+instance IsGUIComponentProperty WindowBackgroundColour where
+    getPropertyName _ = "WindowBackgroundColour"
 
-    applyProperty (WindowBrush brush) windowHWND =
-        (toWin32Brush brush >>= \brush' ->
-            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND brush' >>
-                ComponentInternal.attachGDI "WINDOWBRUSH" brush' windowHWND) >>
-                    ComponentInternal.setFlag "WINDOWBRUSH_SET" windowHWND
+    applyProperty (WindowBackgroundColour colour) windowHWND =
+        ComponentInternal.setWindowBackgroundColour colour windowHWND >>
+            ComponentInternal.setFlag "WINDOWBACKGROUNDCOLOUR_SET" windowHWND >>
+                Win32.invalidateRect (Just windowHWND) Nothing True
 
-    updateProperty (WindowBrush brush) _ windowHWND =
-        ComponentInternal.unattachGDI "WINDOWBRUSH" windowHWND >>
-            toWin32Brush brush >>= \brush' ->
-                void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND brush' >>
-                    ComponentInternal.attachGDI "WINDOWBRUSH" brush' windowHWND
+    updateProperty (WindowBackgroundColour colour) _ windowHWND =
+        ComponentInternal.setWindowBackgroundColour colour windowHWND >>
+            Win32.invalidateRect (Just windowHWND) Nothing True
 
     unapplyProperty _ windowHWND =
-        ComponentInternal.unattachGDI "WINDOWBRUSH" windowHWND >>
-            ComponentInternal.unsetFlag "WINDOWBRUSH_SET" windowHWND
+        ComponentInternal.removeWindowBackgroundColour windowHWND >>
+            ComponentInternal.unsetFlag "WINDOWBACKGROUNDCOLOUR_SET" windowHWND >>
+                Win32.invalidateRect (Just windowHWND) Nothing True
 
 instance IsGUIComponentProperty WindowChildren where
     getPropertyName _ = "WindowChildren"

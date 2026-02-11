@@ -21,13 +21,13 @@ restoreWindowFromHWND hwnd = do
                 Just className' -> pure className'
                 Nothing         -> error "Tried to process a window that is not managed by TEAWin32GUI."
 
-    isWindowTitleSet    <- ComponentInternal.isFlagSet "WINDOWTITLE_SET"    hwnd
-    isWindowIconSet     <- ComponentInternal.isFlagSet "WINDOWICON_SET"     hwnd
-    isWindowCursorSet   <- ComponentInternal.isFlagSet "WINDOWCURSOR_SET"   hwnd
-    isWindowSizeSet     <- ComponentInternal.isFlagSet "WINDOWSIZE_SET"     hwnd
-    isWindowPositionSet <- ComponentInternal.isFlagSet "WINDOWPOSITION_SET" hwnd
-    isWindowBrushSet    <- ComponentInternal.isFlagSet "WINDOWBRUSH_SET"    hwnd
-    isWindowChildrenSet <- ComponentInternal.isFlagSet "WINDOWCHILDREN_SET" hwnd
+    isWindowTitleSet            <- ComponentInternal.isFlagSet "WINDOWTITLE_SET"            hwnd
+    isWindowIconSet             <- ComponentInternal.isFlagSet "WINDOWICON_SET"             hwnd
+    isWindowCursorSet           <- ComponentInternal.isFlagSet "WINDOWCURSOR_SET"           hwnd
+    isWindowSizeSet             <- ComponentInternal.isFlagSet "WINDOWSIZE_SET"             hwnd
+    isWindowPositionSet         <- ComponentInternal.isFlagSet "WINDOWPOSITION_SET"         hwnd
+    isWindowBackgroundColourSet <- ComponentInternal.isFlagSet "WINDOWBACKGROUNDCOLOUR_SET" hwnd
+    isWindowChildrenSet         <- ComponentInternal.isFlagSet "WINDOWCHILDREN_SET"         hwnd
 
     properties <- execWriterT $ do
         when isWindowTitleSet $
@@ -49,6 +49,10 @@ restoreWindowFromHWND hwnd = do
         when isWindowPositionSet $
             liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(x, y, _, _) ->
                 tell [WindowProperty $ WindowPosition (x, y)]
+
+        when isWindowBackgroundColourSet $
+            liftIO (ComponentInternal.getWindowBackgroundColour hwnd) >>= \backgroundColour ->
+                tell [WindowProperty $ WindowBackgroundColour backgroundColour]
 
         when isWindowChildrenSet $
             liftIO (Internal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->

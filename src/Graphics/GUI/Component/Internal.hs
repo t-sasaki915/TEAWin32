@@ -21,6 +21,10 @@ module Graphics.GUI.Component.Internal
     , attachGDI
     , getGDI
     , unattachGDI
+    , setWindowBackgroundColour
+    , getWindowBackgroundColour
+    , getWindowBackgroundColourMaybe
+    , removeWindowBackgroundColour
     , isManagedWindow
     , restoreComponentFromHWND
     ) where
@@ -35,6 +39,7 @@ import                          Foreign                                hiding
                                                                        (new,
                                                                         void)
 import                qualified Framework.TEA.Internal                 as TEAInternal
+import                          Graphics.Drawing                       (Colour)
 import                          Graphics.GUI
 import                          Graphics.GUI.Component                 (GUIComponent,
                                                                         IsGUIComponent (..))
@@ -139,6 +144,27 @@ unattachGDI gdiName hwnd =
                     removeProp hwnd propName
 
             _ -> error "ComponentGDIResource not found."
+
+setWindowBackgroundColour :: Colour -> Win32.HWND -> IO ()
+setWindowBackgroundColour colour hwnd =
+    setProp hwnd "ComponentWindowBackgroundColour" (ComponentColour colour)
+
+getWindowBackgroundColour :: Win32.HWND -> IO Colour
+getWindowBackgroundColour hwnd =
+    getProp hwnd "ComponentWindowBackgroundColour" >>= \case
+        Just (ComponentColour colour) -> pure colour
+        _                             -> error "ComponentWindowBackgroundColour not found."
+
+getWindowBackgroundColourMaybe :: Win32.HWND -> IO (Maybe Colour)
+getWindowBackgroundColourMaybe hwnd =
+    getProp hwnd "ComponentWindowBackgroundColour" >>= \case
+        Just (ComponentColour colour) -> pure (Just colour)
+        Nothing                       -> pure Nothing
+        _                             -> error "ComponentWindowBackgroundColour not found."
+
+removeWindowBackgroundColour :: Win32.HWND -> IO ()
+removeWindowBackgroundColour hwnd =
+    removeProp hwnd "ComponentWindowBackgroundColour"
 
 getClassName :: Win32.HWND -> IO Text
 getClassName hwnd =

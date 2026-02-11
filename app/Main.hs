@@ -51,6 +51,7 @@ view model = do
             windowIcon Exclamation
             windowSize (400, 10)
             windowPosition (0, 0)
+            windowBackgroundColour (RGB 0 0 255)
 
     window "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal $ do
         windowTitle ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
@@ -59,7 +60,9 @@ view model = do
             windowCursor IBeam
         windowSize (model ^. displayWidth, model ^. displayHeight)
         --windowPosition (0, 0)
-        windowBrush (SolidBrush 255 255 255)
+        if even (model ^. clickedCount)
+            then windowBackgroundColour (RGB 255 255 255)
+            else windowBackgroundColour (RGB 100 100 100)
         windowChildren $ do
             button "TestButton" $ do
                 buttonLabel "TEST BUTTON"
@@ -78,7 +81,7 @@ view model = do
                 windowCursor Arrow
                 windowSize (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
                 windowPosition (100, 100)
-                windowBrush (SolidBrush 255 0 0)
+                windowBackgroundColour (RGB 255 0 0)
                 windowChildren $ do
                     button "TestButton2" $ do
                         buttonLabel ("Click Count 2: " <> Text.show (model ^. clickedCount))
@@ -97,7 +100,7 @@ view model = do
                         windowCursor Wait
                         windowSize (50, 50)
                         windowPosition (0, 0)
-                        windowBrush (SolidBrush 0 255 0)
+                        windowBackgroundColour (RGB 0 255 0)
 
 main :: IO ()
 main = runTEA init update view

@@ -20,6 +20,7 @@ import           Data.Text              (Text)
 import           Foreign                (castPtr)
 import qualified Framework.TEA.Internal as TEAInternal
 import           GHC.IO                 (unsafePerformIO)
+import           Graphics.Drawing       (Colour)
 import           Graphics.GUI           (UniqueId)
 import qualified Graphics.GUI.Foreign   as Win32
 import qualified Graphics.Win32         as Win32
@@ -29,6 +30,7 @@ data ManagedProp = ComponentUniqueId     UniqueId
                  | ComponentFlag
                  | ComponentEventHandler TEAInternal.Msg
                  | ComponentGDIResource  Win32.HANDLE
+                 | ComponentColour       Colour
                  deriving Show
 
 finalisePropValue :: ManagedProp -> IO ()
@@ -37,6 +39,7 @@ finalisePropValue (ComponentType _)           = pure ()
 finalisePropValue ComponentFlag               = pure ()
 finalisePropValue (ComponentEventHandler _)   = pure ()
 finalisePropValue (ComponentGDIResource hndl) = void $ Win32.c_DeleteObject (castPtr hndl)
+finalisePropValue (ComponentColour _)         = pure ()
 
 propMapRef :: IORef (Map Win32.HWND (Map Text ManagedProp))
 propMapRef = unsafePerformIO (newIORef Map.empty)

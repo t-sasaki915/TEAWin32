@@ -4,7 +4,7 @@ module Graphics.GUI.Component.Window.DSL
     , windowCursor
     , windowSize
     , windowPosition
-    , windowBrush
+    , windowBackgroundColour
     , windowChildren
     , window
     ) where
@@ -12,7 +12,8 @@ module Graphics.GUI.Component.Window.DSL
 import           Control.Monad.Writer                   (MonadWriter (tell),
                                                          Writer, execWriter)
 import           Data.Text                              (Text)
-import           Graphics.GUI                           (Brush, Cursor, Icon,
+import           Graphics.Drawing                       (Colour)
+import           Graphics.GUI                           (Cursor, Icon,
                                                          UniqueId (..),
                                                          WindowStyle)
 import           Graphics.GUI.Component                 (GUIComponent (GUIComponent),
@@ -35,8 +36,8 @@ windowSize = tell . pure . WindowProperty . WindowSize
 windowPosition :: (Int, Int) -> Writer [WindowProperty] ()
 windowPosition = tell . pure . WindowProperty . WindowPosition
 
-windowBrush :: Brush -> Writer [WindowProperty] ()
-windowBrush = tell . pure . WindowProperty . WindowBrush
+windowBackgroundColour :: Colour -> Writer [WindowProperty] ()
+windowBackgroundColour = tell . pure . WindowProperty . WindowBackgroundColour
 
 windowChildren :: Writer [GUIComponent] () -> Writer [WindowProperty] ()
 windowChildren children =

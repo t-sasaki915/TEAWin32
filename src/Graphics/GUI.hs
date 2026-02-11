@@ -3,14 +3,12 @@ module Graphics.GUI
     , WindowStyle (..)
     , Icon (..)
     , Cursor (..)
-    , Brush (..)
     , toWin32WindowStyle
     , fromWin32WindowStyle
     , toWin32Icon
     , fromWin32Icon
     , toWin32Cursor
     , fromWin32Cursor
-    , toWin32Brush
     ) where
 
 import                          Control.Concurrent    (modifyMVar, readMVar)
@@ -94,8 +92,3 @@ fromWin32Cursor :: Win32.HANDLE -> IO Cursor
 fromWin32Cursor cursor =
     readMVar cursorCacheRef >>= \cursorCache ->
         pure (cursorCache !> cursor)
-
-data Brush = SolidBrush Int Int Int deriving (Show, Eq)
-
-toWin32Brush :: Brush -> IO Win32.HBRUSH
-toWin32Brush (SolidBrush r g b) = Win32.createSolidBrush (Win32.rgb (fromIntegral r) (fromIntegral g) (fromIntegral b))
