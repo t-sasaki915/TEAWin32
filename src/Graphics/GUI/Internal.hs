@@ -5,21 +5,50 @@ module Graphics.GUI.Internal
     , isTopLevelWindow
     , withTopLevelWindows
     , withImmediateChildWindows
+    , cursorCacheRef
+    , initialiseCursorCache
     ) where
 
-import           Control.Exception    (SomeException, try)
-import           Control.Monad        (filterM)
-import           Data.IORef           (IORef, atomicModifyIORef', modifyIORef,
-                                       newIORef, readIORef)
-import           Foreign              (freeHaskellFunPtr)
-import qualified Graphics.GUI.Foreign as Win32
-import qualified Graphics.Win32       as Win32
-import           System.IO.Unsafe     (unsafePerformIO)
-import qualified System.Win32         as Win32
+import                          Control.Exception    (SomeException, try)
+import                          Control.Monad        (filterM)
+import                          Data.Bimap           (Bimap)
+import                qualified Data.Bimap           as Bimap
+import                          Data.IORef           (IORef, atomicModifyIORef',
+                                                      modifyIORef, newIORef,
+                                                      readIORef)
+import                          Foreign              (freeHaskellFunPtr)
+import {-# SOURCE #-}           Graphics.GUI         (Cursor (..))
+import                qualified Graphics.GUI.Foreign as Win32
+import                qualified Graphics.Win32       as Win32
+import                          System.IO.Unsafe     (unsafePerformIO)
+import                qualified System.Win32         as Win32
 
 activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)
 {-# NOINLINE activeWindowCountRef #-}
+
+cursorCacheRef :: IORef (Bimap Cursor Win32.HANDLE)
+cursorCacheRef = unsafePerformIO (newIORef $ Bimap.fromList [])
+{-# NOINLINE cursorCacheRef #-}
+
+initialiseCursorCache :: IO ()
+initialiseCursorCache = do
+    buildInCursorCache <- Bimap.fromList <$>
+        mapM (\(a, b) -> Win32.loadCursor Nothing b >>= \b' -> pure (a, b'))
+            [ (Arrow   , Win32.iDC_ARROW   )
+            , (IBeam   , Win32.iDC_IBEAM   )
+            , (Wait    , Win32.iDC_WAIT    )
+            , (Cross   , Win32.iDC_CROSS   )
+            , (Uparrow , Win32.iDC_UPARROW )
+            , (SizeNWSE, Win32.iDC_SIZENWSE)
+            , (SizeNESW, Win32.iDC_SIZENESW)
+            , (SizeWE  , Win32.iDC_SIZEWE  )
+            , (SizeNS  , Win32.iDC_SIZENS  )
+            ]
+
+    _ <- atomicModifyIORef' cursorCacheRef (const (buildInCursorCache, buildInCursorCache))
+
+    pure ()
 
 withChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
 withChildWindows targetHWND func = do

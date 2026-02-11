@@ -12,11 +12,14 @@ module Graphics.GUI
     , toWin32Brush
     ) where
 
-import           Data.Bits            ((.&.), (.|.))
-import           Data.Text            (Text)
-import qualified Graphics.GUI.Foreign as Win32
-import qualified Graphics.Win32       as Win32
-import qualified System.Win32         as Win32
+import                          Data.Bimap            ((!), (!>))
+import                          Data.Bits             ((.&.), (.|.))
+import                          Data.IORef            (readIORef)
+import                          Data.Text             (Text)
+import                qualified Graphics.GUI.Foreign  as Win32
+import {-# SOURCE #-}           Graphics.GUI.Internal (cursorCacheRef)
+import                qualified Graphics.Win32        as Win32
+import                qualified System.Win32          as Win32
 
 newtype UniqueId = UniqueId Text deriving (Show, Eq)
 
@@ -71,30 +74,17 @@ data Cursor = Arrow
             | SizeNESW
             | SizeWE
             | SizeNS
-            deriving (Show, Eq)
+            deriving (Show, Eq, Ord)
 
-toWin32Cursor :: Cursor -> Win32.Cursor
-toWin32Cursor Arrow    = Win32.iDC_ARROW
-toWin32Cursor IBeam    = Win32.iDC_IBEAM
-toWin32Cursor Wait     = Win32.iDC_WAIT
-toWin32Cursor Cross    = Win32.iDC_CROSS
-toWin32Cursor Uparrow  = Win32.iDC_UPARROW
-toWin32Cursor SizeNWSE = Win32.iDC_SIZENWSE
-toWin32Cursor SizeNESW = Win32.iDC_SIZENESW
-toWin32Cursor SizeWE   = Win32.iDC_SIZEWE
-toWin32Cursor SizeNS   = Win32.iDC_SIZENS
+toWin32Cursor :: Cursor -> IO Win32.HANDLE
+toWin32Cursor cursor =
+    readIORef cursorCacheRef >>= \cursorCache ->
+        pure (cursorCache ! cursor)
 
-fromWin32Cursor :: Win32.Cursor -> Cursor
-fromWin32Cursor cursor
-    | cursor == Win32.iDC_ARROW    = Arrow
-    | cursor == Win32.iDC_IBEAM    = IBeam
-    | cursor == Win32.iDC_WAIT     = Wait
-    | cursor == Win32.iDC_CROSS    = Cross
-    | cursor == Win32.iDC_UPARROW  = Uparrow
-    | cursor == Win32.iDC_SIZENWSE = SizeNWSE
-    | cursor == Win32.iDC_SIZENESW = SizeNESW
-    | cursor == Win32.iDC_SIZEWE   = SizeWE
-    | otherwise                    = SizeNS
+fromWin32Cursor :: Win32.HANDLE -> IO Cursor
+fromWin32Cursor cursor =
+    readIORef cursorCacheRef >>= \cursorCache ->
+        pure (cursorCache !> cursor)
 
 data Brush = SolidBrush Int Int Int deriving (Show, Eq)
 

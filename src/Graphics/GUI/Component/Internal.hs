@@ -145,7 +145,8 @@ getWindowStyle hwnd =
 
 getWindowCursor :: Win32.HWND -> IO Cursor
 getWindowCursor hwnd =
-    fromWin32Cursor . intPtrToPtr . fromIntegral <$> Win32.c_GetClassLongPtr hwnd Win32.gCLP_HCURSOR
+    Win32.c_GetClassLongPtr hwnd Win32.gCLP_HCURSOR >>=
+        fromWin32Cursor . intPtrToPtr . fromIntegral
 
 setFlag :: String -> Win32.HWND -> IO ()
 setFlag flagName hwnd =

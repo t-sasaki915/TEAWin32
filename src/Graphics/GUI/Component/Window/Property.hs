@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE InstanceSigs              #-}
 
 module Graphics.GUI.Component.Window.Property
     ( WindowProperty (..)
@@ -104,12 +105,13 @@ instance IsGUIComponentProperty WindowCursor where
     getPropertyName _ = "WindowCursor"
 
     applyProperty (WindowCursor cursor) windowHWND =
-        (Win32.loadCursor Nothing (toWin32Cursor cursor) >>= \cursor' ->
+        (toWin32Cursor cursor >>= \cursor' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor') >>
                 ComponentInternal.setFlag "WINDOWCURSOR_SET" windowHWND
 
+    updateProperty :: WindowCursor -> WindowCursor -> Win32.HWND -> IO ()
     updateProperty (WindowCursor cursor) _ windowHWND =
-        Win32.loadCursor Nothing (toWin32Cursor cursor) >>= \cursor' ->
+        toWin32Cursor cursor >>= \cursor' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor'
 
     unapplyProperty _ windowHWND =
