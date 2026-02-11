@@ -1,8 +1,10 @@
 module Graphics.GUI.Internal
     ( activeWindowCountRef
     , withChildWindows
-    , isParentWindow
-    , withParentWindows
+    , whoseParentIs
+    , isTopLevelWindow
+    , withTopLevelWindows
+    , withImmediateChildWindows
     ) where
 
 import           Control.Exception    (SomeException, try)
@@ -37,14 +39,23 @@ withChildWindows targetHWND func = do
 
     pure x
 
-isParentWindow :: Win32.HWND -> IO Bool
-isParentWindow hwnd =
-    (try (Win32.getParent hwnd) :: IO (Either SomeException Win32.HWND)) >>= \case
-        Left _       -> pure True
-        Right parent -> pure (parent == Win32.nullPtr)
+withImmediateChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
+withImmediateChildWindows targetHWND func =
+    withChildWindows targetHWND $ \children ->
+        filterM (`whoseParentIs` targetHWND) children >>=
+            func
 
-withParentWindows :: ([Win32.HWND] -> IO a) -> IO a
-withParentWindows func = do
+isTopLevelWindow :: Win32.HWND -> IO Bool
+isTopLevelWindow = (`whoseParentIs` Win32.nullPtr)
+
+whoseParentIs :: Win32.HWND -> Win32.HWND -> IO Bool
+whoseParentIs hwnd parent =
+    (try (Win32.getParent hwnd) :: IO (Either SomeException Win32.HWND)) >>= \case
+        Left _        -> pure (parent == Win32.nullPtr)
+        Right parent' -> pure (parent == parent')
+
+withTopLevelWindows :: ([Win32.HWND] -> IO a) -> IO a
+withTopLevelWindows func = do
     threadId <- Win32.getCurrentThreadId
     hwndsRef <- newIORef []
 
@@ -56,7 +67,7 @@ withParentWindows func = do
     _       <- Win32.c_EnumThreadWindows threadId enumPtr 0
 
     windows       <- readIORef hwndsRef
-    parentWindows <- filterM isParentWindow windows
+    parentWindows <- filterM isTopLevelWindow windows
     x             <- func parentWindows
 
     freeHaskellFunPtr enumPtr

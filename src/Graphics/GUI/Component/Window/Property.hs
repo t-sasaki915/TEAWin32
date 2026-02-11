@@ -12,20 +12,20 @@ module Graphics.GUI.Component.Window.Property
     , WindowChildren (..)
     ) where
 
-import           Control.Monad                   (forM_, void)
-import           Data.Bits                       ((.|.))
-import           Data.Data                       (Typeable, cast)
-import           Data.Text                       (Text)
-import qualified Data.Text                       as Text
-import qualified Framework.TEA.Internal          as TEAInternal
-import           Graphics.GUI
-import           Graphics.GUI.Component          (GUIComponent (..),
-                                                  IsGUIComponent (render))
-import qualified Graphics.GUI.Component.Internal as ComponentInternal
-import           Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
-import qualified Graphics.GUI.Foreign            as Win32
-import qualified Graphics.GUI.Internal           as Internal
-import qualified Graphics.Win32                  as Win32
+import                          Control.Monad                   (forM_, void)
+import                          Data.Bits                       ((.|.))
+import                          Data.Data                       (Typeable, cast)
+import                          Data.Text                       (Text)
+import                qualified Data.Text                       as Text
+import                qualified Framework.TEA.Internal          as TEAInternal
+import                          Graphics.GUI
+import                          Graphics.GUI.Component          (GUIComponent (..),
+                                                                 IsGUIComponent (render))
+import                qualified Graphics.GUI.Component.Internal as ComponentInternal
+import                          Graphics.GUI.Component.Property (IsGUIComponentProperty (..))
+import {-# SOURCE #-}           Graphics.GUI.Component.Window   (destroyChildren)
+import                qualified Graphics.GUI.Foreign            as Win32
+import                qualified Graphics.Win32                  as Win32
 
 data WindowProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
@@ -215,5 +215,5 @@ instance IsGUIComponentProperty WindowChildren where
         TEAInternal.updateChildren newChildren oldChildren
 
     unapplyProperty _ windowHWND =
-        Internal.withChildWindows windowHWND (mapM_ Win32.destroyWindow) >>
+        destroyChildren windowHWND >>
             ComponentInternal.unsetFlag "WINDOWCHILDREN_SET" windowHWND

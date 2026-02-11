@@ -1,6 +1,6 @@
-module Graphics.GUI.Component.Window (Window (..)) where
+module Graphics.GUI.Component.Window (Window (..), destroyChildren) where
 
-import           Control.Monad                          (void, when)
+import           Control.Monad                          (unless, void, when)
 import           Data.IORef                             (atomicModifyIORef')
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
@@ -30,7 +30,7 @@ instance IsGUIComponent Window where
     render (Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
 
-        let windowClass = Win32.mkClassName (Text.unpack windowClassName)
+        let windowClass = Win32.mkClassName (ComponentInternal.windowClassPrefix <> Text.unpack windowClassName)
 
         _ <- Win32.registerClass
                 ( Win32.cS_VREDRAW + Win32.cS_HREDRAW
@@ -72,14 +72,10 @@ instance IsGUIComponent Window where
 defaultWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
 defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
-        Internal.withChildWindows hwnd $ mapM_ $ \child ->
-            finaliseHWND child >>
-                Win32.destroyWindow child
-
+        destroyChildren hwnd
         finaliseHWND hwnd
 
         remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
-
         when (remainingWindow == 0) $
             Win32.postQuitMessage 0
 
@@ -100,6 +96,16 @@ defaultWindowProc hwnd wMsg wParam lParam
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
+
+destroyChildren :: Win32.HWND -> IO ()
+destroyChildren hwnd =
+    Internal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
+        isWindow <- ComponentInternal.isManagedWindow child
+
+        unless isWindow $
+            finaliseHWND child
+
+        Win32.destroyWindow child
 
 finaliseHWND :: Win32.HWND -> IO ()
 finaliseHWND hwnd = do

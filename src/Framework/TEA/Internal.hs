@@ -87,7 +87,7 @@ issueMsg msg = do
     newModel <- updateFunc msg currentModel
     _        <- atomicModifyIORef' modelRef (const (newModel, newModel))
 
-    currentGUIComponents <- GUIInternal.withParentWindows (mapM ComponentInternal.restoreComponentFromHWND)
+    currentGUIComponents <- GUIInternal.withTopLevelWindows (mapM ComponentInternal.restoreComponentFromHWND)
 
     viewFunc <- readIORef viewFuncRef
     let newGUIComponents = execWriter (viewFunc newModel)
@@ -104,7 +104,7 @@ issueMsg msg = do
 
     forM_ redraw $ \componentToRedraw ->
         getHWNDByUniqueId (getUniqueId componentToRedraw) >>= \case
-            Just hwnd -> render componentToRedraw Nothing >> Win32.destroyWindow hwnd
+            Just hwnd -> Win32.destroyWindow hwnd >> render componentToRedraw Nothing
             Nothing   -> error "Tried to redraw a component that was not in the map."
 
     forM_ propertyChanged $ \(newComponent, oldComponent) -> do
@@ -135,7 +135,7 @@ updateChildren newChildren oldChildren targetHWND = do
 
     forM_ redraw $ \componentToRedraw ->
         getHWNDByUniqueId (getUniqueId componentToRedraw) >>= \case
-            Just hwnd -> render componentToRedraw (Just targetHWND) >> Win32.destroyWindow hwnd
+            Just hwnd -> Win32.destroyWindow hwnd >> render componentToRedraw (Just targetHWND)
             Nothing   -> error "Tried to redraw a component that was not in the map."
 
     forM_ propertyChanged $ \(newComponent, oldComponent) -> do

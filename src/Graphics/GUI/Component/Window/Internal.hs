@@ -3,6 +3,7 @@ module Graphics.GUI.Component.Window.Internal (restoreWindowFromHWND) where
 import           Control.Monad                          (when)
 import           Control.Monad.Writer                   (MonadIO (liftIO),
                                                          execWriterT, tell)
+import qualified Data.Text                              as Text
 import           Graphics.GUI.Component                 (GUIComponent (GUIComponent))
 import qualified Graphics.GUI.Component.Internal        as ComponentInternal
 import           Graphics.GUI.Component.Window          (Window (Window))
@@ -13,8 +14,12 @@ import qualified Graphics.Win32                         as Win32
 restoreWindowFromHWND :: Win32.HWND -> IO GUIComponent
 restoreWindowFromHWND hwnd = do
     windowUniqueId  <- ComponentInternal.getUniqueIdFromHWND hwnd
-    windowClassName <- ComponentInternal.getClassName hwnd
     windowStyle     <- ComponentInternal.getWindowStyle hwnd
+    windowClassName <-
+        ComponentInternal.getClassName hwnd >>= \className ->
+            case Text.stripPrefix (Text.pack ComponentInternal.windowClassPrefix) className of
+                Just className' -> pure className'
+                Nothing         -> error "Tried to process a window that is not managed by TEAWin32GUI."
 
     isWindowTitleSet    <- ComponentInternal.isFlagSet "WINDOWTITLE_SET"    hwnd
     isWindowIconSet     <- ComponentInternal.isFlagSet "WINDOWICON_SET"     hwnd
@@ -42,7 +47,7 @@ restoreWindowFromHWND hwnd = do
                 tell [WindowProperty $ WindowPosition (x, y)]
 
         when isWindowChildrenSet $
-            liftIO (Internal.withChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
+            liftIO (Internal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
                 tell [WindowProperty $ WindowChildren children]
 
     pure $ GUIComponent $ Window windowUniqueId windowClassName windowStyle properties

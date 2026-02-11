@@ -1,5 +1,6 @@
 module Graphics.GUI.Component.Internal
-    ( compareGUIComponents
+    ( windowClassPrefix
+    , compareGUIComponents
     , setComponentType
     , getComponentType
     , unregisterComponentType
@@ -25,6 +26,7 @@ module Graphics.GUI.Component.Internal
     , unattachGDI
     , unattachGDIs
     , withProps
+    , isManagedWindow
     , restoreComponentFromHWND
     ) where
 
@@ -65,6 +67,9 @@ componentEventHandlerPropNamePrefix = "TEAWIN32GUI_COMPONENT_EVENTHANDLER_"
 
 componentGDIPropNamePrefix :: String
 componentGDIPropNamePrefix = "TEAWIN32GUI_COMPONENT_GDI_"
+
+windowClassPrefix :: String
+windowClassPrefix = "TEAWIN32GUI_WINDOW_"
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> ([GUIComponent], [GUIComponent], [GUIComponent], [(GUIComponent, GUIComponent)])
 compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
@@ -169,7 +174,7 @@ getRelativeRect hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
     let (l, t, r, b) = (fromIntegral l', fromIntegral t', fromIntegral r', fromIntegral b')
 
-    GUIInternal.isParentWindow hwnd >>= \case
+    GUIInternal.isTopLevelWindow hwnd >>= \case
         True  -> pure (l, t, r - l, b - t)
         False -> do
             parentHWND <- Win32.getParent hwnd
@@ -252,6 +257,10 @@ withProps hwnd func = do
 
     pure x
 
+isManagedWindow :: Win32.HWND -> IO Bool
+isManagedWindow hwnd =
+    getClassName hwnd >>= \className ->
+        pure $ windowClassPrefix `isPrefixOf` Text.unpack className
 
 restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 restoreComponentFromHWND hwnd =
