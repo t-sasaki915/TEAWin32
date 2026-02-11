@@ -12,8 +12,7 @@ module Framework.TEA.Internal
     , updateChildren
     ) where
 
-import                          Control.Monad                            (forM_,
-                                                                          void)
+import                          Control.Monad                            (forM_)
 import                          Control.Monad.Writer                     (execWriter)
 import                          Data.Data                                (Typeable,
                                                                           cast)
