@@ -12,8 +12,6 @@ module Graphics.GUI.Component.Button.Property
 import           Control.Monad                   (void)
 import           Data.Bits                       ((.|.))
 import           Data.Data                       (Typeable, cast)
-import           Data.IORef                      (atomicModifyIORef')
-import qualified Data.Map                        as Map
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
 import qualified Framework.TEA.Internal          as TEAInternal
@@ -153,19 +151,13 @@ instance IsGUIComponentProperty ButtonClicked where
     getPropertyName _ = "ButtonClicked"
 
     applyProperty (ButtonClicked msg) buttonHWND =
-        atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef (\a ->
-            let updatedMap = Map.insert buttonHWND (TEAInternal.Msg msg) a in
-                (updatedMap, updatedMap)) >>
-                    ComponentInternal.setFlag "BUTTONCLICKED_SET" buttonHWND
+        ComponentInternal.setEventHandler "BUTTONCLICKED" (TEAInternal.Msg msg) buttonHWND >>
+            ComponentInternal.setFlag "BUTTONCLICKED_SET" buttonHWND
 
     updateProperty (ButtonClicked msg) _ buttonHWND =
-        void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \a ->
-            let updatedMap = Map.insert buttonHWND (TEAInternal.Msg msg) a in
-                (updatedMap, updatedMap)
+        ComponentInternal.unregisterEventHandler "BUTTONCLICKED" buttonHWND >>
+            ComponentInternal.setEventHandler "BUTTONCLICKED" (TEAInternal.Msg msg) buttonHWND
 
     unapplyProperty _ buttonHWND =
-        void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef (\a ->
-            let updatedMap = Map.delete buttonHWND a in
-                (updatedMap, updatedMap)) >>
-                    ComponentInternal.unsetFlag "BUTTONCLICKED_SET" buttonHWND
-
+        ComponentInternal.unregisterEventHandler "BUTTONCLICKED" buttonHWND >>
+            ComponentInternal.unsetFlag "BUTTONCLICKED_SET" buttonHWND

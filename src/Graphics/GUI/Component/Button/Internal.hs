@@ -3,9 +3,6 @@ module Graphics.GUI.Component.Button.Internal (restoreButtonFromHWND) where
 import           Control.Monad                          (when)
 import           Control.Monad.Writer                   (MonadIO (liftIO),
                                                          execWriterT, tell)
-import           Data.IORef                             (readIORef)
-import           Data.Map                               ((!))
-import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI.Component                 (GUIComponent (..))
 import           Graphics.GUI.Component.Button          (Button (Button))
 import           Graphics.GUI.Component.Button.Property
@@ -35,7 +32,7 @@ restoreButtonFromHWND hwnd = do
                 tell [ButtonProperty $ ButtonPosition (x, y)]
 
         when isButtonClickedSet $
-            liftIO (readIORef TEAInternal.buttonClickEventHandlersRef) >>= \buttonClickEventHandlers ->
-                tell [ButtonProperty $ ButtonClicked (buttonClickEventHandlers ! hwnd)]
+            liftIO (ComponentInternal.getEventHandler "BUTTONCLICKED" hwnd) >>= \msg ->
+                tell [ButtonProperty $ ButtonClicked msg]
 
     pure $ GUIComponent $ Button buttonUniqueId properties

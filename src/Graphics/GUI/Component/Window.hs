@@ -1,13 +1,10 @@
 module Graphics.GUI.Component.Window (Window (..)) where
 
-import           Control.Monad                          (forM_, void, when)
-import           Data.IORef                             (atomicModifyIORef',
-                                                         readIORef)
-import qualified Data.Map                               as Map
+import           Control.Monad                          (void, when)
+import           Data.IORef                             (atomicModifyIORef')
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
-import           Foreign                                (freeHaskellFunPtr,
-                                                         intPtrToPtr)
+import           Foreign                                (intPtrToPtr)
 import qualified Framework.TEA.Internal                 as TEAInternal
 import           Graphics.GUI                           (UniqueId, WindowStyle,
                                                          toWin32WindowStyle)
@@ -16,7 +13,6 @@ import qualified Graphics.GUI.Component.Internal        as ComponentInternal
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
-import qualified Graphics.GUI.Foreign                   as Win32
 import qualified Graphics.GUI.Internal                  as Internal
 import qualified Graphics.Win32                         as Win32
 import qualified System.Win32                           as Win32
@@ -76,71 +72,41 @@ instance IsGUIComponent Window where
 defaultWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
 defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
+        Internal.withChildWindows hwnd $ mapM_ $ \child ->
+            finaliseHWND child >>
+                Win32.destroyWindow child
+
+        finaliseHWND hwnd
+
         remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
-        cleanupEventHandlers hwnd
-        cleanupProps hwnd
-        cleanupGDIs hwnd
-        unregisterHWND hwnd
-
-        when (remainingWindow <= 0) $
+        when (remainingWindow == 0) $
             Win32.postQuitMessage 0
 
         pure 0
 
     | wMsg == Win32.wM_COMMAND = do
         let notification = Win32.hIWORD (fromIntegral wParam)
-            targetHWND = intPtrToPtr (fromIntegral lParam)
+            targetHWND   = intPtrToPtr (fromIntegral lParam)
 
         case notification of
             0 -> do -- BN_CLICKED
-                buttonClickEventHandlers <- readIORef TEAInternal.buttonClickEventHandlersRef
-
-                case Map.lookup targetHWND buttonClickEventHandlers of
-                    Just action -> TEAInternal.issueMsg action >> pure 0
-                    Nothing     -> Win32.defWindowProc (Just hwnd) wMsg wParam lParam
+                ComponentInternal.getEventHandlerMaybe "BUTTONCLICKED" targetHWND >>= \case
+                    Just msg -> TEAInternal.issueMsg msg >> pure 0
+                    Nothing  -> Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
             _ ->
-                Win32.defWindowProc (Just hwnd) wMsg wParam lParam
+                Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
-cleanupEventHandlers :: Win32.HWND -> IO ()
-cleanupEventHandlers hwnd =
-    Internal.withChildWindows hwnd $ \children ->
-        void $ atomicModifyIORef' TEAInternal.buttonClickEventHandlersRef $ \handlers ->
-            let newHandlers = Map.filterWithKey (\k -> const $ k `notElem` children && k /= hwnd) handlers in
-                (newHandlers, newHandlers)
-
-cleanupProps :: Win32.HWND -> IO ()
-cleanupProps hwnd = do
+finaliseHWND :: Win32.HWND -> IO ()
+finaliseHWND hwnd = do
+    ComponentInternal.unregisterEventHandlers hwnd
     ComponentInternal.unregisterComponentType hwnd
     ComponentInternal.unregisterUniqueIdFromHWND hwnd
+    ComponentInternal.unattachGDIs hwnd
+    ComponentInternal.unsetFlags hwnd
 
-    Internal.withChildWindows hwnd $ \children ->
-        forM_ children $ \child -> do
-            ComponentInternal.unregisterComponentType child
-            ComponentInternal.unregisterUniqueIdFromHWND child
-
-unregisterHWND :: Win32.HWND -> IO ()
-unregisterHWND targetHWND =
-    unregister targetHWND >>
-        Internal.withChildWindows targetHWND (mapM_ unregister)
-    where
-        unregister hwnd =
-            void $ atomicModifyIORef' TEAInternal.uniqueIdAndHWNDMapRef $ \hwndMap ->
-                let newHWNDMap = Map.filter (/= hwnd) hwndMap in
-                    (newHWNDMap, newHWNDMap)
-
-cleanupGDIs :: Win32.HWND -> IO ()
-cleanupGDIs hwnd = do
-    let callback _ _ hData _ =
-            void (Win32.c_DeleteObject hData) >>
-                pure True
-
-    callbackPtr <- Win32.makePropEnumProcEx callback
-
-    void $ Win32.c_EnumPropsEx hwnd callbackPtr 0
-
-    freeHaskellFunPtr callbackPtr
+    TEAInternal.unregisterHWND hwnd

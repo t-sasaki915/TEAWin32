@@ -19,7 +19,10 @@ data Model = Model
 
 makeLenses ''Model
 
-data Msg = ButtonClicked deriving (Show, Eq)
+data Msg = ButtonClicked
+         | ButtonClicked2
+         deriving (Show, Eq)
+
 
 init :: IO Model
 init = do
@@ -36,6 +39,9 @@ update :: Msg -> Model -> IO Model
 update ButtonClicked model =
     print model >>
         pure (over clickedCount (+1) model)
+update ButtonClicked2 model =
+    print model >>
+        pure (over clickedCount (+2) model)
 
 view :: Model -> GUIComponents
 view model = do
@@ -82,7 +88,8 @@ view model = do
                     button "TestButton3" $ do
                         buttonLabel "!?"
                         buttonSize (50, 50)
-                        buttonPosition (100, 100)
+                        buttonPosition (100, 150)
+                        buttonClicked ButtonClicked2
 
                     window "TEAWin32GUI-Sub-Sub" "TEAWin32GUI-Sub-Sub" BorderlessChild $ do
                         windowTitle "GOOD MORNING"

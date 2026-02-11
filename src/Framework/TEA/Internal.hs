@@ -4,33 +4,36 @@ module Framework.TEA.Internal
     ( Model (..)
     , Msg (..)
     , modelRef
-    , buttonClickEventHandlersRef
     , updateFuncRef
     , viewFuncRef
     , uniqueIdAndHWNDMapRef
     , registerHWND
+    , unregisterHWND
     , issueMsg
     , updateChildren
     ) where
 
-import           Control.Monad                            (forM_, void)
-import           Control.Monad.Writer                     (execWriter)
-import           Data.Data                                (Typeable, cast)
-import           Data.IORef                               (IORef,
-                                                           atomicModifyIORef',
-                                                           newIORef, readIORef)
-import           Data.Map                                 (Map)
-import qualified Data.Map                                 as Map
-import           GHC.IO                                   (unsafePerformIO)
-import           Graphics.GUI                             (UniqueId)
-import           Graphics.GUI.Component                   (GUIComponent,
-                                                           GUIComponents,
-                                                           IsGUIComponent (..))
-import qualified Graphics.GUI.Component.Internal          as ComponentInternal
-import           Graphics.GUI.Component.Property          (IsGUIComponentProperty (..))
-import           Graphics.GUI.Component.Property.Internal (compareProperties)
-import qualified Graphics.GUI.Internal                    as GUIInternal
-import qualified Graphics.Win32                           as Win32
+import                          Control.Monad                            (forM_,
+                                                                          void)
+import                          Control.Monad.Writer                     (execWriter)
+import                          Data.Data                                (Typeable,
+                                                                          cast)
+import                          Data.IORef                               (IORef,
+                                                                          atomicModifyIORef',
+                                                                          newIORef,
+                                                                          readIORef)
+import                          Data.Map                                 (Map)
+import                qualified Data.Map                                 as Map
+import                          GHC.IO                                   (unsafePerformIO)
+import                          Graphics.GUI                             (UniqueId)
+import                          Graphics.GUI.Component                   (GUIComponent,
+                                                                          GUIComponents,
+                                                                          IsGUIComponent (..))
+import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal          as ComponentInternal
+import                          Graphics.GUI.Component.Property          (IsGUIComponentProperty (..))
+import                          Graphics.GUI.Component.Property.Internal (compareProperties)
+import                qualified Graphics.GUI.Internal                    as GUIInternal
+import                qualified Graphics.Win32                           as Win32
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -56,10 +59,6 @@ viewFuncRef :: IORef (Model -> GUIComponents)
 viewFuncRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
 {-# NOINLINE viewFuncRef #-}
 
-buttonClickEventHandlersRef :: IORef (Map Win32.HWND Msg)
-buttonClickEventHandlersRef = unsafePerformIO (newIORef mempty)
-{-# NOINLINE buttonClickEventHandlersRef #-}
-
 uniqueIdAndHWNDMapRef :: IORef (Map UniqueId Win32.HWND)
 uniqueIdAndHWNDMapRef = unsafePerformIO (newIORef mempty)
 {-# NOINLINE uniqueIdAndHWNDMapRef #-}
@@ -68,6 +67,12 @@ registerHWND :: UniqueId -> Win32.HWND -> IO ()
 registerHWND uniqueId hwnd =
     void $ atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
         let newHWNDMap = Map.insert uniqueId hwnd hwndMap in
+            (newHWNDMap, newHWNDMap)
+
+unregisterHWND :: Win32.HWND -> IO ()
+unregisterHWND hwnd =
+    void $ atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
+        let newHWNDMap = Map.filter (/= hwnd) hwndMap in
             (newHWNDMap, newHWNDMap)
 
 issueMsg :: Msg -> IO ()
@@ -119,12 +124,6 @@ updateChildren :: [GUIComponent] -> [GUIComponent] -> Win32.HWND -> IO ()
 updateChildren newChildren oldChildren targetHWND = do
     let (added, deleted, redraw, propertyChanged) = ComponentInternal.compareGUIComponents newChildren oldChildren
 
-    putStrLn "=================================="
-    print (map getUniqueId added)
-    print (map getUniqueId deleted)
-    print (map getUniqueId redraw)
-    print (map getUniqueId (map fst propertyChanged))
-    putStrLn "=================================="
     uniqueIdAndHWNDMap <- readIORef uniqueIdAndHWNDMapRef
 
     forM_ added $ \addedComponent ->
@@ -153,8 +152,5 @@ updateChildren newChildren oldChildren targetHWND = do
                 forM_ changedProps $ \(newProp, oldProp) ->
                     updateProperty newProp oldProp hwnd
 
-            Nothing -> do
-                print uniqueIdAndHWNDMap
-                print newComponent
-                print oldComponent
+            Nothing ->
                 error "Tried to update the properties of a component that was not in the map."

@@ -17,7 +17,6 @@ import           Data.Bits                       ((.|.))
 import           Data.Data                       (Typeable, cast)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
-import           Foreign                         (intPtrToPtr)
 import qualified Framework.TEA.Internal          as TEAInternal
 import           Graphics.GUI
 import           Graphics.GUI.Component          (GUIComponent (..),
@@ -188,23 +187,21 @@ instance IsGUIComponentProperty WindowBrush where
     -- TODO
     getPropertyName _ = "WindowBrush"
 
-    applyProperty (WindowBrush brush) windowHWND = do
-        unapplyProperty (WindowBrush brush) windowHWND
+    applyProperty (WindowBrush brush) windowHWND =
+        (toWin32Brush brush >>= \brush' ->
+            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND brush' >>
+                ComponentInternal.attachGDI "WINDOWBRUSH" brush' windowHWND) >>
+                    ComponentInternal.setFlag "WINDOWBRUSH_SET" windowHWND
 
-        toWin32Brush brush >>= \brush' -> do
-            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND brush'
-
-            Win32.withTString "WINDOW_BRUSH" $ \pName ->
-                void $ Win32.c_SetProp windowHWND pName brush'
-
-        ComponentInternal.setFlag "WINDOWBRUSH_SET" windowHWND
-
-    updateProperty newProp _ = applyProperty newProp
+    updateProperty (WindowBrush brush) _ windowHWND =
+        ComponentInternal.unattachGDI "WINDOWBRUSH" windowHWND >>
+            toWin32Brush brush >>= \brush' ->
+                void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND brush' >>
+                    ComponentInternal.attachGDI "WINDOWBRUSH" brush' windowHWND
 
     unapplyProperty _ windowHWND =
-        (Win32.c_GetClassLongPtr windowHWND Win32.gCLP_HBRBACKGROUND >>= \oldBrush ->
-            void $ Win32.c_DeleteObject (intPtrToPtr $ fromIntegral oldBrush)) >>
-                ComponentInternal.unsetFlag "WINDOWBRUSH_SET" windowHWND
+        ComponentInternal.unattachGDI "WINDOWBRUSH" windowHWND >>
+            ComponentInternal.unsetFlag "WINDOWBRUSH_SET" windowHWND
 
 instance IsGUIComponentProperty WindowChildren where
     getPropertyName _ = "WindowChildren"

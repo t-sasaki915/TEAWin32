@@ -74,3 +74,4 @@
 - group: {name: generalise-for-conciseness, enabled: true}
 
 - ignore: {name: Use camelCase}
+- ignore: {name: Use >=>}
