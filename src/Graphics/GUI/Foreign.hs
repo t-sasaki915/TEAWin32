@@ -5,15 +5,10 @@ module Graphics.GUI.Foreign
     , c_SetClassLongPtr
     , c_GetClassLongPtr
     , c_SetWindowPos
-    , c_SetProp
-    , c_GetProp
-    , c_RemoveProp
-    , c_EnumPropsEx
     , c_DeleteObject
     , c_EnumChildWindows
     , c_GetClassName
     , c_EnumThreadWindows
-    , makePropEnumProcEx
     , makeEnumWindowProc
     , gWL_STYLE
     , gCLP_HICON
@@ -36,25 +31,8 @@ foreign import ccall "SetWindowPos"
 foreign import ccall "GetClassLongPtrW"
     c_GetClassLongPtr :: Win32.HWND -> Int32 -> IO CIntPtr
 
-foreign import ccall "SetPropW"
-    c_SetProp :: Win32.HWND -> Win32.LPCTSTR -> Win32.HANDLE -> IO Bool
-
-foreign import ccall "GetPropW"
-    c_GetProp :: Win32.HWND -> Win32.LPCWSTR -> IO Win32.HANDLE
-
-foreign import ccall "RemovePropW"
-    c_RemoveProp :: Win32.HWND -> Win32.LPCWSTR -> IO Win32.HANDLE
-
 foreign import ccall "GetClassNameW"
     c_GetClassName :: Win32.HWND -> Win32.LPWSTR -> Int -> IO Int
-
-type PropEnumProcEx = Win32.HWND -> Win32.LPCTSTR -> Win32.HANDLE -> CIntPtr -> IO Win32.BOOL
-
-foreign import ccall "wrapper"
-    makePropEnumProcEx :: PropEnumProcEx -> IO (FunPtr PropEnumProcEx)
-
-foreign import ccall "EnumPropsExW"
-    c_EnumPropsEx :: Win32.HWND -> FunPtr PropEnumProcEx -> CIntPtr -> IO Win32.INT
 
 foreign import ccall "DeleteObject"
     c_DeleteObject :: Ptr () -> IO Win32.BOOL

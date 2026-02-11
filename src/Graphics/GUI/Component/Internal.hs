@@ -3,16 +3,13 @@ module Graphics.GUI.Component.Internal
     , compareGUIComponents
     , setComponentType
     , getComponentType
-    , unregisterComponentType
     , setUniqueIdToHWND
     , getUniqueIdFromHWND
-    , unregisterUniqueIdFromHWND
     , getClassName
     , getWindowTitle
     , setFlag
     , isFlagSet
     , unsetFlag
-    , unsetFlags
     , getRelativeRect
     , getWindowStyle
     , getWindowCursor
@@ -20,24 +17,17 @@ module Graphics.GUI.Component.Internal
     , getEventHandler
     , getEventHandlerMaybe
     , unregisterEventHandler
-    , unregisterEventHandlers
     , attachGDI
     , getGDI
     , unattachGDI
-    , unattachGDIs
-    , withProps
     , isManagedWindow
     , restoreComponentFromHWND
     ) where
 
-import                          Control.Monad                          (void,
-                                                                        (>=>))
 import                          Data.Functor                           ((<&>))
-import                          Data.IORef                             (modifyIORef,
-                                                                        newIORef,
-                                                                        readIORef)
 import                          Data.List                              (isPrefixOf)
 import                qualified Data.Map                               as Map
+import                          Data.Maybe                             (isJust)
 import                          Data.Text                              (Text)
 import                qualified Data.Text                              as Text
 import                          Foreign                                hiding
@@ -48,25 +38,11 @@ import                          Graphics.GUI
 import                          Graphics.GUI.Component                 (GUIComponent,
                                                                         IsGUIComponent (..))
 import {-# SOURCE #-}           Graphics.GUI.Component.Button.Internal (restoreButtonFromHWND)
+import                          Graphics.GUI.Component.Internal.Prop
 import {-# SOURCE #-}           Graphics.GUI.Component.Window.Internal (restoreWindowFromHWND)
 import                qualified Graphics.GUI.Foreign                   as Win32
 import                qualified Graphics.GUI.Internal                  as GUIInternal
 import                qualified Graphics.Win32                         as Win32
-
-componentTypePropName :: String
-componentTypePropName = "TEAWIN32GUI_COMPONENT_TYPE"
-
-componentUniqueIdPropName :: String
-componentUniqueIdPropName = "TEAWIN32GUI_COMPONENT_UNIQUE_ID"
-
-componentFlagPropNamePrefix :: String
-componentFlagPropNamePrefix = "TEAWIN32GUI_COMPONENT_FLAG_"
-
-componentEventHandlerPropNamePrefix :: String
-componentEventHandlerPropNamePrefix = "TEAWIN32GUI_COMPONENT_EVENTHANDLER_"
-
-componentGDIPropNamePrefix :: String
-componentGDIPropNamePrefix = "TEAWIN32GUI_COMPONENT_GDI_"
 
 windowClassPrefix :: String
 windowClassPrefix = "TEAWIN32GUI_WINDOW_"
@@ -95,35 +71,73 @@ compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
 
 setComponentType :: Text -> Win32.HWND -> IO ()
 setComponentType componentType hwnd =
-    Win32.withTString componentTypePropName $ \pName ->
-        newStablePtr componentType >>= \componentTypePtr ->
-            void $ Win32.c_SetProp hwnd pName (castStablePtrToPtr componentTypePtr)
+    setProp hwnd "ComponentType" (ComponentType componentType)
 
 getComponentType :: Win32.HWND -> IO Text
 getComponentType hwnd =
-    Win32.withTString componentTypePropName $
-        Win32.c_GetProp hwnd >=> deRefStablePtr . castPtrToStablePtr
-
-unregisterComponentType :: Win32.HWND -> IO ()
-unregisterComponentType hwnd =
-    Win32.withTString componentTypePropName $
-        Win32.c_RemoveProp hwnd >=> freeStablePtr . castPtrToStablePtr
+    getProp hwnd "ComponentType" >>= \case
+        Just (ComponentType cType) -> pure cType
+        _                          -> error "ComponentType not found."
 
 setUniqueIdToHWND :: UniqueId -> Win32.HWND -> IO ()
 setUniqueIdToHWND uniqueId hwnd =
-    Win32.withTString componentUniqueIdPropName $ \pName ->
-        newStablePtr uniqueId >>= \uniqueIdPtr ->
-            void $ Win32.c_SetProp hwnd pName (castStablePtrToPtr uniqueIdPtr)
+    setProp hwnd "ComponentUniqueId" (ComponentUniqueId uniqueId)
 
 getUniqueIdFromHWND :: Win32.HWND -> IO UniqueId
 getUniqueIdFromHWND hwnd =
-    Win32.withTString componentUniqueIdPropName $
-        Win32.c_GetProp hwnd >=> deRefStablePtr . castPtrToStablePtr
+    getProp hwnd "ComponentUniqueId" >>= \case
+        Just (ComponentUniqueId uniqueId) -> pure uniqueId
+        _                                 -> error "ComponentUniqueId not found."
 
-unregisterUniqueIdFromHWND :: Win32.HWND -> IO ()
-unregisterUniqueIdFromHWND hwnd =
-    Win32.withTString componentUniqueIdPropName $
-        Win32.c_RemoveProp hwnd >=> freeStablePtr . castPtrToStablePtr
+setFlag :: Text -> Win32.HWND -> IO ()
+setFlag flagName hwnd = setProp hwnd ("ComponentFlag_" <> flagName) ComponentFlag
+
+isFlagSet :: Text -> Win32.HWND -> IO Bool
+isFlagSet flagName hwnd = isJust <$> getProp hwnd ("ComponentFlag_" <> flagName)
+
+unsetFlag :: Text -> Win32.HWND -> IO ()
+unsetFlag flagName hwnd = removeProp hwnd ("ComponentFlag_" <> flagName)
+
+setEventHandler :: Text -> TEAInternal.Msg -> Win32.HWND -> IO ()
+setEventHandler eventType msg hwnd =
+    setProp hwnd ("ComponentEventHandler_" <> eventType) (ComponentEventHandler msg)
+
+getEventHandler :: Text -> Win32.HWND -> IO TEAInternal.Msg
+getEventHandler eventType hwnd =
+    getProp hwnd ("ComponentEventHandler_" <> eventType) >>= \case
+        Just (ComponentEventHandler msg) -> pure msg
+        _                                -> error "ComponentEventHandler not found."
+
+getEventHandlerMaybe :: Text -> Win32.HWND -> IO (Maybe TEAInternal.Msg)
+getEventHandlerMaybe eventType hwnd =
+    getProp hwnd ("ComponentEventHandler_" <> eventType) >>= \case
+        Just (ComponentEventHandler msg) -> pure (Just msg)
+        Nothing                          -> pure Nothing
+        _                                -> error "ComponentEventHandler not found."
+
+unregisterEventHandler :: Text -> Win32.HWND -> IO ()
+unregisterEventHandler eventType hwnd =
+    removeProp hwnd ("ComponentEventHandler_" <> eventType)
+
+attachGDI :: Text -> Win32.HANDLE -> Win32.HWND -> IO ()
+attachGDI gdiName hndl hwnd =
+    setProp hwnd ("ComponentGDIResource_" <> gdiName) (ComponentGDIResource hndl)
+
+getGDI :: Text -> Win32.HWND -> IO Win32.HANDLE
+getGDI gdiName hwnd =
+    getProp hwnd ("ComponentGDIResource_" <> gdiName) >>= \case
+        Just (ComponentGDIResource hndl) -> pure hndl
+        _                                -> error "ComponentGDIResource not found."
+
+unattachGDI :: Text -> Win32.HWND -> IO ()
+unattachGDI gdiName hwnd =
+    let propName = ("ComponentGDIResource_" <> gdiName) in
+        getProp hwnd propName >>= \case
+            Just x@(ComponentGDIResource _) ->
+                finalisePropValue x >>
+                    removeProp hwnd propName
+
+            _ -> error "ComponentGDIResource not found."
 
 getClassName :: Win32.HWND -> IO Text
 getClassName hwnd =
@@ -148,28 +162,6 @@ getWindowCursor hwnd =
     Win32.c_GetClassLongPtr hwnd Win32.gCLP_HCURSOR >>=
         fromWin32Cursor . intPtrToPtr . fromIntegral
 
-setFlag :: String -> Win32.HWND -> IO ()
-setFlag flagName hwnd =
-    Win32.withTString (componentFlagPropNamePrefix <> flagName) $ \pName ->
-        void $ Win32.c_SetProp hwnd pName (intPtrToPtr 1)
-
-isFlagSet :: String -> Win32.HWND -> IO Bool
-isFlagSet flagName hwnd =
-    Win32.withTString (componentFlagPropNamePrefix <> flagName) $
-        fmap (/= Win32.nullPtr) . Win32.c_GetProp hwnd
-
-unsetFlag :: String -> Win32.HWND -> IO ()
-unsetFlag flagName hwnd =
-    void $ Win32.withTString (componentFlagPropNamePrefix <> flagName) $ Win32.c_RemoveProp hwnd
-
-unsetFlags :: Win32.HWND -> IO ()
-unsetFlags hwnd =
-    withProps hwnd $ mapM_ $ \case
-        (propName, _) | componentFlagPropNamePrefix `isPrefixOf` propName ->
-            void $ Win32.withTString propName $ Win32.c_RemoveProp hwnd
-
-        _ -> pure ()
-
 getRelativeRect :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRect hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
@@ -182,81 +174,6 @@ getRelativeRect hwnd = do
             (x, y) <- Win32.screenToClient parentHWND (fromIntegral l, fromIntegral t)
 
             pure (fromIntegral x, fromIntegral y, r - l, b - t)
-
-setEventHandler :: String -> TEAInternal.Msg -> Win32.HWND -> IO ()
-setEventHandler eventType msg hwnd =
-    Win32.withTString (componentEventHandlerPropNamePrefix <> eventType) $ \pName ->
-        newStablePtr msg >>= \componentTypePtr ->
-            void $ Win32.c_SetProp hwnd pName (castStablePtrToPtr componentTypePtr)
-
-getEventHandler :: String -> Win32.HWND -> IO TEAInternal.Msg
-getEventHandler eventType hwnd =
-    Win32.withTString (componentEventHandlerPropNamePrefix <> eventType) $
-        Win32.c_GetProp hwnd >=> deRefStablePtr . castPtrToStablePtr
-
-getEventHandlerMaybe :: String -> Win32.HWND -> IO (Maybe TEAInternal.Msg)
-getEventHandlerMaybe eventType hwnd =
-    Win32.withTString (componentEventHandlerPropNamePrefix <> eventType) $ \pName -> do
-        ptr <- Win32.c_GetProp hwnd pName
-        if ptr /= Win32.nullPtr
-            then Just <$> deRefStablePtr (castPtrToStablePtr ptr)
-            else pure Nothing
-
-unregisterEventHandler :: String -> Win32.HWND -> IO ()
-unregisterEventHandler eventType hwnd =
-    Win32.withTString (componentEventHandlerPropNamePrefix <> eventType) $
-        Win32.c_RemoveProp hwnd >=> freeStablePtr . castPtrToStablePtr
-
-unregisterEventHandlers :: Win32.HWND -> IO ()
-unregisterEventHandlers hwnd =
-    withProps hwnd $ mapM_ $ \case
-        (propName, _) | componentEventHandlerPropNamePrefix `isPrefixOf` propName ->
-            Win32.withTString propName $
-                Win32.c_RemoveProp hwnd >=> freeStablePtr . castPtrToStablePtr
-
-        _ -> pure ()
-
-attachGDI :: String -> Win32.HANDLE -> Win32.HWND -> IO ()
-attachGDI gdiName hndl hwnd =
-    Win32.withTString (componentGDIPropNamePrefix <> gdiName) $ \pName ->
-        void $ Win32.c_SetProp hwnd pName hndl
-
-getGDI :: String -> Win32.HWND -> IO Win32.HANDLE
-getGDI gdiName hwnd =
-    Win32.withTString (componentGDIPropNamePrefix <> gdiName) $ Win32.c_GetProp hwnd
-
-unattachGDI :: String -> Win32.HWND -> IO ()
-unattachGDI gdiName hwnd =
-    Win32.withTString (componentGDIPropNamePrefix <> gdiName) $
-        Win32.c_RemoveProp hwnd >=> void . Win32.c_DeleteObject . castPtr
-
-unattachGDIs :: Win32.HWND -> IO ()
-unattachGDIs hwnd =
-    withProps hwnd $ mapM_ $ \case
-        (propName, _) | componentGDIPropNamePrefix `isPrefixOf` propName ->
-            Win32.withTString propName $
-                Win32.c_RemoveProp hwnd >=> void . Win32.c_DeleteObject . castPtr
-
-        _ -> pure ()
-
-withProps :: Win32.HWND -> ([(String, Win32.HANDLE)] -> IO a) -> IO a
-withProps hwnd func = do
-    propsRef <- newIORef []
-
-    let callback _ hLabel hData _ =
-            Win32.peekTString hLabel >>= \label ->
-                modifyIORef propsRef ((label, hData) :) >>
-                    pure True
-
-    enumProc <- Win32.makePropEnumProcEx callback
-    _        <- Win32.c_EnumPropsEx hwnd enumProc 0
-
-    props <- readIORef propsRef
-    x     <- func props
-
-    freeHaskellFunPtr enumProc
-
-    pure x
 
 isManagedWindow :: Win32.HWND -> IO Bool
 isManagedWindow hwnd =

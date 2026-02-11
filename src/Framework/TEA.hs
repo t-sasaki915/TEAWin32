@@ -21,7 +21,7 @@ runTEA init update view = do
 
     initModel <- init
 
-    _ <- atomicModifyIORef' modelRef (const (Model initModel, Model initModel))
+    atomicModifyIORef' modelRef (const (Model initModel, ()))
 
     let
         update' (Msg msg) (Model model) =
@@ -34,8 +34,8 @@ runTEA init update view = do
                 Just model' -> view model'
                 _           -> error "Failed to cast Model."
 
-    _ <- atomicModifyIORef' updateFuncRef (const (update', update'))
-    _ <- atomicModifyIORef' viewFuncRef (const (view', view'))
+    atomicModifyIORef' updateFuncRef (const (update', ()))
+    atomicModifyIORef' viewFuncRef (const (view', ()))
 
     let initGUIComponents = execWriter (view initModel)
 

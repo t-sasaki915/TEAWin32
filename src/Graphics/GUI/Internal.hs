@@ -46,7 +46,7 @@ initialiseCursorCache = do
             , (SizeNS  , Win32.iDC_SIZENS  )
             ]
 
-    _ <- atomicModifyIORef' cursorCacheRef (const (buildInCursorCache, buildInCursorCache))
+    atomicModifyIORef' cursorCacheRef (const (buildInCursorCache, ()))
 
     pure ()
 
@@ -55,7 +55,7 @@ withChildWindows targetHWND func = do
     childrenRef <- newIORef []
 
     let callback hwnd _ =
-            atomicModifyIORef' childrenRef (\x -> (hwnd : x, hwnd : x)) >>
+            atomicModifyIORef' childrenRef (\x -> (hwnd : x, ())) >>
                 pure True
 
     enumPtr <- Win32.makeEnumWindowProc callback

@@ -26,7 +26,8 @@ executable TEAWin32GUI-Experiment
       Paths_TEAWin32GUI
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ld-options: resources.o
+  ghc-options: -fno-gen-manifest -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       TEAWin32GUI
     , base >=4.7 && <5
@@ -43,6 +44,7 @@ library
       Graphics.GUI.Component.Button.DSL
       Graphics.GUI.Component.Button.Internal
       Graphics.GUI.Component.Button.Property
+      Graphics.GUI.Component.Internal.Prop
       Graphics.GUI.Component.Property.Internal
       Graphics.GUI.Component.Window.DSL
       Graphics.GUI.Component.Window.Internal

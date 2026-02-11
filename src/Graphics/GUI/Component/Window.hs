@@ -1,6 +1,6 @@
 module Graphics.GUI.Component.Window (Window (..), destroyChildren) where
 
-import           Control.Monad                          (unless, void, when)
+import           Control.Monad                          (unless, when)
 import           Data.IORef                             (atomicModifyIORef')
 import           Data.Text                              (Text)
 import qualified Data.Text                              as Text
@@ -10,6 +10,7 @@ import           Graphics.GUI                           (UniqueId, WindowStyle,
                                                          toWin32WindowStyle)
 import           Graphics.GUI.Component                 (IsGUIComponent (..))
 import qualified Graphics.GUI.Component.Internal        as ComponentInternal
+import           Graphics.GUI.Component.Internal.Prop
 import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
                                                          IsGUIComponentProperty (applyProperty))
 import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
@@ -55,12 +56,14 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
+        registerHWNDToPropMap window
+
         mapM_ (`applyProperty` window) windowProperties
 
         _ <- Win32.showWindow window Win32.sW_SHOWNORMAL
         Win32.updateWindow window
 
-        void $ atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, n + 1)
+        atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, ())
 
         TEAInternal.registerHWND windowUniqueId window
 
@@ -109,10 +112,6 @@ destroyChildren hwnd =
 
 finaliseHWND :: Win32.HWND -> IO ()
 finaliseHWND hwnd = do
-    ComponentInternal.unregisterEventHandlers hwnd
-    ComponentInternal.unregisterComponentType hwnd
-    ComponentInternal.unregisterUniqueIdFromHWND hwnd
-    ComponentInternal.unattachGDIs hwnd
-    ComponentInternal.unsetFlags hwnd
+    finaliseAndUnregisterHWNDFromPropMap hwnd
 
     TEAInternal.unregisterHWND hwnd

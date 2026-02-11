@@ -69,15 +69,15 @@ getHWNDByUniqueId uniqueId =
 
 registerHWND :: UniqueId -> Win32.HWND -> IO ()
 registerHWND uniqueId hwnd =
-    void $ atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
+    atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
         let newHWNDMap = Map.insert uniqueId hwnd hwndMap in
-            (newHWNDMap, newHWNDMap)
+            (newHWNDMap, ())
 
 unregisterHWND :: Win32.HWND -> IO ()
 unregisterHWND hwnd =
-    void $ atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
+    atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
         let newHWNDMap = Map.filter (/= hwnd) hwndMap in
-            (newHWNDMap, newHWNDMap)
+            (newHWNDMap, ())
 
 issueMsg :: Msg -> IO ()
 issueMsg msg = do
@@ -85,7 +85,7 @@ issueMsg msg = do
     currentModel <- readIORef modelRef
 
     newModel <- updateFunc msg currentModel
-    _        <- atomicModifyIORef' modelRef (const (newModel, newModel))
+    atomicModifyIORef' modelRef (const (newModel, ()))
 
     currentGUIComponents <- GUIInternal.withTopLevelWindows (mapM ComponentInternal.restoreComponentFromHWND)
 
