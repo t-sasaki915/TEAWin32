@@ -1,9 +1,9 @@
 module Graphics.GUI.Component.Property.Internal (compareProperties) where
 
+import           Data.Map                        ((!))
 import qualified Data.Map                        as Map
-import Data.Map ((!))
 import           Graphics.GUI.Component.Property (GUIComponentProperty,
-                                                  IsGUIComponentProperty (..))
+                                                  HasPropertyName (..))
 
 compareProperties :: [GUIComponentProperty] -> [GUIComponentProperty] -> ([GUIComponentProperty], [GUIComponentProperty], [(GUIComponentProperty, GUIComponentProperty)])
 compareProperties new old = (added, deleted, changed)

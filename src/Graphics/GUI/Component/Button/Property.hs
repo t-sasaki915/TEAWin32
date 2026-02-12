@@ -7,7 +7,7 @@ module Graphics.GUI.Component.Button.Property
     , IsButtonProperty
     ) where
 
-import           Data.Data                       (Typeable, cast)
+import           Data.Data                       (Typeable, cast, typeOf)
 import           Graphics.GUI.Component.Property
 
 data ButtonProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
@@ -24,6 +24,9 @@ instance Show ButtonProperty where
 instance (Typeable a, Show a, IsGUIComponentProperty a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
     wrapComponentProperty = ButtonProperty
 
+instance HasPropertyName ButtonProperty where
+    getPropertyName (ButtonProperty a) = typeOf a
+
 class Eq a => IsButtonProperty a
 
 instance IsButtonProperty ButtonProperty
@@ -37,8 +40,6 @@ instance IsGUIComponentProperty ButtonProperty where
             Nothing   -> error "Failed to cast ButtonProperty"
 
     unapplyProperty (ButtonProperty x) = unapplyProperty x
-
-    getPropertyName (ButtonProperty x) = getPropertyName x
 
 instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize

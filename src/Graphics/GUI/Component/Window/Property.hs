@@ -11,7 +11,7 @@ module Graphics.GUI.Component.Window.Property
     ) where
 
 import           Control.Monad                   (void)
-import           Data.Data                       (Typeable, cast)
+import           Data.Data                       (Typeable, cast, typeOf)
 import           Graphics.Drawing                (Colour)
 import           Graphics.GUI
 import qualified Graphics.GUI.Component.Internal as ComponentInternal
@@ -33,6 +33,9 @@ instance Show WindowProperty where
 instance (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
     wrapComponentProperty = WindowProperty
 
+instance HasPropertyName WindowProperty where
+    getPropertyName (WindowProperty a) = typeOf a
+
 class Eq a => IsWindowProperty a
 
 instance IsWindowProperty WindowProperty
@@ -46,8 +49,6 @@ instance IsGUIComponentProperty WindowProperty where
             Nothing   -> error "Failed to cast WindowProperty"
 
     unapplyProperty (WindowProperty x) = unapplyProperty x
-
-    getPropertyName (WindowProperty x) = getPropertyName x
 
 newtype WindowIcon             = WindowIcon             Icon           deriving (Show, Eq)
 newtype WindowCursor           = WindowCursor           Cursor         deriving (Show, Eq)
@@ -64,8 +65,6 @@ instance IsWindowProperty ComponentFont
 instance IsWindowProperty ComponentChildren
 
 instance IsGUIComponentProperty WindowIcon where
-    getPropertyName _ = "WindowIcon"
-
     applyProperty (WindowIcon icon) windowHWND =
         (toWin32Icon icon >>= \icon' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon') >>
@@ -80,8 +79,6 @@ instance IsGUIComponentProperty WindowIcon where
             ComponentInternal.unsetFlag "WINDOWICON_SET" windowHWND
 
 instance IsGUIComponentProperty WindowCursor where
-    getPropertyName _ = "WindowCursor"
-
     applyProperty (WindowCursor cursor) windowHWND =
         (toWin32Cursor cursor >>= \cursor' ->
             void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor') >>
@@ -97,8 +94,6 @@ instance IsGUIComponentProperty WindowCursor where
 
 
 instance IsGUIComponentProperty WindowBackgroundColour where
-    getPropertyName _ = "WindowBackgroundColour"
-
     applyProperty (WindowBackgroundColour colour) windowHWND =
         ComponentInternal.setWindowBackgroundColour colour windowHWND >>
             ComponentInternal.setFlag "WINDOWBACKGROUNDCOLOUR_SET" windowHWND >>

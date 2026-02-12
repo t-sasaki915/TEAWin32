@@ -5,6 +5,7 @@ module Graphics.GUI.Component.Property
     ( GUIComponentProperty (..)
     , IsGUIComponentProperty (..)
     , IsPropertyWrapper (..)
+    , HasPropertyName (..)
     , ComponentTitle (..)
     , ComponentSize (..)
     , ComponentPosition (..)
@@ -15,7 +16,8 @@ module Graphics.GUI.Component.Property
 
 import                          Control.Monad                   (forM_, void)
 import                          Data.Bits                       ((.|.))
-import                          Data.Data                       (Typeable, cast)
+import                          Data.Data                       (TypeRep,
+                                                                 Typeable, cast)
 import                          Data.Text                       (Text)
 import                qualified Data.Text                       as Text
 import {-# SOURCE #-} qualified Framework.TEA.Internal          as TEAInternal
@@ -27,7 +29,7 @@ import {-# SOURCE #-}           Graphics.GUI.Component.Window   (destroyChildren
 import                qualified Graphics.GUI.Foreign            as Win32
 import                qualified Graphics.Win32                  as Win32
 
-data GUIComponentProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a) => GUIComponentProperty a
+data GUIComponentProperty = forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a) => GUIComponentProperty a
 
 instance Eq GUIComponentProperty where
     (GUIComponentProperty x) == (GUIComponentProperty y) =
@@ -45,8 +47,6 @@ class Eq a => IsGUIComponentProperty a where
 
     unapplyProperty :: a -> Win32.HWND -> IO ()
 
-    getPropertyName :: a -> Text
-
 instance IsGUIComponentProperty GUIComponentProperty where
     applyProperty (GUIComponentProperty x) = applyProperty x
 
@@ -57,10 +57,15 @@ instance IsGUIComponentProperty GUIComponentProperty where
 
     unapplyProperty (GUIComponentProperty x) = unapplyProperty x
 
-    getPropertyName (GUIComponentProperty x) = getPropertyName x
 
 class IsPropertyWrapper a b where
     wrapComponentProperty :: b -> a
+
+class HasPropertyName a where
+    getPropertyName :: a -> TypeRep
+
+instance HasPropertyName GUIComponentProperty where
+    getPropertyName (GUIComponentProperty a) = getPropertyName a
 
 newtype ComponentTitle    = ComponentTitle    Text           deriving (Show, Eq)
 newtype ComponentSize     = ComponentSize     (Int, Int)     deriving (Show, Eq)
@@ -79,8 +84,6 @@ instance Show ComponentOnClick where
     show (ComponentOnClick x) = "ComponentOnClick " <> show x
 
 instance IsGUIComponentProperty ComponentTitle where
-    getPropertyName _ = "ComponentTitle"
-
     applyProperty (ComponentTitle title) componentHWND =
         Win32.setWindowText componentHWND (Text.unpack title) >>
             ComponentInternal.setFlag "COMPONENTTITLE_SET" componentHWND
@@ -93,8 +96,6 @@ instance IsGUIComponentProperty ComponentTitle where
             ComponentInternal.unsetFlag "COMPONENTTITLE_SET" componentHWND
 
 instance IsGUIComponentProperty ComponentSize where
-    getPropertyName _ = "ComponentSize"
-
     applyProperty (ComponentSize (width, height)) componentHWND =
         Win32.c_SetWindowPos componentHWND
             Win32.nullPtr
@@ -125,8 +126,6 @@ instance IsGUIComponentProperty ComponentSize where
                 ComponentInternal.unsetFlag "COMPONENTSIZE_SET" componentHWND
 
 instance IsGUIComponentProperty ComponentPosition where
-    getPropertyName _ = "ComponentPosition"
-
     applyProperty (ComponentPosition (x, y)) componentHWND =
         Win32.c_SetWindowPos
             componentHWND
@@ -160,8 +159,6 @@ instance IsGUIComponentProperty ComponentPosition where
                 ComponentInternal.unsetFlag "COMPONENTPOSITION_SET" componentHWND
 
 instance IsGUIComponentProperty ComponentFont where
-    getPropertyName _ = "ComponentFont"
-
     applyProperty (ComponentFont font) componentHWND =
         ComponentInternal.setHWNDFont font componentHWND >>
             ComponentInternal.setFlag "COMPONENTFONT_SET" componentHWND
@@ -174,8 +171,6 @@ instance IsGUIComponentProperty ComponentFont where
             ComponentInternal.unsetFlag "COMPONENTFONT_SET" componentHWND
 
 instance IsGUIComponentProperty ComponentChildren where
-    getPropertyName _ = "ComponentChildren"
-
     applyProperty (ComponentChildren children) componentHWND =
         forM_ children (\(GUIComponent child) ->
             render child (Just componentHWND)) >>
@@ -189,8 +184,6 @@ instance IsGUIComponentProperty ComponentChildren where
             ComponentInternal.unsetFlag "COMPONENTCHILDREN_SET" componentHWND
 
 instance IsGUIComponentProperty ComponentOnClick where
-    getPropertyName _ = "ComponentOnClick"
-
     applyProperty (ComponentOnClick msg) componentHWND =
         ComponentInternal.setEventHandler "COMPONENTONCLICK" (TEAInternal.Msg msg) componentHWND >>
             ComponentInternal.setFlag "COMPONENTONCLICK_SET" componentHWND
