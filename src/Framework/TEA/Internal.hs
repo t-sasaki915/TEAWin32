@@ -22,12 +22,14 @@ import                          Data.IORef                               (IORef,
                                                                           readIORef)
 import                          Data.Map                                 (Map)
 import                qualified Data.Map                                 as Map
+import                          Data.Maybe                               (catMaybes)
 import                          GHC.IO                                   (unsafePerformIO)
 import                          Graphics.GUI                             (UniqueId)
 import                          Graphics.GUI.Component                   (GUIComponent,
                                                                           GUIComponents,
                                                                           IsGUIComponent (..))
 import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal          as ComponentInternal
+import {-# SOURCE #-}           Graphics.GUI.Component.Internal.Prop     (isManagedByTEAWin32GUI)
 import                          Graphics.GUI.Component.Property          (IsGUIComponentProperty (..))
 import                          Graphics.GUI.Component.Property.Internal (compareProperties)
 import                qualified Graphics.GUI.Internal                    as GUIInternal
@@ -86,7 +88,10 @@ issueMsg msg = do
     newModel <- updateFunc msg currentModel
     atomicModifyIORef' modelRef (const (newModel, ()))
 
-    currentGUIComponents <- GUIInternal.withTopLevelWindows (mapM ComponentInternal.restoreComponentFromHWND)
+    currentGUIComponents <- fmap catMaybes $ GUIInternal.withTopLevelWindows $ mapM $ \topLevelWindow ->
+        isManagedByTEAWin32GUI topLevelWindow >>= \case
+            True  -> Just <$> ComponentInternal.restoreComponentFromHWND topLevelWindow
+            False -> pure Nothing
 
     viewFunc <- readIORef viewFuncRef
     let newGUIComponents = execWriter (viewFunc newModel)

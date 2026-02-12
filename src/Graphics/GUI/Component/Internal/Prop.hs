@@ -9,12 +9,13 @@ module Graphics.GUI.Component.Internal.Prop
     , getProps
     , finaliseProps
     , finaliseAndUnregisterHWNDFromPropMap
+    , isManagedByTEAWin32GUI
     ) where
 
 import           Control.Monad          (void, (>=>))
 import           Data.IORef             (IORef, atomicModifyIORef', newIORef,
                                          readIORef)
-import           Data.Map.Strict        (Map, (!))
+import           Data.Map.Strict        (Map)
 import qualified Data.Map.Strict        as Map
 import           Data.Text              (Text)
 import           Foreign                (castPtr)
@@ -60,9 +61,13 @@ unregisterHWNDFromPropMap hwnd =
 setProp :: Win32.HWND -> Text -> ManagedProp -> IO ()
 setProp hwnd propName propValue =
     atomicModifyIORef' propMapRef $ \propMap ->
-        let newHWNDProps = Map.insert propName propValue (propMap ! hwnd)
-            newMap = Map.insert hwnd newHWNDProps propMap in
-                (newMap, ())
+        case Map.lookup hwnd propMap of
+            Just hwndProps ->
+                let newHWNDProps = Map.insert propName propValue hwndProps
+                    newMap = Map.insert hwnd newHWNDProps propMap in
+                        (newMap, ())
+            Nothing ->
+                error $ "PropMap for " <> show hwnd <> " is not initialised."
 
 getProp :: Win32.HWND -> Text -> IO (Maybe ManagedProp)
 getProp hwnd propName =
@@ -71,14 +76,20 @@ getProp hwnd propName =
 removeProp :: Win32.HWND -> Text -> IO ()
 removeProp hwnd propName =
     atomicModifyIORef' propMapRef $ \propMap ->
-        let newHWNDProps = Map.delete propName (propMap ! hwnd)
-            newMap = Map.insert hwnd newHWNDProps propMap in
-                (newMap, ())
+        case Map.lookup hwnd propMap of
+            Just hwndProps ->
+                let newHWNDProps = Map.delete propName hwndProps
+                    newMap = Map.insert hwnd newHWNDProps propMap in
+                        (newMap, ())
+            Nothing ->
+                error $ "PropMap for " <> show hwnd <> " is not initialised."
 
 getProps :: Win32.HWND -> IO (Map Text ManagedProp)
 getProps hwnd =
     readIORef propMapRef >>= \propMap ->
-        pure (propMap ! hwnd)
+        case Map.lookup hwnd propMap of
+            Just hwndProps -> pure hwndProps
+            Nothing        -> error $ "PropMap for " <> show hwnd <> " is not initialised."
 
 finaliseProps :: Win32.HWND -> IO ()
 finaliseProps = getProps >=> mapM_ finalisePropValue
@@ -86,3 +97,9 @@ finaliseProps = getProps >=> mapM_ finalisePropValue
 finaliseAndUnregisterHWNDFromPropMap :: Win32.HWND -> IO ()
 finaliseAndUnregisterHWNDFromPropMap hwnd =
     finaliseProps hwnd >> unregisterHWNDFromPropMap hwnd
+
+isManagedByTEAWin32GUI :: Win32.HWND -> IO Bool
+isManagedByTEAWin32GUI hwnd =
+    readIORef propMapRef >>= \propMap ->
+        pure $ hwnd `Map.member` propMap
+
