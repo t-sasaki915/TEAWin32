@@ -1,5 +1,6 @@
 module Framework.TEA
-    ( GUIComponents
+    ( Settings (..)
+    , defaultSettings
     , runTEA
     ) where
 
@@ -18,8 +19,20 @@ import           Graphics.GUI.Internal  (finaliseFontCache,
 import qualified Graphics.Win32         as Win32
 import           Prelude                hiding (init)
 
-runTEA :: (Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
-runTEA init update view = withVisualStyles (runTEA' init update view)
+newtype Settings = Settings
+    { useVisualStyles :: Bool
+    }
+
+defaultSettings :: Settings
+defaultSettings = Settings
+    { useVisualStyles = True
+    }
+
+runTEA :: (Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
+runTEA settings init update view =
+    if useVisualStyles settings
+        then withVisualStyles (runTEA' init update view)
+        else runTEA' init update view
 
 runTEA' :: (Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA' init update view = do

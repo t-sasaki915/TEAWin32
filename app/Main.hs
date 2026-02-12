@@ -3,7 +3,7 @@ module Main (main) where
 import           Control.Lens               (over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
-import           Framework.TEA              (GUIComponents, runTEA)
+import           Framework.TEA              (Settings (..), runTEA)
 import           Graphics.GUI.DSL
 import           Model
 import           Prelude                    hiding (init)
@@ -74,4 +74,8 @@ view model = do
                         [title_ "GOOD MORNING", icon_ Application, cursor_ Wait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
 
 main :: IO ()
-main = runTEA init update view
+main =
+    let settings = Settings
+            { useVisualStyles = True
+            }
+        in runTEA settings init update view

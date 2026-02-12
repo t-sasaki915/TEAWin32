@@ -5,6 +5,7 @@ module Graphics.GUI.DSL
     , module Graphics.GUI
     , module Graphics.GUI.Component.Button.DSL
     , module Graphics.GUI.Component.Window.DSL
+    , GUIComponents
     , noChildren
     , title_
     , size_
