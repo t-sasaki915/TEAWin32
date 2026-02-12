@@ -34,15 +34,20 @@ toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
 toWin32WindowStyle Borderless      = Win32.wS_POPUP
 toWin32WindowStyle Normal          = Win32.wS_OVERLAPPEDWINDOW
 toWin32WindowStyle BorderlessChild = Win32.wS_CHILD
-toWin32WindowStyle NormalChild     = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD
+toWin32WindowStyle NormalChild     = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP
 
 fromWin32WindowStyle :: Win32.WindowStyle -> WindowStyle
 fromWin32WindowStyle windowStyle
-    | windowStyle `hasAll` (Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD) = NormalChild
-    | windowStyle `hasAll` Win32.wS_POPUP                                 = Borderless
-    | windowStyle `hasAll` Win32.wS_OVERLAPPEDWINDOW                      = Normal
-    | windowStyle `hasAll` Win32.wS_CHILD                                 = BorderlessChild
-    | otherwise                                                           = error "Unknown WindowStyle"
+    | windowStyle `hasAll` (Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP) =
+        NormalChild
+    | windowStyle `hasAll` Win32.wS_POPUP =
+        Borderless
+    | windowStyle `hasAll` Win32.wS_OVERLAPPEDWINDOW =
+        Normal
+    | windowStyle `hasAll` Win32.wS_CHILD =
+        BorderlessChild
+    | otherwise =
+        error "Unknown WindowStyle"
     where hasAll a b = (a .&. b) == b
 
 data Icon = Application
