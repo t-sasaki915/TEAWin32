@@ -9,13 +9,18 @@ module Graphics.GUI
     , fromWin32Icon
     , toWin32Cursor
     , fromWin32Cursor
+    , withVisualStyles
     ) where
 
 import                          Control.Concurrent    (modifyMVar, readMVar)
+import                          Control.Monad         (unless, void)
 import                          Data.Bimap            ((!), (!>))
 import                qualified Data.Bimap            as Bimap
 import                          Data.Bits             ((.&.), (.|.))
 import                          Data.Text             (Text)
+import                          Foreign               (Storable (poke, sizeOf),
+                                                       alloca)
+import                          Foreign.C             (withCWString)
 import                qualified Graphics.GUI.Foreign  as Win32
 import {-# SOURCE #-}           Graphics.GUI.Internal (cursorCacheRef,
                                                        iconCacheRef)
@@ -97,3 +102,33 @@ fromWin32Cursor :: Win32.HANDLE -> IO Cursor
 fromWin32Cursor cursor =
     readMVar cursorCacheRef >>= \cursorCache ->
         pure (cursorCache !> cursor)
+
+withVisualStyles :: IO a -> IO a
+withVisualStyles action = do
+    hActCtx <- alloca $ \ul ->
+        alloca $ \actctxPtr -> do
+            hInstance <- Win32.loadLibrary "SHLWAPI.DLL"
+            szPath    <- Win32.getModuleFileName hInstance
+
+            withCWString szPath $ \szPath' -> do
+                let actctx = Win32.ACTCTX
+                        { Win32.cbSize        = fromIntegral $ sizeOf (undefined :: Win32.ACTCTX)
+                        , Win32.actctxDWFlags = 0x008
+                        , Win32.lpResName     = Win32.makeIntResource 123
+                        , Win32.lpSource      = szPath'
+                        }
+
+                poke actctxPtr actctx
+
+                hActCtx <- Win32.c_CreateActCtx actctxPtr
+
+                unless (hActCtx == Win32.iNVALID_HANDLE_VALUE) $
+                    void $ Win32.c_ActivateActCtx hActCtx ul
+
+                pure hActCtx
+
+    x <- action
+
+    _ <- Win32.c_ReleaseActCtx hActCtx
+
+    pure x

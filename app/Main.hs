@@ -11,28 +11,6 @@ import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
 
-{-
-HANDLE CreateAndActivateContext(ULONG_PTR* pul)
-{
-    HANDLE hActCtx = NULL;
-    ACTCTX act = { 0 };
-    TCHAR szPath[MAX_PATH];
-    HINSTANCE hInstance = LoadLibrary(L"SHLWAPI.DLL");
-    GetModuleFileName(hInstance, szPath, ARRAYSIZE(szPath));
-    act.cbSize = sizeof(act);
-    act.dwFlags = ACTCTX_FLAG_RESOURCE_NAME_VALID;
-    act.lpResourceName = MAKEINTRESOURCE(123);
-    act.lpSource = szPath;
-    hActCtx = CreateActCtx(&act);
-    if (hActCtx != INVALID_HANDLE_VALUE)
-        ActivateActCtx(hActCtx, pul);
-    return hActCtx;
-}
-
-ULONG_PTR ul;
-HANDLE hActCtx = CreateAndActivateContext(&ul);
--}
-
 data Model = Model
     { _displayWidth  :: Int
     , _displayHeight :: Int
