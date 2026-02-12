@@ -8,6 +8,7 @@ module Graphics.GUI.Component.Property
     , ComponentTitle (..)
     , ComponentSize (..)
     , ComponentPosition (..)
+    , ComponentFont (..)
     , ComponentChildren (..)
     , ComponentOnClick (..)
     ) where
@@ -18,6 +19,7 @@ import                          Data.Data                       (Typeable, cast)
 import                          Data.Text                       (Text)
 import                qualified Data.Text                       as Text
 import {-# SOURCE #-} qualified Framework.TEA.Internal          as TEAInternal
+import                          Graphics.GUI                    (Font)
 import {-# SOURCE #-}           Graphics.GUI.Component          (GUIComponent (..),
                                                                  IsGUIComponent (..))
 import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal as ComponentInternal
@@ -63,6 +65,7 @@ class IsPropertyWrapper a b where
 newtype ComponentTitle    = ComponentTitle    Text           deriving (Show, Eq)
 newtype ComponentSize     = ComponentSize     (Int, Int)     deriving (Show, Eq)
 newtype ComponentPosition = ComponentPosition (Int, Int)     deriving (Show, Eq)
+newtype ComponentFont     = ComponentFont     Font           deriving (Show, Eq)
 newtype ComponentChildren = ComponentChildren [GUIComponent] deriving (Show, Eq)
 data    ComponentOnClick  = forall a. (Typeable a, Show a, Eq a) => ComponentOnClick a
 
@@ -155,6 +158,20 @@ instance IsGUIComponentProperty ComponentPosition where
             0
             (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
                 ComponentInternal.unsetFlag "COMPONENTPOSITION_SET" componentHWND
+
+instance IsGUIComponentProperty ComponentFont where
+    getPropertyName _ = "ComponentFont"
+
+    applyProperty (ComponentFont font) componentHWND =
+        ComponentInternal.setHWNDFont font componentHWND >>
+            ComponentInternal.setFlag "COMPONENTFONT_SET" componentHWND
+
+    updateProperty (ComponentFont font) _ =
+        ComponentInternal.setHWNDFont font
+
+    unapplyProperty _ componentHWND =
+        ComponentInternal.useDefaultFont componentHWND >>
+            ComponentInternal.unsetFlag "COMPONENTFONT_SET" componentHWND
 
 instance IsGUIComponentProperty ComponentChildren where
     getPropertyName _ = "ComponentChildren"

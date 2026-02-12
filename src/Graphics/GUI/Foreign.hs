@@ -17,12 +17,13 @@ module Graphics.GUI.Foreign
     , gCLP_HICON
     , gCLP_HCURSOR
     , gCLP_HBRBACKGROUND
+    , dEFAULT_GUI_FONT
     , makeIntResource
     ) where
 
 import           Data.Int       (Int32)
-import           Foreign        (FunPtr, Ptr, Storable (..), Word32, fillBytes,
-                                 intPtrToPtr)
+import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
+                                 fillBytes, intPtrToPtr)
 import           Foreign.C      (CIntPtr (..))
 import qualified Graphics.Win32 as Win32
 
@@ -105,6 +106,9 @@ gCLP_HCURSOR = -12
 
 gCLP_HBRBACKGROUND :: Int32
 gCLP_HBRBACKGROUND = -10
+
+dEFAULT_GUI_FONT :: Word16
+dEFAULT_GUI_FONT = 17
 
 makeIntResource :: Int -> Win32.LPCTSTR
 makeIntResource = intPtrToPtr . fromIntegral

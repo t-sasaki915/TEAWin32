@@ -3,12 +3,15 @@ module Graphics.GUI
     , WindowStyle (..)
     , Icon (..)
     , Cursor (..)
+    , Font (..)
     , toWin32WindowStyle
     , fromWin32WindowStyle
     , toWin32Icon
     , fromWin32Icon
     , toWin32Cursor
     , fromWin32Cursor
+    , toWin32Font
+    , fromWin32Font
     , withVisualStyles
     ) where
 
@@ -18,11 +21,13 @@ import                          Data.Bimap            ((!), (!>))
 import                qualified Data.Bimap            as Bimap
 import                          Data.Bits             ((.&.), (.|.))
 import                          Data.Text             (Text)
+import                qualified Data.Text             as Text
 import                          Foreign               (Storable (poke, sizeOf),
                                                        alloca)
 import                          Foreign.C             (withCWString)
 import                qualified Graphics.GUI.Foreign  as Win32
 import {-# SOURCE #-}           Graphics.GUI.Internal (cursorCacheRef,
+                                                       fontCacheRef,
                                                        iconCacheRef)
 import                qualified Graphics.Win32        as Win32
 import                qualified System.Win32          as Win32
@@ -102,6 +107,34 @@ fromWin32Cursor :: Win32.HANDLE -> IO Cursor
 fromWin32Cursor cursor =
     readMVar cursorCacheRef >>= \cursorCache ->
         pure (cursorCache !> cursor)
+
+data Font = DefaultGUIFont
+          | SystemFont
+          | Font Text Int
+          deriving (Show, Eq, Ord)
+
+toWin32Font :: Font -> IO Win32.HFONT
+toWin32Font DefaultGUIFont = Win32.getStockFont Win32.dEFAULT_GUI_FONT
+toWin32Font SystemFont     = Win32.getStockFont Win32.sYSTEM_FONT
+toWin32Font font@(Font fontName fontSize) =
+    modifyMVar fontCacheRef $ \fontCache ->
+        case Bimap.lookup font fontCache of
+            Just hndl -> pure (fontCache, hndl)
+            Nothing ->
+                Win32.createFont (fromIntegral fontSize) 0 0 0 Win32.fW_NORMAL False False False Win32.dEFAULT_CHARSET
+                    Win32.oUT_DEFAULT_PRECIS Win32.cLIP_DEFAULT_PRECIS Win32.dEFAULT_QUALITY
+                        (Win32.fIXED_PITCH .|. Win32.fF_DONTCARE) (Text.unpack fontName) >>= \fontHandle ->
+                            pure (Bimap.insert font fontHandle fontCache, fontHandle)
+
+fromWin32Font :: Win32.HANDLE -> IO Font
+fromWin32Font hndl = do
+    defaultGuiFont <- Win32.getStockFont Win32.dEFAULT_GUI_FONT
+    systemFont     <- Win32.getStockFont Win32.sYSTEM_FONT
+
+    case hndl of
+        _ | hndl == defaultGuiFont -> pure DefaultGUIFont
+        _ | hndl == systemFont     -> pure SystemFont
+        _                          -> readMVar fontCacheRef >>= \fontCache -> pure (fontCache !> hndl)
 
 withVisualStyles :: IO a -> IO a
 withVisualStyles action =

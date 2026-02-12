@@ -12,7 +12,8 @@ import           Data.IORef             (atomicModifyIORef')
 import           Framework.TEA.Internal
 import           Graphics.GUI           (withVisualStyles)
 import           Graphics.GUI.Component (GUIComponents, IsGUIComponent (render))
-import           Graphics.GUI.Internal  (initialiseCursorCache,
+import           Graphics.GUI.Internal  (finaliseFontCache,
+                                         initialiseCursorCache,
                                          initialiseIconCache)
 import qualified Graphics.Win32         as Win32
 import           Prelude                hiding (init)
@@ -49,6 +50,8 @@ runTEA' init update view = do
         render guiComponent Nothing
 
     messagePump
+
+    finaliseFontCache
 
 messagePump :: IO ()
 messagePump =

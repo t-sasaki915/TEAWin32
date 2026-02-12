@@ -7,12 +7,14 @@ module Graphics.GUI.Internal
     , withImmediateChildWindows
     , cursorCacheRef
     , iconCacheRef
+    , fontCacheRef
     , initialiseCursorCache
     , initialiseIconCache
+    , finaliseFontCache
     ) where
 
 import                          Control.Concurrent   (MVar, modifyMVar_,
-                                                      newMVar)
+                                                      newMVar, takeMVar)
 import                          Control.Exception    (SomeException, try)
 import                          Control.Monad        (filterM)
 import                          Data.Bimap           (Bimap)
@@ -21,7 +23,8 @@ import                          Data.IORef           (IORef, atomicModifyIORef',
                                                       modifyIORef, newIORef,
                                                       readIORef)
 import                          Foreign              (freeHaskellFunPtr)
-import {-# SOURCE #-}           Graphics.GUI         (Cursor (..), Icon (..))
+import {-# SOURCE #-}           Graphics.GUI         (Cursor (..), Font,
+                                                      Icon (..))
 import                qualified Graphics.GUI.Foreign as Win32
 import                qualified Graphics.Win32       as Win32
 import                          System.IO.Unsafe     (unsafePerformIO)
@@ -38,6 +41,10 @@ cursorCacheRef = unsafePerformIO (newMVar Bimap.empty)
 iconCacheRef :: MVar (Bimap Icon Win32.HANDLE)
 iconCacheRef = unsafePerformIO (newMVar Bimap.empty)
 {-# NOINLINE iconCacheRef #-}
+
+fontCacheRef :: MVar (Bimap Font Win32.HANDLE)
+fontCacheRef = unsafePerformIO (newMVar Bimap.empty)
+{-# NOINLINE fontCacheRef #-}
 
 initialiseCursorCache :: IO ()
 initialiseCursorCache = do
@@ -68,6 +75,11 @@ initialiseIconCache = do
             ]
 
     modifyMVar_ iconCacheRef (const $ pure builtInIconCache)
+
+finaliseFontCache :: IO ()
+finaliseFontCache =
+    takeMVar fontCacheRef >>=
+        mapM_ Win32.c_DeleteObject . Bimap.elems
 
 withChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
 withChildWindows targetHWND func = do

@@ -60,6 +60,7 @@ instance IsWindowProperty WindowBackgroundColour
 instance IsWindowProperty ComponentTitle
 instance IsWindowProperty ComponentSize
 instance IsWindowProperty ComponentPosition
+instance IsWindowProperty ComponentFont
 instance IsWindowProperty ComponentChildren
 
 instance IsGUIComponentProperty WindowIcon where

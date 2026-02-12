@@ -43,4 +43,5 @@ instance IsGUIComponentProperty ButtonProperty where
 instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize
 instance IsButtonProperty ComponentPosition
+instance IsButtonProperty ComponentFont
 instance IsButtonProperty ComponentOnClick

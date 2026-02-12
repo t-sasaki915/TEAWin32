@@ -37,7 +37,9 @@ update ButtonClicked2 model =
 
 view :: Model -> GUIComponents
 view model = do
-    when (even (model ^. clickedCount)) $
+    let isCountEven = even (model ^. clickedCount)
+
+    when isCountEven $
         window_ "TEAWin32GUI-SubSubSub" "TEAWin32GUI-SubSubSub" Normal
             [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
 
@@ -47,7 +49,7 @@ view model = do
         , cursor_ IBeam
         , size_ (model ^. displayWidth, model ^. displayHeight)
         --, position_ (0, 0)
-        , backgroundColour_ (if even (model ^. clickedCount) then RGB 255 255 255 else RGB 100 100 100)
+        , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
         ] $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
@@ -63,7 +65,10 @@ view model = do
                 ] $ do
                     button_ "TestButton2" [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), position_ (20, 50)]
 
-                    button_ "TestButton3" [title_ "!?", size_ (50, 50), position_ (100, 150), onClick_ ButtonClicked2]
+                    button_ "TestButton3" [title_ "!?", size_ (50, 50), position_ (100, 150), onClick_ ButtonClicked2, font_ SystemFont]
+
+                    button_ "TestButton5"
+                        [title_ "おはようございます", size_ (200, 50), position_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
 
                     window_ "TEAWin32GUI-Sub-Sub" "TEAWin32GUI-Sub-Sub" BorderlessChild
                         [title_ "GOOD MORNING", icon_ Application, cursor_ Wait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren

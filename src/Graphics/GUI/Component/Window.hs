@@ -60,6 +60,7 @@ instance IsGUIComponent Window where
                     defaultWindowProc
 
         registerHWNDToPropMap window
+        ComponentInternal.useDefaultFont window
 
         mapM_ (`applyProperty` window) windowProperties
 

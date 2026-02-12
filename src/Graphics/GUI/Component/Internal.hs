@@ -26,10 +26,13 @@ module Graphics.GUI.Component.Internal
     , getWindowBackgroundColourMaybe
     , removeWindowBackgroundColour
     , isManagedWindow
+    , setHWNDFont
+    , useDefaultFont
     , restoreComponentFromHWND
     ) where
 
-import                          Data.Functor                           ((<&>))
+import                          Data.Functor                           (void,
+                                                                        (<&>))
 import                          Data.List                              (isPrefixOf)
 import                qualified Data.Map                               as Map
 import                          Data.Maybe                             (isJust)
@@ -211,6 +214,14 @@ isManagedWindow :: Win32.HWND -> IO Bool
 isManagedWindow hwnd =
     getClassName hwnd >>= \className ->
         pure $ windowClassPrefix `isPrefixOf` Text.unpack className
+
+setHWNDFont :: Font -> Win32.HWND -> IO ()
+setHWNDFont font hwnd =
+    toWin32Font font >>= \font' ->
+        void $ Win32.sendMessage hwnd Win32.wM_SETFONT (fromIntegral $ ptrToWordPtr font') 1
+
+useDefaultFont :: Win32.HWND -> IO ()
+useDefaultFont = setHWNDFont DefaultGUIFont
 
 restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 restoreComponentFromHWND hwnd =

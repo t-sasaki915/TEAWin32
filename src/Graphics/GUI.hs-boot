@@ -1,4 +1,5 @@
-module Graphics.GUI (Icon (..), Cursor (..)) where
+module Graphics.GUI (Icon (..), Cursor (..), Font (..)) where
+import           Data.Text (Text)
 
 data Icon = Application
           | Hand
@@ -20,3 +21,9 @@ data Cursor = Arrow
             | SizeNS
 
 instance Ord Cursor
+
+data Font = DefaultGUIFont
+          | SystemFont
+          | Font Text Int
+
+instance Ord Font

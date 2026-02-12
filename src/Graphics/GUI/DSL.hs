@@ -9,14 +9,15 @@ module Graphics.GUI.DSL
     , title_
     , size_
     , position_
+    , font_
     , onClick_
     ) where
 
 import           Data.Data                         (Typeable)
 import           Data.Text                         (Text)
 import           Graphics.Drawing                  (Colour (..))
-import           Graphics.GUI                      (Cursor (..), Icon (..),
-                                                    WindowStyle (..))
+import           Graphics.GUI                      (Cursor (..), Font (..),
+                                                    Icon (..), WindowStyle (..))
 import           Graphics.GUI.Component            (GUIComponents)
 import           Graphics.GUI.Component.Button.DSL
 import           Graphics.GUI.Component.Property
@@ -33,6 +34,9 @@ size_ = wrapComponentProperty . ComponentSize
 
 position_ :: (IsPropertyWrapper a ComponentPosition) => (Int, Int) -> a
 position_ = wrapComponentProperty . ComponentPosition
+
+font_ :: (IsPropertyWrapper a ComponentFont) => Font -> a
+font_ = wrapComponentProperty . ComponentFont
 
 onClick_ :: (IsPropertyWrapper a ComponentOnClick, Typeable b, Show b, Eq b) => b -> a
 onClick_ = wrapComponentProperty . ComponentOnClick

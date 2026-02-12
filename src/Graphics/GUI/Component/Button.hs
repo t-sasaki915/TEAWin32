@@ -39,6 +39,7 @@ instance IsGUIComponent Button where
             (const $ const $ const $ const $ pure 0)
 
         registerHWNDToPropMap button
+        ComponentInternal.useDefaultFont button
 
         mapM_ (`applyProperty` button) buttonProperties
 
