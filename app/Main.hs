@@ -38,61 +38,35 @@ update ButtonClicked2 model =
 view :: Model -> GUIComponents
 view model = do
     when (even (model ^. clickedCount)) $
-        window "TEAWin32GUI-SubSubSub" "TEAWin32GUI-SubSubSub" Normal $ do
-            windowTitle "Count is even!"
-            windowIcon Exclamation
-            windowSize (400, 10)
-            windowPosition (0, 0)
-            windowBackgroundColour (RGB 0 0 255)
+        window_ "TEAWin32GUI-SubSubSub" "TEAWin32GUI-SubSubSub" Normal
+            [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
 
-    window "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal $ do
-        windowTitle ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
-        windowIcon Application
-        when (even (model ^. clickedCount)) $
-            windowCursor IBeam
-        windowSize (model ^. displayWidth, model ^. displayHeight)
-        --windowPosition (0, 0)
-        if even (model ^. clickedCount)
-            then windowBackgroundColour (RGB 255 255 255)
-            else windowBackgroundColour (RGB 100 100 100)
-        windowChildren $ do
-            button "TestButton" $ do
-                buttonLabel "TEST BUTTON"
-                buttonSize (100, 50)
-                buttonPosition (0, 0)
-                buttonClicked ButtonClicked
+    window_ "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal
+        [ title_ ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
+        , icon_ Application
+        , cursor_ IBeam
+        , size_ (model ^. displayWidth, model ^. displayHeight)
+        --, position_ (0, 0)
+        , backgroundColour_ (if even (model ^. clickedCount) then RGB 255 255 255 else RGB 100 100 100)
+        ] $ do
+            button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
-            button "TestButton4" $ do
-                        buttonLabel ("Click Count 1: " <> Text.show (model ^. clickedCount))
-                        buttonSize (150, 100)
-                        buttonPosition (150, 100)
+            button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]
 
-            window "TEAWin32GUI-Sub" "TEAWin32GUI-Sub" NormalChild $ do
-                windowTitle "HELLO"
-                windowIcon Exclamation
-                windowCursor Arrow
-                windowSize (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
-                windowPosition (100, 100)
-                windowBackgroundColour (RGB 255 0 0)
-                windowChildren $ do
-                    button "TestButton2" $ do
-                        buttonLabel ("Click Count 2: " <> Text.show (model ^. clickedCount))
-                        buttonSize (150, 100)
-                        buttonPosition (20, 50)
+            window_ "TEAWin32GUI-Sub" "TEAWin32GUI-Sub" NormalChild
+                [ title_ "HELLO"
+                , icon_ Exclamation
+                , cursor_ Arrow
+                , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
+                , position_ (100, 100)
+                , backgroundColour_ (RGB 255 0 0)
+                ] $ do
+                    button_ "TestButton2" [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), position_ (20, 50)]
 
-                    button "TestButton3" $ do
-                        buttonLabel "!?"
-                        buttonSize (50, 50)
-                        buttonPosition (100, 150)
-                        buttonClicked ButtonClicked2
+                    button_ "TestButton3" [title_ "!?", size_ (50, 50), position_ (100, 150), onClick_ ButtonClicked2]
 
-                    window "TEAWin32GUI-Sub-Sub" "TEAWin32GUI-Sub-Sub" BorderlessChild $ do
-                        windowTitle "GOOD MORNING"
-                        windowIcon Application
-                        windowCursor Wait
-                        windowSize (50, 50)
-                        windowPosition (0, 0)
-                        windowBackgroundColour (RGB 0 255 0)
+                    window_ "TEAWin32GUI-Sub-Sub" "TEAWin32GUI-Sub-Sub" BorderlessChild
+                        [title_ "GOOD MORNING", icon_ Application, cursor_ Wait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
 
 main :: IO ()
 main = runTEA init update view

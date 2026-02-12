@@ -7,32 +7,33 @@ import           Graphics.GUI.Component                 (GUIComponent (..))
 import           Graphics.GUI.Component.Button          (Button (Button))
 import           Graphics.GUI.Component.Button.Property
 import qualified Graphics.GUI.Component.Internal        as ComponentInternal
+import           Graphics.GUI.Component.Property
 import qualified Graphics.Win32                         as Win32
 
 restoreButtonFromHWND :: Win32.HWND -> IO GUIComponent
 restoreButtonFromHWND hwnd = do
     buttonUniqueId  <- ComponentInternal.getUniqueIdFromHWND hwnd
 
-    isButtonLabelSet    <- ComponentInternal.isFlagSet "BUTTONLABEL_SET"    hwnd
-    isButtonSizeSet     <- ComponentInternal.isFlagSet "BUTTONSIZE_SET"     hwnd
-    isButtonPositionSet <- ComponentInternal.isFlagSet "BUTTONPOSITION_SET" hwnd
-    isButtonClickedSet  <- ComponentInternal.isFlagSet "BUTTONCLICKED_SET"  hwnd
+    isComponentTitleSet    <- ComponentInternal.isFlagSet "COMPONENTTITLE_SET"    hwnd
+    isComponentSizeSet     <- ComponentInternal.isFlagSet "COMPONENTSIZE_SET"     hwnd
+    isComponentPositionSet <- ComponentInternal.isFlagSet "COMPONENTPOSITION_SET" hwnd
+    isComponentOnClickSet  <- ComponentInternal.isFlagSet "COMPONENTONCLICK_SET"  hwnd
 
     properties <- execWriterT $ do
-        when isButtonLabelSet $
+        when isComponentTitleSet $
             liftIO (ComponentInternal.getWindowTitle hwnd) >>= \buttonLabel ->
-                tell [ButtonProperty $ ButtonLabel buttonLabel]
+                tell [ButtonProperty $ ComponentTitle buttonLabel]
 
-        when isButtonSizeSet $
+        when isComponentSizeSet $
             liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(_, _, w, h) ->
-                tell [ButtonProperty $ ButtonSize (w, h)]
+                tell [ButtonProperty $ ComponentSize (w, h)]
 
-        when isButtonPositionSet $
+        when isComponentPositionSet $
             liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(x, y, _, _) ->
-                tell [ButtonProperty $ ButtonPosition (x, y)]
+                tell [ButtonProperty $ ComponentPosition (x, y)]
 
-        when isButtonClickedSet $
-            liftIO (ComponentInternal.getEventHandler "BUTTONCLICKED" hwnd) >>= \msg ->
-                tell [ButtonProperty $ ButtonClicked msg]
+        when isComponentOnClickSet $
+            liftIO (ComponentInternal.getEventHandler "COMPONENTONCLICK" hwnd) >>= \msg ->
+                tell [ButtonProperty $ ComponentOnClick msg]
 
     pure $ GUIComponent $ Button buttonUniqueId properties

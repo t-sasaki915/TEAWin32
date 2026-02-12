@@ -93,7 +93,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 
         case notification of
             0 -> do -- BN_CLICKED
-                ComponentInternal.getEventHandlerMaybe "BUTTONCLICKED" targetHWND >>= \case
+                ComponentInternal.getEventHandlerMaybe "COMPONENTONCLICK" targetHWND >>= \case
                     Just msg -> TEAInternal.issueMsg msg >> pure 0
                     Nothing  -> Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 

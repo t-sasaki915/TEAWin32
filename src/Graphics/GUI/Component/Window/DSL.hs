@@ -1,16 +1,13 @@
 module Graphics.GUI.Component.Window.DSL
-    ( windowTitle
-    , windowIcon
-    , windowCursor
-    , windowSize
-    , windowPosition
-    , windowBackgroundColour
-    , windowChildren
-    , window
+    ( icon_
+    , cursor_
+    , backgroundColour_
+    , window_
     ) where
 
+import           Control.Monad                          (unless)
 import           Control.Monad.Writer                   (MonadWriter (tell),
-                                                         Writer, execWriter)
+                                                         execWriter)
 import           Data.Text                              (Text)
 import           Graphics.Drawing                       (Colour)
 import           Graphics.GUI                           (Cursor, Icon,
@@ -18,32 +15,26 @@ import           Graphics.GUI                           (Cursor, Icon,
                                                          WindowStyle)
 import           Graphics.GUI.Component                 (GUIComponent (GUIComponent),
                                                          GUIComponents)
+import           Graphics.GUI.Component.Property        (ComponentChildren (ComponentChildren))
 import           Graphics.GUI.Component.Window          (Window (Window))
 import           Graphics.GUI.Component.Window.Property
 
-windowTitle :: Text -> Writer [WindowProperty] ()
-windowTitle = tell . pure . WindowProperty . WindowTitle
+icon_ :: Icon -> WindowProperty
+icon_ = WindowProperty . WindowIcon
 
-windowIcon :: Icon -> Writer [WindowProperty] ()
-windowIcon = tell . pure . WindowProperty . WindowIcon
+cursor_ :: Cursor -> WindowProperty
+cursor_ = WindowProperty . WindowCursor
 
-windowCursor :: Cursor -> Writer [WindowProperty] ()
-windowCursor = tell . pure . WindowProperty . WindowCursor
+backgroundColour_ :: Colour -> WindowProperty
+backgroundColour_ = WindowProperty . WindowBackgroundColour
 
-windowSize :: (Int, Int) -> Writer [WindowProperty] ()
-windowSize = tell . pure . WindowProperty . WindowSize
+window_ :: Text -> Text -> WindowStyle -> [WindowProperty] -> GUIComponents -> GUIComponents
+window_ windowUniqueId windowClass windowStyle windowProperties windowChildren = do
+    let properties = execWriter $
+            tell windowProperties >>
+                let children = execWriter windowChildren in
+                    unless (null children) $
+                        tell [WindowProperty $ ComponentChildren children]
 
-windowPosition :: (Int, Int) -> Writer [WindowProperty] ()
-windowPosition = tell . pure . WindowProperty . WindowPosition
-
-windowBackgroundColour :: Colour -> Writer [WindowProperty] ()
-windowBackgroundColour = tell . pure . WindowProperty . WindowBackgroundColour
-
-windowChildren :: Writer [GUIComponent] () -> Writer [WindowProperty] ()
-windowChildren children =
-    tell $ pure $ WindowProperty $ WindowChildren (execWriter children)
-
-window :: Text -> Text -> WindowStyle -> Writer [WindowProperty] () -> GUIComponents
-window windowUniqueId windowClass windowStyle windowProperties =
     tell $ pure $ GUIComponent $
-        Window (UniqueId windowUniqueId) windowClass windowStyle (execWriter windowProperties)
+        Window (UniqueId windowUniqueId) windowClass windowStyle properties

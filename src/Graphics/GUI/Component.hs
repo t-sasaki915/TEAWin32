@@ -6,11 +6,11 @@ module Graphics.GUI.Component
     , GUIComponent (..)
     ) where
 
-import           Control.Monad.Writer            (Writer)
-import           Data.Data                       (Typeable, cast)
-import           Graphics.GUI                    (UniqueId)
-import           Graphics.GUI.Component.Property (GUIComponentProperty)
-import qualified Graphics.Win32                  as Win32
+import                          Control.Monad.Writer            (Writer)
+import                          Data.Data                       (Typeable, cast)
+import                          Graphics.GUI                    (UniqueId)
+import {-# SOURCE #-}           Graphics.GUI.Component.Property (GUIComponentProperty)
+import                qualified Graphics.Win32                  as Win32
 
 type GUIComponents = Writer [GUIComponent] ()
 

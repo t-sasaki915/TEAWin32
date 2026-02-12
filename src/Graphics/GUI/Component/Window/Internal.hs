@@ -6,6 +6,7 @@ import           Control.Monad.Writer                   (MonadIO (liftIO),
 import qualified Data.Text                              as Text
 import           Graphics.GUI.Component                 (GUIComponent (GUIComponent))
 import qualified Graphics.GUI.Component.Internal        as ComponentInternal
+import           Graphics.GUI.Component.Property
 import           Graphics.GUI.Component.Window          (Window (Window))
 import           Graphics.GUI.Component.Window.Property
 import qualified Graphics.GUI.Internal                  as Internal
@@ -21,18 +22,18 @@ restoreWindowFromHWND hwnd = do
                 Just className' -> pure className'
                 Nothing         -> error "Tried to process a window that is not managed by TEAWin32GUI."
 
-    isWindowTitleSet            <- ComponentInternal.isFlagSet "WINDOWTITLE_SET"            hwnd
+    isComponentTitleSet         <- ComponentInternal.isFlagSet "COMPONENTTITLE_SET"         hwnd
     isWindowIconSet             <- ComponentInternal.isFlagSet "WINDOWICON_SET"             hwnd
     isWindowCursorSet           <- ComponentInternal.isFlagSet "WINDOWCURSOR_SET"           hwnd
-    isWindowSizeSet             <- ComponentInternal.isFlagSet "WINDOWSIZE_SET"             hwnd
-    isWindowPositionSet         <- ComponentInternal.isFlagSet "WINDOWPOSITION_SET"         hwnd
+    isComponentSizeSet          <- ComponentInternal.isFlagSet "COMPONENTSIZE_SET"          hwnd
+    isComponentPositionSet      <- ComponentInternal.isFlagSet "COMPONENTPOSITION_SET"      hwnd
     isWindowBackgroundColourSet <- ComponentInternal.isFlagSet "WINDOWBACKGROUNDCOLOUR_SET" hwnd
-    isWindowChildrenSet         <- ComponentInternal.isFlagSet "WINDOWCHILDREN_SET"         hwnd
+    isComponentChildrenSet      <- ComponentInternal.isFlagSet "COMPONENTCHILDREN_SET"      hwnd
 
     properties <- execWriterT $ do
-        when isWindowTitleSet $
+        when isComponentTitleSet $
             liftIO (ComponentInternal.getWindowTitle hwnd) >>= \windowTitle ->
-                tell [WindowProperty $ WindowTitle windowTitle]
+                tell [WindowProperty $ ComponentTitle windowTitle]
 
         when isWindowIconSet $
             liftIO (ComponentInternal.getWindowIcon hwnd) >>= \windowIcon ->
@@ -42,20 +43,20 @@ restoreWindowFromHWND hwnd = do
             liftIO (ComponentInternal.getWindowCursor hwnd) >>= \windowCursor ->
                 tell [WindowProperty $ WindowCursor windowCursor]
 
-        when isWindowSizeSet $
+        when isComponentSizeSet $
             liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(_, _, w, h) ->
-                tell [WindowProperty $ WindowSize (w, h)]
+                tell [WindowProperty $ ComponentSize (w, h)]
 
-        when isWindowPositionSet $
+        when isComponentPositionSet $
             liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(x, y, _, _) ->
-                tell [WindowProperty $ WindowPosition (x, y)]
+                tell [WindowProperty $ ComponentPosition (x, y)]
 
         when isWindowBackgroundColourSet $
             liftIO (ComponentInternal.getWindowBackgroundColour hwnd) >>= \backgroundColour ->
                 tell [WindowProperty $ WindowBackgroundColour backgroundColour]
 
-        when isWindowChildrenSet $
+        when isComponentChildrenSet $
             liftIO (Internal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
-                tell [WindowProperty $ WindowChildren children]
+                tell [WindowProperty $ ComponentChildren children]
 
     pure $ GUIComponent $ Window windowUniqueId windowClassName windowStyle properties
