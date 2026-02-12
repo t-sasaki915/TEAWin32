@@ -104,8 +104,8 @@ fromWin32Cursor cursor =
         pure (cursorCache !> cursor)
 
 withVisualStyles :: IO a -> IO a
-withVisualStyles action = do
-    hActCtx <- alloca $ \ul ->
+withVisualStyles action =
+    alloca $ \ul ->
         alloca $ \actctxPtr -> do
             hInstance <- Win32.loadLibrary "SHLWAPI.DLL"
             szPath    <- Win32.getModuleFileName hInstance
@@ -125,10 +125,8 @@ withVisualStyles action = do
                 unless (hActCtx == Win32.iNVALID_HANDLE_VALUE) $
                     void $ Win32.c_ActivateActCtx hActCtx ul
 
-                pure hActCtx
+                x <- action
 
-    x <- action
+                _ <- Win32.c_ReleaseActCtx hActCtx
 
-    _ <- Win32.c_ReleaseActCtx hActCtx
-
-    pure x
+                pure x
