@@ -1,23 +1,15 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Main (main) where
 
-import           Control.Lens               (makeLenses, over, (^.))
+import           Control.Lens               (over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
 import           Framework.TEA              (GUIComponents, runTEA)
 import           Graphics.GUI.DSL
+import           Model
 import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
 
-data Model = Model
-    { _displayWidth  :: Int
-    , _displayHeight :: Int
-    , _clickedCount  :: Int
-    } deriving Show
-
-makeLenses ''Model
 
 data Msg = ButtonClicked
          | ButtonClicked2

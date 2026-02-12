@@ -22,6 +22,7 @@ executable TEAWin32GUI-Experiment
   main-is: Main.hs
   other-modules:
       Paths_TEAWin32GUI
+      Model
   autogen-modules:
       Paths_TEAWin32GUI
   hs-source-dirs:
