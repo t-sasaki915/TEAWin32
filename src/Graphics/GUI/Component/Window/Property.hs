@@ -10,14 +10,13 @@ module Graphics.GUI.Component.Window.Property
     , WindowBackgroundColour (..)
     ) where
 
-import           Control.Monad                   (void)
-import           Data.Data                       (Typeable, cast, typeOf)
-import           Graphics.Drawing                (Colour)
+import           Data.Data                                 (Typeable, cast,
+                                                            typeOf)
+import           Graphics.Drawing                          (Colour)
 import           Graphics.GUI
-import qualified Graphics.GUI.Component.Internal as ComponentInternal
+import qualified Graphics.GUI.Component.Internal           as ComponentInternal
+import           Graphics.GUI.Component.Internal.Attribute
 import           Graphics.GUI.Component.Property
-import qualified Graphics.GUI.Foreign            as Win32
-import qualified Graphics.Win32                  as Win32
 
 data WindowProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
@@ -66,44 +65,46 @@ instance IsWindowProperty ComponentChildren
 
 instance IsGUIComponentProperty WindowIcon where
     applyProperty (WindowIcon icon) windowHWND =
-        (toWin32Icon icon >>= \icon' ->
-            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon') >>
-                ComponentInternal.setFlag "WINDOWICON_SET" windowHWND
+        ComponentInternal.setWindowIcon icon windowHWND >>
+            addAttributeToHWND windowHWND (WindowIconAttr icon) >>
+                addAttributeToHWND windowHWND (ComponentFlagAttr WindowIconSet)
 
     updateProperty (WindowIcon icon) _ windowHWND =
-        toWin32Icon icon >>= \icon' ->
-            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON icon'
+        ComponentInternal.setWindowIcon icon windowHWND >>
+            updateAttributeOfHWND windowHWND (WindowIconAttr icon)
 
-    unapplyProperty _ windowHWND =
-        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HICON Win32.nullPtr >>
-            ComponentInternal.unsetFlag "WINDOWICON_SET" windowHWND
+    unapplyProperty (WindowIcon icon) windowHWND =
+        ComponentInternal.setWindowIcon Application windowHWND >>
+            removeAttributeFromHWND windowHWND (WindowIconAttr icon) >>
+                removeAttributeFromHWND windowHWND (ComponentFlagAttr WindowIconSet)
 
 instance IsGUIComponentProperty WindowCursor where
     applyProperty (WindowCursor cursor) windowHWND =
-        (toWin32Cursor cursor >>= \cursor' ->
-            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor') >>
-                ComponentInternal.setFlag "WINDOWCURSOR_SET" windowHWND
+        ComponentInternal.setWindowCursor cursor windowHWND >>
+            addAttributeToHWND windowHWND (WindowCursorAttr cursor) >>
+                addAttributeToHWND windowHWND (ComponentFlagAttr WindowCursorSet)
 
     updateProperty (WindowCursor cursor) _ windowHWND =
-        toWin32Cursor cursor >>= \cursor' ->
-            void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR cursor'
+        ComponentInternal.setWindowCursor cursor windowHWND >>
+            updateAttributeOfHWND windowHWND (WindowCursorAttr cursor)
 
-    unapplyProperty _ windowHWND =
-        void $ Win32.c_SetClassLongPtr windowHWND Win32.gCLP_HCURSOR Win32.nullPtr >>
-            ComponentInternal.unsetFlag "WINDOWCURSOR_SET" windowHWND
+    unapplyProperty (WindowCursor cursor) windowHWND =
+        ComponentInternal.setWindowCursor Arrow windowHWND >>
+            removeAttributeFromHWND windowHWND (WindowCursorAttr cursor) >>
+                removeAttributeFromHWND windowHWND (ComponentFlagAttr WindowCursorSet)
 
 
 instance IsGUIComponentProperty WindowBackgroundColour where
     applyProperty (WindowBackgroundColour colour) windowHWND =
-        ComponentInternal.setWindowBackgroundColour colour windowHWND >>
-            ComponentInternal.setFlag "WINDOWBACKGROUNDCOLOUR_SET" windowHWND >>
-                Win32.invalidateRect (Just windowHWND) Nothing True
+        addAttributeToHWND windowHWND (ComponentBackgroundColourAttr colour) >>
+            addAttributeToHWND windowHWND (ComponentFlagAttr ComponentBackgroundColourSet) >>
+                ComponentInternal.requestRedraw windowHWND
 
     updateProperty (WindowBackgroundColour colour) _ windowHWND =
-        ComponentInternal.setWindowBackgroundColour colour windowHWND >>
-            Win32.invalidateRect (Just windowHWND) Nothing True
+        updateAttributeOfHWND windowHWND (ComponentBackgroundColourAttr colour) >>
+            ComponentInternal.requestRedraw windowHWND
 
-    unapplyProperty _ windowHWND =
-        ComponentInternal.removeWindowBackgroundColour windowHWND >>
-            ComponentInternal.unsetFlag "WINDOWBACKGROUNDCOLOUR_SET" windowHWND >>
-                Win32.invalidateRect (Just windowHWND) Nothing True
+    unapplyProperty (WindowBackgroundColour colour) windowHWND =
+        removeAttributeFromHWND windowHWND (ComponentBackgroundColourAttr colour) >>
+            removeAttributeFromHWND windowHWND (ComponentBackgroundColourAttr colour) >>
+                ComponentInternal.requestRedraw windowHWND

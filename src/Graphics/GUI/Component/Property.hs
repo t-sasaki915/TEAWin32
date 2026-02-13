@@ -14,20 +14,19 @@ module Graphics.GUI.Component.Property
     , ComponentOnClick (..)
     ) where
 
-import                          Control.Monad                   (forM_, void)
-import                          Data.Bits                       ((.|.))
-import                          Data.Data                       (TypeRep,
-                                                                 Typeable, cast)
-import                          Data.Text                       (Text)
-import                qualified Data.Text                       as Text
-import {-# SOURCE #-} qualified Framework.TEA.Internal          as TEAInternal
-import                          Graphics.GUI                    (Font)
-import {-# SOURCE #-}           Graphics.GUI.Component          (GUIComponent (..),
-                                                                 IsGUIComponent (..))
-import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal as ComponentInternal
-import {-# SOURCE #-}           Graphics.GUI.Component.Window   (destroyChildren)
-import                qualified Graphics.GUI.Foreign            as Win32
-import                qualified Graphics.Win32                  as Win32
+import                          Control.Monad                             (forM_)
+import                          Data.Data                                 (TypeRep,
+                                                                           Typeable,
+                                                                           cast)
+import                          Data.Text                                 (Text)
+import {-# SOURCE #-} qualified Framework.TEA.Internal                    as TEAInternal
+import                          Graphics.GUI                              (Font)
+import {-# SOURCE #-}           Graphics.GUI.Component                    (GUIComponent (..),
+                                                                           IsGUIComponent (..))
+import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal           as ComponentInternal
+import {-# SOURCE #-}           Graphics.GUI.Component.Internal.Attribute
+import {-# SOURCE #-}           Graphics.GUI.Component.Window             (destroyChildren)
+import                qualified Graphics.Win32                            as Win32
 
 data GUIComponentProperty = forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a) => GUIComponentProperty a
 
@@ -85,112 +84,79 @@ instance Show ComponentOnClick where
 
 instance IsGUIComponentProperty ComponentTitle where
     applyProperty (ComponentTitle title) componentHWND =
-        Win32.setWindowText componentHWND (Text.unpack title) >>
-            ComponentInternal.setFlag "COMPONENTTITLE_SET" componentHWND
+        ComponentInternal.setComponentTitle title componentHWND >>
+            addAttributeToHWND componentHWND (ComponentTitleAttr title) >>
+                addAttributeToHWND componentHWND (ComponentFlagAttr ComponentTitleSet)
 
     updateProperty (ComponentTitle title) _ componentHWND =
-        Win32.setWindowText componentHWND (Text.unpack title)
+        ComponentInternal.setComponentTitle title componentHWND >>
+            updateAttributeOfHWND componentHWND (ComponentTitleAttr title)
 
-    unapplyProperty _ componentHWND =
-        Win32.setWindowText componentHWND "" >>
-            ComponentInternal.unsetFlag "COMPONENTTITLE_SET" componentHWND
+    unapplyProperty (ComponentTitle title) componentHWND =
+        ComponentInternal.setComponentTitle "" componentHWND >>
+            removeAttributeFromHWND componentHWND (ComponentTitleAttr title) >>
+                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentTitleSet)
 
 instance IsGUIComponentProperty ComponentSize where
     applyProperty (ComponentSize (width, height)) componentHWND =
-        Win32.c_SetWindowPos componentHWND
-            Win32.nullPtr
-            0
-            0
-            (fromIntegral width)
-            (fromIntegral height)
-            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
-                ComponentInternal.setFlag "COMPONENTSIZE_SET" componentHWND
+        ComponentInternal.setComponentSize width height componentHWND >>
+            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
 
-    updateProperty (ComponentSize (width, height)) _ componentHWND =
-        void $ Win32.c_SetWindowPos componentHWND
-            Win32.nullPtr
-            0
-            0
-            (fromIntegral width)
-            (fromIntegral height)
-            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+    updateProperty (ComponentSize (width, height)) _ =
+        ComponentInternal.setComponentSize width height
 
     unapplyProperty _ componentHWND =
-        Win32.c_SetWindowPos componentHWND
-            Win32.nullPtr
-            0
-            0
-            0
-            0
-            (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
-                ComponentInternal.unsetFlag "COMPONENTSIZE_SET" componentHWND
+        ComponentInternal.setComponentSize 0 0 componentHWND >>
+            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
 
 instance IsGUIComponentProperty ComponentPosition where
     applyProperty (ComponentPosition (x, y)) componentHWND =
-        Win32.c_SetWindowPos
-            componentHWND
-            Win32.nullPtr
-            (fromIntegral x)
-            (fromIntegral y)
-            0
-            0
-            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
-                ComponentInternal.setFlag "COMPONENTPOSITION_SET" componentHWND
+        ComponentInternal.setComponentPosition x y componentHWND >>
+            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
 
-    updateProperty (ComponentPosition (x, y)) _ componentHWND =
-        void $ Win32.c_SetWindowPos
-            componentHWND
-            Win32.nullPtr
-            (fromIntegral x)
-            (fromIntegral y)
-            0
-            0
-            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+    updateProperty (ComponentPosition (x, y)) _ =
+        ComponentInternal.setComponentPosition x y
 
     unapplyProperty _ componentHWND =
-        Win32.c_SetWindowPos
-            componentHWND
-            Win32.nullPtr
-            0
-            0
-            0
-            0
-            (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE) >>
-                ComponentInternal.unsetFlag "COMPONENTPOSITION_SET" componentHWND
+        ComponentInternal.setComponentPosition 0 0 componentHWND >>
+            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
 
 instance IsGUIComponentProperty ComponentFont where
     applyProperty (ComponentFont font) componentHWND =
-        ComponentInternal.setHWNDFont font componentHWND >>
-            ComponentInternal.setFlag "COMPONENTFONT_SET" componentHWND
+        ComponentInternal.setComponentFont font componentHWND >>
+            addAttributeToHWND componentHWND (ComponentFontAttr font) >>
+                addAttributeToHWND componentHWND (ComponentFlagAttr ComponentFontSet)
 
-    updateProperty (ComponentFont font) _ =
-        ComponentInternal.setHWNDFont font
+    updateProperty (ComponentFont font) _ componentHWND =
+        ComponentInternal.setComponentFont font componentHWND >>
+            updateAttributeOfHWND componentHWND (ComponentFontAttr font)
 
-    unapplyProperty _ componentHWND =
+    unapplyProperty (ComponentFont font) componentHWND =
         ComponentInternal.useDefaultFont componentHWND >>
-            ComponentInternal.unsetFlag "COMPONENTFONT_SET" componentHWND
+            removeAttributeFromHWND componentHWND (ComponentFontAttr font) >>
+                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentFontSet)
 
 instance IsGUIComponentProperty ComponentChildren where
     applyProperty (ComponentChildren children) componentHWND =
         forM_ children (\(GUIComponent child) ->
             render child (Just componentHWND)) >>
-                ComponentInternal.setFlag "COMPONENTCHILDREN_SET" componentHWND
+                addAttributeToHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
 
     updateProperty (ComponentChildren newChildren) (ComponentChildren oldChildren) =
         TEAInternal.updateChildren newChildren oldChildren
 
     unapplyProperty _ componentHWND =
         destroyChildren componentHWND >>
-            ComponentInternal.unsetFlag "COMPONENTCHILDREN_SET" componentHWND
+            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
 
 instance IsGUIComponentProperty ComponentOnClick where
     applyProperty (ComponentOnClick msg) componentHWND =
-        ComponentInternal.setEventHandler "COMPONENTONCLICK" (TEAInternal.Msg msg) componentHWND >>
-            ComponentInternal.setFlag "COMPONENTONCLICK_SET" componentHWND
+        addAttributeToHWND componentHWND (ComponentEventHandlerAttr ComponentClickEvent (TEAInternal.Msg msg)) >>
+            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentOnClickSet)
 
-    updateProperty (ComponentOnClick msg) _ =
-        ComponentInternal.setEventHandler "COMPONENTONCLICK" (TEAInternal.Msg msg)
+    updateProperty (ComponentOnClick msg) _ componentHWND =
+        updateAttributeOfHWND componentHWND (ComponentEventHandlerAttr ComponentClickEvent (TEAInternal.Msg msg))
 
-    unapplyProperty _ componentHWND =
-        ComponentInternal.unregisterEventHandler "COMPONENTONCLICK" componentHWND >>
-            ComponentInternal.unsetFlag "COMPONENTONCLICK_SET" componentHWND
+    unapplyProperty (ComponentOnClick msg) componentHWND =
+        removeAttributeFromHWND componentHWND (ComponentEventHandlerAttr ComponentClickEvent (TEAInternal.Msg msg)) >>
+            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentOnClickSet)

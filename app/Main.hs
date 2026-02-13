@@ -44,13 +44,12 @@ view model = do
             [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
 
     window_ "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal
-        [ title_ ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
+        ([ title_ ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
         , icon_ Application
-        , cursor_ IBeam
         , size_ (model ^. displayWidth, model ^. displayHeight)
         --, position_ (0, 0)
         , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
-        ] $ do
+        ] ++ [cursor_ IBeam | isCountEven]) $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
             button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]

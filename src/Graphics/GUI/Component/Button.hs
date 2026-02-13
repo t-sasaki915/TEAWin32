@@ -1,17 +1,17 @@
 module Graphics.GUI.Component.Button (Button (..)) where
 
-import           Data.Bits                              ((.|.))
-import           Data.Maybe                             (fromJust)
-import           Foreign                                (intPtrToPtr)
-import qualified Framework.TEA.Internal                 as TEAInternal
-import           Graphics.GUI                           (UniqueId)
-import           Graphics.GUI.Component                 (IsGUIComponent (..))
-import           Graphics.GUI.Component.Button.Property (ButtonProperty)
-import qualified Graphics.GUI.Component.Internal        as ComponentInternal
-import           Graphics.GUI.Component.Internal.Prop   (registerHWNDToPropMap)
-import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
-                                                         IsGUIComponentProperty (applyProperty))
-import qualified Graphics.Win32                         as Win32
+import           Data.Bits                                 ((.|.))
+import           Data.Maybe                                (fromJust)
+import           Foreign                                   (intPtrToPtr)
+import qualified Framework.TEA.Internal                    as TEAInternal
+import           Graphics.GUI                              (UniqueId)
+import           Graphics.GUI.Component                    (IsGUIComponent (..))
+import           Graphics.GUI.Component.Button.Property    (ButtonProperty)
+import qualified Graphics.GUI.Component.Internal           as ComponentInternal
+import           Graphics.GUI.Component.Internal.Attribute
+import           Graphics.GUI.Component.Property           (GUIComponentProperty (..),
+                                                            IsGUIComponentProperty (applyProperty))
+import qualified Graphics.Win32                            as Win32
 
 data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
@@ -38,14 +38,14 @@ instance IsGUIComponent Button where
             (intPtrToPtr $ fromIntegral parentInstance)
             (const $ const $ const $ const $ pure 0)
 
-        registerHWNDToPropMap button
+        registerHWNDToAttributeMap button
         ComponentInternal.useDefaultFont button
 
         mapM_ (`applyProperty` button) buttonProperties
 
         TEAInternal.registerHWND buttonUniqueId button
 
-        ComponentInternal.setComponentType "BUTTON" button
-        ComponentInternal.setUniqueIdToHWND buttonUniqueId button
+        addAttributeToHWND button (ComponentUniqueIdAttr buttonUniqueId)
+        addAttributeToHWND button (ComponentTypeAttr ComponentButton)
 
         pure button

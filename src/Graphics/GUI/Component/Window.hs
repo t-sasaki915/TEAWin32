@@ -1,25 +1,26 @@
 module Graphics.GUI.Component.Window (Window (..), destroyChildren) where
 
-import           Control.Exception                      (bracket)
-import           Control.Monad                          (unless, when)
-import           Data.IORef                             (atomicModifyIORef')
-import           Data.Text                              (Text)
-import qualified Data.Text                              as Text
-import           Foreign                                (intPtrToPtr)
-import qualified Framework.TEA.Internal                 as TEAInternal
-import           Graphics.Drawing                       (toWin32Colour)
-import           Graphics.GUI                           (UniqueId, WindowStyle,
-                                                         toWin32WindowStyle)
-import           Graphics.GUI.Component                 (IsGUIComponent (..))
-import qualified Graphics.GUI.Component.Internal        as ComponentInternal
-import           Graphics.GUI.Component.Internal.Prop
-import           Graphics.GUI.Component.Property        (GUIComponentProperty (..),
-                                                         IsGUIComponentProperty (applyProperty))
-import           Graphics.GUI.Component.Window.Property (WindowProperty (..))
-import qualified Graphics.GUI.Foreign                   as Win32
-import qualified Graphics.GUI.Internal                  as Internal
-import qualified Graphics.Win32                         as Win32
-import qualified System.Win32                           as Win32
+import           Control.Exception                         (bracket)
+import           Control.Monad                             (unless, when)
+import           Data.IORef                                (atomicModifyIORef')
+import           Data.Text                                 (Text)
+import qualified Data.Text                                 as Text
+import           Foreign                                   (intPtrToPtr)
+import qualified Framework.TEA.Internal                    as TEAInternal
+import           Graphics.Drawing                          (toWin32Colour)
+import           Graphics.GUI                              (UniqueId,
+                                                            WindowStyle,
+                                                            toWin32WindowStyle)
+import           Graphics.GUI.Component                    (IsGUIComponent (..))
+import qualified Graphics.GUI.Component.Internal           as ComponentInternal
+import           Graphics.GUI.Component.Internal.Attribute
+import           Graphics.GUI.Component.Property           (GUIComponentProperty (..),
+                                                            IsGUIComponentProperty (applyProperty))
+import           Graphics.GUI.Component.Window.Property    (WindowProperty (..))
+import qualified Graphics.GUI.Foreign                      as Win32
+import qualified Graphics.GUI.Internal                     as Internal
+import qualified Graphics.Win32                            as Win32
+import qualified System.Win32                              as Win32
 
 data Window = Window UniqueId Text WindowStyle [WindowProperty] deriving (Show, Eq)
 
@@ -34,7 +35,7 @@ instance IsGUIComponent Window where
     render (Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
 
-        let windowClass = Win32.mkClassName (ComponentInternal.windowClassPrefix <> Text.unpack windowClassName)
+        let windowClass = Win32.mkClassName (Text.unpack windowClassName)
 
         _ <- Win32.registerClass
                 ( Win32.cS_VREDRAW + Win32.cS_HREDRAW
@@ -59,7 +60,8 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
-        registerHWNDToPropMap window
+        registerHWNDToAttributeMap window
+
         ComponentInternal.useDefaultFont window
 
         mapM_ (`applyProperty` window) windowProperties
@@ -71,8 +73,10 @@ instance IsGUIComponent Window where
 
         TEAInternal.registerHWND windowUniqueId window
 
-        ComponentInternal.setComponentType "WINDOW" window
-        ComponentInternal.setUniqueIdToHWND windowUniqueId window
+        addAttributeToHWND window (ComponentUniqueIdAttr windowUniqueId)
+        addAttributeToHWND window (ComponentTypeAttr ComponentWindow)
+        addAttributeToHWND window (WindowClassNameAttr windowClassName)
+        addAttributeToHWND window (WindowStyleAttr windowStyle)
 
         pure window
 
@@ -94,7 +98,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 
         case notification of
             0 -> do -- BN_CLICKED
-                ComponentInternal.getEventHandlerMaybe "COMPONENTONCLICK" targetHWND >>= \case
+                getEventHandlerFromHWNDMaybe ComponentClickEvent targetHWND >>= \case
                     Just msg -> TEAInternal.issueMsg msg >> pure 0
                     Nothing  -> Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
@@ -102,7 +106,7 @@ defaultWindowProc hwnd wMsg wParam lParam
                 Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
     | wMsg == Win32.wM_ERASEBKGND =
-        ComponentInternal.getWindowBackgroundColourMaybe hwnd >>= \case
+        getComponentBackgroundColourFromHWNDMaybe hwnd >>= \case
             Just backgroundColour -> do
                 let hdc = intPtrToPtr $ fromIntegral wParam
 
@@ -121,7 +125,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 destroyChildren :: Win32.HWND -> IO ()
 destroyChildren hwnd =
     Internal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
-        isWindow <- ComponentInternal.isManagedWindow child
+        isWindow <- isManagedByTEAWin32GUI child
 
         unless isWindow $
             finaliseHWND child
@@ -130,6 +134,5 @@ destroyChildren hwnd =
 
 finaliseHWND :: Win32.HWND -> IO ()
 finaliseHWND hwnd = do
-    finaliseAndUnregisterHWNDFromPropMap hwnd
-
+    unregisterHWNDFromAttributeMap hwnd
     TEAInternal.unregisterHWND hwnd

@@ -1,58 +1,54 @@
 module Graphics.GUI.Component.Window.Internal (restoreWindowFromHWND) where
 
-import           Control.Monad                          (when)
-import           Control.Monad.Writer                   (MonadIO (liftIO),
-                                                         execWriterT, tell)
-import qualified Data.Text                              as Text
-import           Graphics.GUI.Component                 (GUIComponent (GUIComponent))
-import qualified Graphics.GUI.Component.Internal        as ComponentInternal
+import           Control.Monad                             (when)
+import           Control.Monad.Writer                      (MonadIO (liftIO),
+                                                            execWriterT, tell)
+import           Graphics.GUI.Component                    (GUIComponent (GUIComponent))
+import qualified Graphics.GUI.Component.Internal           as ComponentInternal
+import           Graphics.GUI.Component.Internal.Attribute
 import           Graphics.GUI.Component.Property
-import           Graphics.GUI.Component.Window          (Window (Window))
+import           Graphics.GUI.Component.Window             (Window (Window))
 import           Graphics.GUI.Component.Window.Property
-import qualified Graphics.GUI.Internal                  as Internal
-import qualified Graphics.Win32                         as Win32
+import qualified Graphics.GUI.Internal                     as Internal
+import qualified Graphics.Win32                            as Win32
 
 restoreWindowFromHWND :: Win32.HWND -> IO GUIComponent
 restoreWindowFromHWND hwnd = do
-    windowUniqueId  <- ComponentInternal.getUniqueIdFromHWND hwnd
-    windowStyle     <- ComponentInternal.getWindowStyle hwnd
-    windowClassName <-
-        ComponentInternal.getClassName hwnd >>= \className ->
-            case Text.stripPrefix (Text.pack ComponentInternal.windowClassPrefix) className of
-                Just className' -> pure className'
-                Nothing         -> error "Tried to process a window that is not managed by TEAWin32GUI."
+    windowUniqueId  <- getComponentUniqueIdFromHWND hwnd
+    windowClassName <- getWindowClassNameFromHWND hwnd
+    windowStyle     <- getWindowStyleFromHWND hwnd
 
-    isComponentTitleSet         <- ComponentInternal.isFlagSet "COMPONENTTITLE_SET"         hwnd
-    isWindowIconSet             <- ComponentInternal.isFlagSet "WINDOWICON_SET"             hwnd
-    isWindowCursorSet           <- ComponentInternal.isFlagSet "WINDOWCURSOR_SET"           hwnd
-    isComponentSizeSet          <- ComponentInternal.isFlagSet "COMPONENTSIZE_SET"          hwnd
-    isComponentPositionSet      <- ComponentInternal.isFlagSet "COMPONENTPOSITION_SET"      hwnd
-    isWindowBackgroundColourSet <- ComponentInternal.isFlagSet "WINDOWBACKGROUNDCOLOUR_SET" hwnd
-    isComponentChildrenSet      <- ComponentInternal.isFlagSet "COMPONENTCHILDREN_SET"      hwnd
+    isComponentTitleSet         <- doesHWNDHaveFlag ComponentTitleSet            hwnd
+    isWindowIconSet             <- doesHWNDHaveFlag WindowIconSet                hwnd
+    isWindowCursorSet           <- doesHWNDHaveFlag WindowCursorSet              hwnd
+    isComponentSizeSet          <- doesHWNDHaveFlag ComponentSizeSet             hwnd
+    isComponentPositionSet      <- doesHWNDHaveFlag ComponentPositionSet         hwnd
+    isWindowBackgroundColourSet <- doesHWNDHaveFlag ComponentBackgroundColourSet hwnd
+    isComponentChildrenSet      <- doesHWNDHaveFlag ComponentChildrenSet         hwnd
 
     properties <- execWriterT $ do
         when isComponentTitleSet $
-            liftIO (ComponentInternal.getWindowTitle hwnd) >>= \windowTitle ->
+            liftIO (getComponentTitleFromHWND hwnd) >>= \windowTitle ->
                 tell [WindowProperty $ ComponentTitle windowTitle]
 
         when isWindowIconSet $
-            liftIO (ComponentInternal.getWindowIcon hwnd) >>= \windowIcon ->
+            liftIO (getWindowIconFromHWND hwnd) >>= \windowIcon ->
                 tell [WindowProperty $ WindowIcon windowIcon]
 
         when isWindowCursorSet $
-            liftIO (ComponentInternal.getWindowCursor hwnd) >>= \windowCursor ->
+            liftIO (getWindowCursorFromHWND hwnd) >>= \windowCursor ->
                 tell [WindowProperty $ WindowCursor windowCursor]
 
         when isComponentSizeSet $
-            liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(_, _, w, h) ->
+            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(_, _, w, h) ->
                 tell [WindowProperty $ ComponentSize (w, h)]
 
         when isComponentPositionSet $
-            liftIO (ComponentInternal.getRelativeRect hwnd) >>= \(x, y, _, _) ->
+            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, _, _) ->
                 tell [WindowProperty $ ComponentPosition (x, y)]
 
         when isWindowBackgroundColourSet $
-            liftIO (ComponentInternal.getWindowBackgroundColour hwnd) >>= \backgroundColour ->
+            liftIO (getComponentBackgroundColourFromHWND hwnd) >>= \backgroundColour ->
                 tell [WindowProperty $ WindowBackgroundColour backgroundColour]
 
         when isComponentChildrenSet $

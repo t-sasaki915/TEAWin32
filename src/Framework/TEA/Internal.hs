@@ -12,28 +12,28 @@ module Framework.TEA.Internal
     , updateChildren
     ) where
 
-import                          Control.Monad                            (forM_)
-import                          Control.Monad.Writer                     (execWriter)
-import                          Data.Data                                (Typeable,
-                                                                          cast)
-import                          Data.IORef                               (IORef,
-                                                                          atomicModifyIORef',
-                                                                          newIORef,
-                                                                          readIORef)
-import                          Data.Map                                 (Map)
-import                qualified Data.Map                                 as Map
-import                          Data.Maybe                               (catMaybes)
-import                          GHC.IO                                   (unsafePerformIO)
-import                          Graphics.GUI                             (UniqueId)
-import                          Graphics.GUI.Component                   (GUIComponent,
-                                                                          GUIComponents,
-                                                                          IsGUIComponent (..))
-import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal          as ComponentInternal
-import {-# SOURCE #-}           Graphics.GUI.Component.Internal.Prop     (isManagedByTEAWin32GUI)
-import                          Graphics.GUI.Component.Property          (IsGUIComponentProperty (..))
-import                          Graphics.GUI.Component.Property.Internal (compareProperties)
-import                qualified Graphics.GUI.Internal                    as GUIInternal
-import                qualified Graphics.Win32                           as Win32
+import                          Control.Monad                             (forM_)
+import                          Control.Monad.Writer                      (execWriter)
+import                          Data.Data                                 (Typeable,
+                                                                           cast)
+import                          Data.IORef                                (IORef,
+                                                                           atomicModifyIORef',
+                                                                           newIORef,
+                                                                           readIORef)
+import                          Data.Map                                  (Map)
+import                qualified Data.Map                                  as Map
+import                          Data.Maybe                                (catMaybes)
+import                          GHC.IO                                    (unsafePerformIO)
+import                          Graphics.GUI                              (UniqueId)
+import                          Graphics.GUI.Component                    (GUIComponent,
+                                                                           GUIComponents,
+                                                                           IsGUIComponent (..))
+import {-# SOURCE #-} qualified Graphics.GUI.Component.Internal           as ComponentInternal
+import {-# SOURCE #-}           Graphics.GUI.Component.Internal.Attribute (isManagedByTEAWin32GUI)
+import                          Graphics.GUI.Component.Property           (IsGUIComponentProperty (..))
+import                          Graphics.GUI.Component.Property.Internal  (compareProperties)
+import                qualified Graphics.GUI.Internal                     as GUIInternal
+import                qualified Graphics.Win32                            as Win32
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a

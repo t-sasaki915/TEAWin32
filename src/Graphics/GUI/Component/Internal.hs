@@ -1,60 +1,33 @@
 module Graphics.GUI.Component.Internal
-    ( windowClassPrefix
-    , compareGUIComponents
-    , setComponentType
-    , getComponentType
-    , setUniqueIdToHWND
-    , getUniqueIdFromHWND
-    , getClassName
-    , getWindowTitle
-    , setFlag
-    , isFlagSet
-    , unsetFlag
-    , getRelativeRect
-    , getWindowStyle
-    , getWindowCursor
-    , getWindowIcon
-    , setEventHandler
-    , getEventHandler
-    , getEventHandlerMaybe
-    , unregisterEventHandler
-    , attachGDI
-    , getGDI
-    , unattachGDI
-    , setWindowBackgroundColour
-    , getWindowBackgroundColour
-    , getWindowBackgroundColourMaybe
-    , removeWindowBackgroundColour
-    , isManagedWindow
-    , setHWNDFont
+    ( compareGUIComponents
+    , getRelativeRectFromHWNDUsingWin32
+    , setComponentTitle
+    , setComponentPosition
+    , setComponentSize
+    , setComponentFont
     , useDefaultFont
+    , setWindowIcon
+    , setWindowCursor
+    , requestRedraw
     , restoreComponentFromHWND
     ) where
 
-import                          Data.Functor                           (void,
-                                                                        (<&>))
-import                          Data.List                              (isPrefixOf)
-import                qualified Data.Map                               as Map
-import                          Data.Maybe                             (isJust)
-import                          Data.Text                              (Text)
-import                qualified Data.Text                              as Text
-import                          Foreign                                hiding
-                                                                       (new,
-                                                                        void)
-import                qualified Framework.TEA.Internal                 as TEAInternal
-import                          Graphics.Drawing                       (Colour)
+import                          Data.Functor                              (void)
+import                qualified Data.Map                                  as Map
+import                          Data.Text                                 (Text)
+import                qualified Data.Text                                 as Text
+import                          Foreign                                   hiding
+                                                                          (new,
+                                                                           void)
 import                          Graphics.GUI
-import                          Graphics.GUI.Component                 (GUIComponent,
-                                                                        IsGUIComponent (..))
-import {-# SOURCE #-}           Graphics.GUI.Component.Button.Internal (restoreButtonFromHWND)
-import                          Graphics.GUI.Component.Internal.Prop
-import {-# SOURCE #-}           Graphics.GUI.Component.Window.Internal (restoreWindowFromHWND)
-import                qualified Graphics.GUI.Foreign                   as Win32
-import                qualified Graphics.GUI.Internal                  as GUIInternal
-import                qualified Graphics.Win32                         as Win32
-
-windowClassPrefix :: String
-windowClassPrefix = "TEAWIN32GUI_WINDOW_"
+import                          Graphics.GUI.Component                    (GUIComponent,
+                                                                           IsGUIComponent (..))
+import {-# SOURCE #-}           Graphics.GUI.Component.Button.Internal    (restoreButtonFromHWND)
+import                          Graphics.GUI.Component.Internal.Attribute
+import {-# SOURCE #-}           Graphics.GUI.Component.Window.Internal    (restoreWindowFromHWND)
+import                qualified Graphics.GUI.Foreign                      as Win32
+import                qualified Graphics.GUI.Internal                     as GUIInternal
+import                qualified Graphics.Win32                            as Win32
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> ([GUIComponent], [GUIComponent], [GUIComponent], [(GUIComponent, GUIComponent)])
 compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
@@ -78,127 +51,8 @@ compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
                                 then (newValue : redr, propc)
                                 else (redr, (newValue, oldValue) : propc)
 
-setComponentType :: Text -> Win32.HWND -> IO ()
-setComponentType componentType hwnd =
-    setProp hwnd "ComponentType" (ComponentType componentType)
-
-getComponentType :: Win32.HWND -> IO Text
-getComponentType hwnd =
-    getProp hwnd "ComponentType" >>= \case
-        Just (ComponentType cType) -> pure cType
-        _                          -> error "ComponentType not found."
-
-setUniqueIdToHWND :: UniqueId -> Win32.HWND -> IO ()
-setUniqueIdToHWND uniqueId hwnd =
-    setProp hwnd "ComponentUniqueId" (ComponentUniqueId uniqueId)
-
-getUniqueIdFromHWND :: Win32.HWND -> IO UniqueId
-getUniqueIdFromHWND hwnd =
-    getProp hwnd "ComponentUniqueId" >>= \case
-        Just (ComponentUniqueId uniqueId) -> pure uniqueId
-        _                                 -> error "ComponentUniqueId not found."
-
-setFlag :: Text -> Win32.HWND -> IO ()
-setFlag flagName hwnd = setProp hwnd ("ComponentFlag_" <> flagName) ComponentFlag
-
-isFlagSet :: Text -> Win32.HWND -> IO Bool
-isFlagSet flagName hwnd = isJust <$> getProp hwnd ("ComponentFlag_" <> flagName)
-
-unsetFlag :: Text -> Win32.HWND -> IO ()
-unsetFlag flagName hwnd = removeProp hwnd ("ComponentFlag_" <> flagName)
-
-setEventHandler :: Text -> TEAInternal.Msg -> Win32.HWND -> IO ()
-setEventHandler eventType msg hwnd =
-    setProp hwnd ("ComponentEventHandler_" <> eventType) (ComponentEventHandler msg)
-
-getEventHandler :: Text -> Win32.HWND -> IO TEAInternal.Msg
-getEventHandler eventType hwnd =
-    getProp hwnd ("ComponentEventHandler_" <> eventType) >>= \case
-        Just (ComponentEventHandler msg) -> pure msg
-        _                                -> error "ComponentEventHandler not found."
-
-getEventHandlerMaybe :: Text -> Win32.HWND -> IO (Maybe TEAInternal.Msg)
-getEventHandlerMaybe eventType hwnd =
-    getProp hwnd ("ComponentEventHandler_" <> eventType) >>= \case
-        Just (ComponentEventHandler msg) -> pure (Just msg)
-        Nothing                          -> pure Nothing
-        _                                -> error "ComponentEventHandler not found."
-
-unregisterEventHandler :: Text -> Win32.HWND -> IO ()
-unregisterEventHandler eventType hwnd =
-    removeProp hwnd ("ComponentEventHandler_" <> eventType)
-
-attachGDI :: Text -> Win32.HANDLE -> Win32.HWND -> IO ()
-attachGDI gdiName hndl hwnd =
-    setProp hwnd ("ComponentGDIResource_" <> gdiName) (ComponentGDIResource hndl)
-
-getGDI :: Text -> Win32.HWND -> IO Win32.HANDLE
-getGDI gdiName hwnd =
-    getProp hwnd ("ComponentGDIResource_" <> gdiName) >>= \case
-        Just (ComponentGDIResource hndl) -> pure hndl
-        _                                -> error "ComponentGDIResource not found."
-
-unattachGDI :: Text -> Win32.HWND -> IO ()
-unattachGDI gdiName hwnd =
-    let propName = ("ComponentGDIResource_" <> gdiName) in
-        getProp hwnd propName >>= \case
-            Just x@(ComponentGDIResource _) ->
-                finalisePropValue x >>
-                    removeProp hwnd propName
-
-            _ -> error "ComponentGDIResource not found."
-
-setWindowBackgroundColour :: Colour -> Win32.HWND -> IO ()
-setWindowBackgroundColour colour hwnd =
-    setProp hwnd "ComponentWindowBackgroundColour" (ComponentColour colour)
-
-getWindowBackgroundColour :: Win32.HWND -> IO Colour
-getWindowBackgroundColour hwnd =
-    getProp hwnd "ComponentWindowBackgroundColour" >>= \case
-        Just (ComponentColour colour) -> pure colour
-        _                             -> error "ComponentWindowBackgroundColour not found."
-
-getWindowBackgroundColourMaybe :: Win32.HWND -> IO (Maybe Colour)
-getWindowBackgroundColourMaybe hwnd =
-    getProp hwnd "ComponentWindowBackgroundColour" >>= \case
-        Just (ComponentColour colour) -> pure (Just colour)
-        Nothing                       -> pure Nothing
-        _                             -> error "ComponentWindowBackgroundColour not found."
-
-removeWindowBackgroundColour :: Win32.HWND -> IO ()
-removeWindowBackgroundColour hwnd =
-    removeProp hwnd "ComponentWindowBackgroundColour"
-
-getClassName :: Win32.HWND -> IO Text
-getClassName hwnd =
-    allocaArray 256 $ \pBuf -> do
-        Win32.c_GetClassName hwnd pBuf 256 >>
-            Win32.peekTString pBuf <&> Text.pack
-
-getWindowTitle :: Win32.HWND -> IO Text
-getWindowTitle hwnd =
-    Win32.c_GetWindowTextLength hwnd >>= \case
-        0   -> pure ""
-        len -> allocaArray (len + 1) $ \pBuf ->
-            Win32.c_GetWindowText hwnd pBuf (len + 1) >>
-                Text.pack <$> Win32.peekTString pBuf
-
-getWindowStyle :: Win32.HWND -> IO WindowStyle
-getWindowStyle hwnd =
-    fromWin32WindowStyle . fromIntegral <$> Win32.c_GetWindowLongPtr hwnd Win32.gWL_STYLE
-
-getWindowIcon :: Win32.HWND -> IO Icon
-getWindowIcon hwnd =
-    Win32.c_GetClassLongPtr hwnd Win32.gCLP_HICON >>=
-        fromWin32Icon . intPtrToPtr . fromIntegral
-
-getWindowCursor :: Win32.HWND -> IO Cursor
-getWindowCursor hwnd =
-    Win32.c_GetClassLongPtr hwnd Win32.gCLP_HCURSOR >>=
-        fromWin32Cursor . intPtrToPtr . fromIntegral
-
-getRelativeRect :: Win32.HWND -> IO (Int, Int, Int, Int)
-getRelativeRect hwnd = do
+getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
+getRelativeRectFromHWNDUsingWin32 hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
     let (l, t, r, b) = (fromIntegral l', fromIntegral t', fromIntegral r', fromIntegral b')
 
@@ -210,23 +64,53 @@ getRelativeRect hwnd = do
 
             pure (fromIntegral x, fromIntegral y, r - l, b - t)
 
-isManagedWindow :: Win32.HWND -> IO Bool
-isManagedWindow hwnd =
-    getClassName hwnd >>= \className ->
-        pure $ windowClassPrefix `isPrefixOf` Text.unpack className
+setComponentTitle :: Text -> Win32.HWND -> IO ()
+setComponentTitle title hwnd = Win32.setWindowText hwnd (Text.unpack title)
 
-setHWNDFont :: Font -> Win32.HWND -> IO ()
-setHWNDFont font hwnd =
+setComponentPosition :: Int -> Int -> Win32.HWND -> IO ()
+setComponentPosition x y hwnd = void $ Win32.c_SetWindowPos
+    hwnd
+    Win32.nullPtr
+    (fromIntegral x)
+    (fromIntegral y)
+    0
+    0
+    (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+
+setComponentSize :: Int -> Int -> Win32.HWND -> IO ()
+setComponentSize width height hwnd = void $ Win32.c_SetWindowPos
+    hwnd
+    Win32.nullPtr
+    0
+    0
+    (fromIntegral width)
+    (fromIntegral height)
+    (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
+
+setComponentFont :: Font -> Win32.HWND -> IO ()
+setComponentFont font hwnd =
     toWin32Font font >>= \font' ->
         void $ Win32.sendMessage hwnd Win32.wM_SETFONT (fromIntegral $ ptrToWordPtr font') 1
 
 useDefaultFont :: Win32.HWND -> IO ()
-useDefaultFont = setHWNDFont DefaultGUIFont
+useDefaultFont = setComponentFont DefaultGUIFont
+
+setWindowIcon :: Icon -> Win32.HWND -> IO ()
+setWindowIcon icon hwnd =
+    toWin32Icon icon >>= \icon' ->
+        void $ Win32.c_SetClassLongPtr hwnd Win32.gCLP_HICON icon'
+
+setWindowCursor :: Cursor -> Win32.HWND -> IO ()
+setWindowCursor cursor hwnd =
+    toWin32Cursor cursor >>= \cursor' ->
+        void $ Win32.c_SetClassLongPtr hwnd Win32.gCLP_HCURSOR cursor'
+
+requestRedraw :: Win32.HWND -> IO ()
+requestRedraw hwnd =
+    Win32.invalidateRect (Just hwnd) Nothing True
 
 restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 restoreComponentFromHWND hwnd =
-    getComponentType hwnd >>= \case
-        "BUTTON" -> restoreButtonFromHWND hwnd
-        "WINDOW" -> restoreWindowFromHWND hwnd
-        _        -> error "Unrecognisable component type"
-
+    getComponentTypeFromHWND hwnd >>= \case
+        ComponentButton -> restoreButtonFromHWND hwnd
+        ComponentWindow -> restoreWindowFromHWND hwnd

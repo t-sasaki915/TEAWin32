@@ -17,11 +17,11 @@ import                          Control.Concurrent   (MVar, modifyMVar_,
                                                       newMVar, takeMVar)
 import                          Control.Exception    (SomeException, try)
 import                          Control.Monad        (filterM)
-import                          Data.Bimap           (Bimap)
-import                qualified Data.Bimap           as Bimap
 import                          Data.IORef           (IORef, atomicModifyIORef',
                                                       modifyIORef, newIORef,
                                                       readIORef)
+import                          Data.Map             (Map)
+import                qualified Data.Map             as Map
 import                          Foreign              (freeHaskellFunPtr)
 import {-# SOURCE #-}           Graphics.GUI         (Cursor (..), Font,
                                                       Icon (..))
@@ -34,21 +34,21 @@ activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)
 {-# NOINLINE activeWindowCountRef #-}
 
-cursorCacheRef :: MVar (Bimap Cursor Win32.HANDLE)
-cursorCacheRef = unsafePerformIO (newMVar Bimap.empty)
+cursorCacheRef :: MVar (Map Cursor Win32.HANDLE)
+cursorCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE cursorCacheRef #-}
 
-iconCacheRef :: MVar (Bimap Icon Win32.HANDLE)
-iconCacheRef = unsafePerformIO (newMVar Bimap.empty)
+iconCacheRef :: MVar (Map Icon Win32.HANDLE)
+iconCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE iconCacheRef #-}
 
-fontCacheRef :: MVar (Bimap Font Win32.HANDLE)
-fontCacheRef = unsafePerformIO (newMVar Bimap.empty)
+fontCacheRef :: MVar (Map Font Win32.HANDLE)
+fontCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE fontCacheRef #-}
 
 initialiseCursorCache :: IO ()
 initialiseCursorCache = do
-    buildInCursorCache <- Bimap.fromList <$>
+    buildInCursorCache <- Map.fromList <$>
         mapM (\(a, b) -> Win32.loadCursor Nothing b >>= \b' -> pure (a, b'))
             [ (Arrow   , Win32.iDC_ARROW   )
             , (IBeam   , Win32.iDC_IBEAM   )
@@ -65,7 +65,7 @@ initialiseCursorCache = do
 
 initialiseIconCache :: IO ()
 initialiseIconCache = do
-    builtInIconCache <- Bimap.fromList <$>
+    builtInIconCache <- Map.fromList <$>
         mapM (\(a, b) -> Win32.loadIcon Nothing b >>= \b' -> pure (a, b'))
             [ (Application, Win32.iDI_APPLICATION)
             , (Hand,        Win32.iDI_HAND       )
@@ -79,7 +79,7 @@ initialiseIconCache = do
 finaliseFontCache :: IO ()
 finaliseFontCache =
     takeMVar fontCacheRef >>=
-        mapM_ Win32.c_DeleteObject . Bimap.elems
+        mapM_ Win32.c_DeleteObject . Map.elems
 
 withChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
 withChildWindows targetHWND func = do
