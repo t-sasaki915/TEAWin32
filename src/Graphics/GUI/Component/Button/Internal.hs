@@ -26,13 +26,13 @@ restoreButtonFromHWND hwnd = do
             liftIO (getComponentTitleFromHWND hwnd) >>= \buttonLabel ->
                 tell [ButtonProperty $ ComponentTitle buttonLabel]
 
-        when isComponentSizeSet $
-            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(_, _, w, h) ->
-                tell [ButtonProperty $ ComponentSize (w, h)]
+        when (isComponentSizeSet || isComponentPositionSet) $
+            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, w, h) -> do
+                when isComponentSizeSet $
+                    tell [ButtonProperty $ ComponentSize (w, h)]
 
-        when isComponentPositionSet $
-            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, _, _) ->
-                tell [ButtonProperty $ ComponentPosition (x, y)]
+                when isComponentPositionSet $
+                    tell [ButtonProperty $ ComponentPosition (x, y)]
 
         when isComponentFontSet $
             liftIO (getComponentFontFromHWND hwnd) >>= \font ->

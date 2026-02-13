@@ -31,13 +31,14 @@ restoreWindowFromHWND hwnd = do
         when isComponentTitleSet $
             liftIO (getComponentTitleFromHWND hwnd) >>= \windowTitle ->
                 tell [WindowProperty $ ComponentTitle windowTitle]
-        when isComponentSizeSet $
-            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(_, _, w, h) ->
-                tell [WindowProperty $ ComponentSize (w, h)]
 
-        when isComponentPositionSet $
-            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, _, _) ->
-                tell [WindowProperty $ ComponentPosition (x, y)]
+        when (isComponentSizeSet || isComponentPositionSet) $
+            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, w, h) -> do
+                when isComponentSizeSet $
+                    tell [WindowProperty $ ComponentSize (w, h)]
+
+                when isComponentPositionSet $
+                    tell [WindowProperty $ ComponentPosition (x, y)]
 
         when isComponentFontSet $
             liftIO (getComponentFontFromHWND hwnd) >>= \font ->
