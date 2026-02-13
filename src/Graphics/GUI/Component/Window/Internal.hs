@@ -18,18 +18,38 @@ restoreWindowFromHWND hwnd = do
     windowClassName <- getWindowClassNameFromHWND hwnd
     windowStyle     <- getWindowStyleFromHWND hwnd
 
-    isComponentTitleSet         <- doesHWNDHaveFlag ComponentTitleSet            hwnd
-    isWindowIconSet             <- doesHWNDHaveFlag WindowIconSet                hwnd
-    isWindowCursorSet           <- doesHWNDHaveFlag WindowCursorSet              hwnd
-    isComponentSizeSet          <- doesHWNDHaveFlag ComponentSizeSet             hwnd
-    isComponentPositionSet      <- doesHWNDHaveFlag ComponentPositionSet         hwnd
-    isWindowBackgroundColourSet <- doesHWNDHaveFlag ComponentBackgroundColourSet hwnd
-    isComponentChildrenSet      <- doesHWNDHaveFlag ComponentChildrenSet         hwnd
+    isComponentTitleSet            <- doesHWNDHaveFlag ComponentTitleSet            hwnd
+    isComponentSizeSet             <- doesHWNDHaveFlag ComponentSizeSet             hwnd
+    isComponentPositionSet         <- doesHWNDHaveFlag ComponentPositionSet         hwnd
+    isComponentFontSet             <- doesHWNDHaveFlag ComponentFontSet             hwnd
+    isComponentBackgroundColourSet <- doesHWNDHaveFlag ComponentBackgroundColourSet hwnd
+    isComponentChildrenSet         <- doesHWNDHaveFlag ComponentChildrenSet         hwnd
+    isWindowIconSet                <- doesHWNDHaveFlag WindowIconSet                hwnd
+    isWindowCursorSet              <- doesHWNDHaveFlag WindowCursorSet              hwnd
 
     properties <- execWriterT $ do
         when isComponentTitleSet $
             liftIO (getComponentTitleFromHWND hwnd) >>= \windowTitle ->
                 tell [WindowProperty $ ComponentTitle windowTitle]
+        when isComponentSizeSet $
+            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(_, _, w, h) ->
+                tell [WindowProperty $ ComponentSize (w, h)]
+
+        when isComponentPositionSet $
+            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, _, _) ->
+                tell [WindowProperty $ ComponentPosition (x, y)]
+
+        when isComponentFontSet $
+            liftIO (getComponentFontFromHWND hwnd) >>= \font ->
+                tell [WindowProperty $ ComponentFont font]
+
+        when isComponentBackgroundColourSet $
+            liftIO (getComponentBackgroundColourFromHWND hwnd) >>= \backgroundColour ->
+                tell [WindowProperty $ WindowBackgroundColour backgroundColour]
+
+        when isComponentChildrenSet $
+            liftIO (Internal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
+                tell [WindowProperty $ ComponentChildren children]
 
         when isWindowIconSet $
             liftIO (getWindowIconFromHWND hwnd) >>= \windowIcon ->
@@ -39,20 +59,5 @@ restoreWindowFromHWND hwnd = do
             liftIO (getWindowCursorFromHWND hwnd) >>= \windowCursor ->
                 tell [WindowProperty $ WindowCursor windowCursor]
 
-        when isComponentSizeSet $
-            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(_, _, w, h) ->
-                tell [WindowProperty $ ComponentSize (w, h)]
-
-        when isComponentPositionSet $
-            liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, _, _) ->
-                tell [WindowProperty $ ComponentPosition (x, y)]
-
-        when isWindowBackgroundColourSet $
-            liftIO (getComponentBackgroundColourFromHWND hwnd) >>= \backgroundColour ->
-                tell [WindowProperty $ WindowBackgroundColour backgroundColour]
-
-        when isComponentChildrenSet $
-            liftIO (Internal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
-                tell [WindowProperty $ ComponentChildren children]
 
     pure $ GUIComponent $ Window windowUniqueId windowClassName windowStyle properties
