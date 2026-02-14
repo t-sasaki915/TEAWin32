@@ -29,6 +29,34 @@ import                qualified Graphics.GUI.Foreign                      as Win
 import                qualified Graphics.GUI.Internal                     as GUIInternal
 import                qualified Graphics.Win32                            as Win32
 
+data UpdateAction = Render
+                  | UpdateProperties
+                  | Redraw
+                  | Delete
+                  | NoChange
+
+compareGUIComponents' :: [GUIComponent] -> [GUIComponent] -> [(UpdateAction, GUIComponent)]
+compareGUIComponents' newComponents oldComponents =
+    let newComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- newComponents ]
+        oldComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- oldComponents ]
+        deletedComponents = [ (Delete, x) | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
+        newComponentsWithAction =
+            flip map newComponents $ \newComponent ->
+                case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
+                    Just oldComponent | newComponent == oldComponent ->
+                        (NoChange, newComponent)
+
+                    Just oldComponent | doesNeedToRedraw oldComponent newComponent ->
+                        (Redraw, newComponent)
+
+                    Just _ ->
+                        (UpdateProperties, newComponent)
+
+                    Nothing ->
+                        (Render, newComponent)
+
+    in deletedComponents ++ newComponentsWithAction
+
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> ([GUIComponent], [GUIComponent], [GUIComponent], [(GUIComponent, GUIComponent)])
 compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
     where
