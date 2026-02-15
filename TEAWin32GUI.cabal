@@ -39,26 +39,26 @@ executable TEAWin32GUI-Experiment
 
 library
   exposed-modules:
-      Framework.TEA.Internal
-      Framework.TEA
-      Graphics.GUI.Component.Button.DSL
-      Graphics.GUI.Component.Button.Internal
-      Graphics.GUI.Component.Button.Property
-      Graphics.GUI.Component.Internal.Attribute
-      Graphics.GUI.Component.Property.Internal
-      Graphics.GUI.Component.Window.DSL
-      Graphics.GUI.Component.Window.Internal
-      Graphics.GUI.Component.Window.Property
-      Graphics.GUI.Component.Button
-      Graphics.GUI.Component.Internal
-      Graphics.GUI.Component.Property
-      Graphics.GUI.Component.Window
-      Graphics.GUI.Component
-      Graphics.GUI.DSL
-      Graphics.GUI.Foreign
-      Graphics.GUI.Internal
-      Graphics.Drawing
-      Graphics.GUI
+      TEAWin32.Application.Internal
+      TEAWin32.GUI.Component.Button.DSL
+      TEAWin32.GUI.Component.Button.Internal
+      TEAWin32.GUI.Component.Button.Property
+      TEAWin32.GUI.Component.Internal.Attribute
+      TEAWin32.GUI.Component.Property.Internal
+      TEAWin32.GUI.Component.Window.DSL
+      TEAWin32.GUI.Component.Window.Internal
+      TEAWin32.GUI.Component.Window.Property
+      TEAWin32.GUI.Component.Button
+      TEAWin32.GUI.Component.Internal
+      TEAWin32.GUI.Component.Property
+      TEAWin32.GUI.Component.Window
+      TEAWin32.GUI.Component
+      TEAWin32.GUI.DSL
+      TEAWin32.GUI.Internal
+      TEAWin32.Application
+      TEAWin32.Drawing
+      TEAWin32.Foreign
+      TEAWin32.GUI
   other-modules:
       Paths_TEAWin32GUI
   autogen-modules:

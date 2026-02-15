@@ -3,12 +3,12 @@ module Main (main) where
 import           Control.Lens               (over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
-import           Framework.TEA              (Settings (..), runTEA)
-import           Graphics.GUI.DSL
 import           Model
 import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
+import           TEAWin32.Application       (Settings (..), runTEA)
+import           TEAWin32.GUI.DSL
 
 
 data Msg = ButtonClicked
