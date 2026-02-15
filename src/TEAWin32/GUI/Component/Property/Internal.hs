@@ -1,22 +1,29 @@
-module TEAWin32.GUI.Component.Property.Internal (compareProperties) where
+module TEAWin32.GUI.Component.Property.Internal (PropertyUpdateAction (..), compareProperties) where
 
-import           Data.Map                        ((!))
 import qualified Data.Map                        as Map
 import           TEAWin32.GUI.Component.Property (GUIComponentProperty,
                                                   HasPropertyName (..))
 
-compareProperties :: [GUIComponentProperty] -> [GUIComponentProperty] -> ([GUIComponentProperty], [GUIComponentProperty], [(GUIComponentProperty, GUIComponentProperty)])
-compareProperties new old = (added, deleted, changed)
-    where
-        newMap = Map.fromList [ (getPropertyName x, x) | x <- new ]
-        oldMap = Map.fromList [ (getPropertyName x, x) | x <- old ]
+data PropertyUpdateAction = AddProperty GUIComponentProperty
+                          | DeleteProperty GUIComponentProperty
+                          | UpdateProperty GUIComponentProperty GUIComponentProperty
+                          | NoPropertyChange
 
-        added   = Map.elems $ Map.difference newMap oldMap
-        deleted = Map.elems $ Map.difference oldMap newMap
+compareProperties :: [GUIComponentProperty] -> [GUIComponentProperty] -> [PropertyUpdateAction]
+compareProperties newProperties oldProperties =
+    let newPropertiesWithName = Map.fromList [ (getPropertyName x, x) | x <- newProperties ]
+        oldPropertiesWithName = Map.fromList [ (getPropertyName x, x) | x <- oldProperties ]
+        deletedProperties = [ DeleteProperty x | x <- Map.elems $ Map.difference oldPropertiesWithName newPropertiesWithName ]
+        newPropertiesWithAction =
+            flip map newProperties $ \newProperty ->
+                case Map.lookup (getPropertyName newProperty) oldPropertiesWithName of
+                    Just oldProperty | newProperty == oldProperty ->
+                        NoPropertyChange
 
-        commonKeys = Map.keys $ Map.intersection newMap oldMap
-        changed = foldr (checkChange newMap oldMap) [] commonKeys
+                    Just oldProperty ->
+                        UpdateProperty newProperty oldProperty
 
-        checkChange nMap oMap k chgd
-            | nMap ! k == oMap ! k = chgd
-            | otherwise                    = (nMap ! k, oMap ! k) : chgd
+                    Nothing ->
+                        AddProperty newProperty
+
+    in deletedProperties ++ newPropertiesWithAction

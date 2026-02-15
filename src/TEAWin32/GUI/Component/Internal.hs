@@ -1,5 +1,5 @@
 module TEAWin32.GUI.Component.Internal
-    ( UpdateAction (..)
+    ( ComponentUpdateAction (..)
     , compareGUIComponents
     , getRelativeRectFromHWNDUsingWin32
     , setComponentTitle
@@ -30,31 +30,31 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (resto
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
 import                qualified TEAWin32.Internal.Foreign                 as Win32
 
-data UpdateAction = Render GUIComponent
-                  | UpdateProperties GUIComponent GUIComponent
-                  | Redraw GUIComponent
-                  | Delete GUIComponent
-                  | NoChange
+data ComponentUpdateAction = RenderComponent GUIComponent
+                           | UpdateProperties GUIComponent GUIComponent
+                           | RedrawComponent GUIComponent
+                           | DeleteComponent GUIComponent
+                           | NoComponentChange
 
-compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [UpdateAction]
+compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 compareGUIComponents newComponents oldComponents =
     let newComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- newComponents ]
         oldComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- oldComponents ]
-        deletedComponents = [ Delete x | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
+        deletedComponents = [ DeleteComponent x | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
         newComponentsWithAction =
             flip map newComponents $ \newComponent ->
                 case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
                     Just oldComponent | newComponent == oldComponent ->
-                        NoChange
+                        NoComponentChange
 
                     Just oldComponent | doesNeedToRedraw oldComponent newComponent ->
-                        Redraw newComponent
+                        RedrawComponent newComponent
 
                     Just oldComponent ->
                         UpdateProperties newComponent oldComponent
 
                     Nothing ->
-                        Render newComponent
+                        RenderComponent newComponent
 
     in deletedComponents ++ newComponentsWithAction
 

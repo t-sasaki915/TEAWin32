@@ -34,7 +34,7 @@ import                          TEAWin32.GUI.Component                    (GUICo
 import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute (isManagedByTEAWin32)
 import                          TEAWin32.GUI.Component.Property           (IsGUIComponentProperty (..))
-import                          TEAWin32.GUI.Component.Property.Internal  (compareProperties)
+import                          TEAWin32.GUI.Component.Property.Internal  as PropertyInternal
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
 
 data Model = forall a. Typeable a => Model a
@@ -104,32 +104,37 @@ issueMsg msg = do
 updateComponents :: [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
 updateComponents newChildren oldChildren parentHWND =
     forM_ (ComponentInternal.compareGUIComponents newChildren oldChildren) $ \case
-        ComponentInternal.NoChange ->
+        ComponentInternal.NoComponentChange ->
             pure ()
 
-        (ComponentInternal.Render addedComponent) ->
+        (ComponentInternal.RenderComponent addedComponent) ->
             void (render addedComponent parentHWND)
 
-        (ComponentInternal.Delete deletedComponent) ->
+        (ComponentInternal.DeleteComponent deletedComponent) ->
             getHWNDByUniqueId (getUniqueId deletedComponent) >>= \case
                 Just hwnd -> Win32.destroyWindow hwnd
                 Nothing   -> error "Tried to delete a component that was not in the map."
 
-        (ComponentInternal.Redraw modifiedComponent) ->
+        (ComponentInternal.RedrawComponent modifiedComponent) ->
             getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
                 Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND)
                 Nothing   -> error "Tried to redraw a component that was not in the map."
 
         (ComponentInternal.UpdateProperties newComponent oldComponent) ->
             getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
-                Just hwnd -> do
-                    let (addedProps, deletedProps, changedProps) = compareProperties (getProperties newComponent) (getProperties oldComponent)
+                Just hwnd ->
+                    forM_ (PropertyInternal.compareProperties (getProperties newComponent) (getProperties oldComponent)) $ \case
+                        PropertyInternal.NoPropertyChange ->
+                            pure ()
 
-                    mapM_ (`applyProperty` hwnd) addedProps
-                    mapM_ (`unapplyProperty` hwnd) deletedProps
+                        (PropertyInternal.AddProperty addedProperty) ->
+                            applyProperty addedProperty hwnd
 
-                    forM_ changedProps $ \(newProp, oldProp) ->
-                        updateProperty newProp oldProp hwnd
+                        (PropertyInternal.DeleteProperty deletedProperty) ->
+                            unapplyProperty deletedProperty hwnd
+
+                        (PropertyInternal.UpdateProperty newProperty oldProperty) ->
+                            updateProperty newProperty oldProperty hwnd
 
                 Nothing ->
                     error "Tried to update the properties of a component that was not in the map."

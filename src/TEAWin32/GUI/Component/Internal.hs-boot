@@ -1,5 +1,5 @@
 module TEAWin32.GUI.Component.Internal
-    ( UpdateAction (..)
+    ( ComponentUpdateAction (..)
     , restoreComponentFromHWND
     , compareGUIComponents
     , setComponentTitle
@@ -14,15 +14,15 @@ import qualified Graphics.Win32         as Win32
 import           TEAWin32.GUI           (Font)
 import           TEAWin32.GUI.Component (GUIComponent)
 
-data UpdateAction = Render GUIComponent
-                  | UpdateProperties GUIComponent GUIComponent
-                  | Redraw GUIComponent
-                  | Delete GUIComponent
-                  | NoChange
+data ComponentUpdateAction = RenderComponent GUIComponent
+                           | UpdateProperties GUIComponent GUIComponent
+                           | RedrawComponent GUIComponent
+                           | DeleteComponent GUIComponent
+                           | NoComponentChange
 
 restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 
-compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [UpdateAction]
+compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 
 setComponentTitle :: Text -> Win32.HWND -> IO ()
 
