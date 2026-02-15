@@ -6,7 +6,7 @@ module TEAWin32.GUI.Component.Internal.Attribute
     , addAttributeToHWND
     , updateAttributeOfHWND
     , removeAttributeFromHWND
-    , isManagedByTEAWin32GUI
+    , isManagedByTEAWin32
     ) where
 
 import                          Data.Text                     (Text)
@@ -51,4 +51,4 @@ updateAttributeOfHWND :: Win32.HWND -> ComponentAttribute -> IO ()
 
 removeAttributeFromHWND :: Win32.HWND -> ComponentAttribute -> IO ()
 
-isManagedByTEAWin32GUI :: Win32.HWND -> IO Bool
+isManagedByTEAWin32 :: Win32.HWND -> IO Bool

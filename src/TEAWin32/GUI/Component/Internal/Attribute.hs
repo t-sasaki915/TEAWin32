@@ -9,7 +9,7 @@ module TEAWin32.GUI.Component.Internal.Attribute
     , updateAttributeOfHWND
     , removeAttributeFromHWND
     , getAttributesFromHWND
-    , isManagedByTEAWin32GUI
+    , isManagedByTEAWin32
     , getComponentUniqueIdFromHWND
     , getComponentTypeFromHWND
     , doesHWNDHaveFlag
@@ -141,8 +141,8 @@ getAttributesFromHWND hwnd =
             Just hwndAttrs -> pure hwndAttrs
             Nothing        -> error $ "AttributeMap for " <> show hwnd <> " is not initialised."
 
-isManagedByTEAWin32GUI :: Win32.HWND -> IO Bool
-isManagedByTEAWin32GUI hwnd =
+isManagedByTEAWin32 :: Win32.HWND -> IO Bool
+isManagedByTEAWin32 hwnd =
     readIORef attributeMapRef >>= \attrMap ->
         pure $ hwnd `Map.member` attrMap
 

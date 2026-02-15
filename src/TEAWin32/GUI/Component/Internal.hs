@@ -1,5 +1,6 @@
 module TEAWin32.GUI.Component.Internal
-    ( compareGUIComponents
+    ( UpdateAction (..)
+    , compareGUIComponents
     , getRelativeRectFromHWNDUsingWin32
     , setComponentTitle
     , setComponentPosition
@@ -29,55 +30,33 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (resto
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
 import                qualified TEAWin32.Internal.Foreign                 as Win32
 
-data UpdateAction = Render
-                  | UpdateProperties
-                  | Redraw
-                  | Delete
+data UpdateAction = Render GUIComponent
+                  | UpdateProperties GUIComponent GUIComponent
+                  | Redraw GUIComponent
+                  | Delete GUIComponent
                   | NoChange
 
-compareGUIComponents' :: [GUIComponent] -> [GUIComponent] -> [(UpdateAction, GUIComponent)]
-compareGUIComponents' newComponents oldComponents =
+compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [UpdateAction]
+compareGUIComponents newComponents oldComponents =
     let newComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- newComponents ]
         oldComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- oldComponents ]
-        deletedComponents = [ (Delete, x) | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
+        deletedComponents = [ Delete x | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
         newComponentsWithAction =
             flip map newComponents $ \newComponent ->
                 case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
                     Just oldComponent | newComponent == oldComponent ->
-                        (NoChange, newComponent)
+                        NoChange
 
                     Just oldComponent | doesNeedToRedraw oldComponent newComponent ->
-                        (Redraw, newComponent)
+                        Redraw newComponent
 
-                    Just _ ->
-                        (UpdateProperties, newComponent)
+                    Just oldComponent ->
+                        UpdateProperties newComponent oldComponent
 
                     Nothing ->
-                        (Render, newComponent)
+                        Render newComponent
 
     in deletedComponents ++ newComponentsWithAction
-
-compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> ([GUIComponent], [GUIComponent], [GUIComponent], [(GUIComponent, GUIComponent)])
-compareGUIComponents new old = (added, deleted, redraw, propertyChanged)
-    where
-        newMap = Map.fromList [ (getUniqueId x, x) | x <- new ]
-        oldMap = Map.fromList [ (getUniqueId x, x) | x <- old ]
-
-        added   = Map.elems $ Map.difference newMap oldMap
-        deleted = Map.elems $ Map.difference oldMap newMap
-
-        commonKeys = Map.keys $ Map.intersection newMap oldMap
-        (redraw, propertyChanged) = foldr (checkChange newMap oldMap) ([], []) commonKeys
-
-        checkChange nMap oMap k (redr, propc) =
-            let newValue = nMap Map.! k
-                oldValue = oMap Map.! k in
-                    if newValue == oldValue
-                        then (redr, propc)
-                        else
-                            if doesNeedToRedraw oldValue newValue
-                                then (newValue : redr, propc)
-                                else (redr, (newValue, oldValue) : propc)
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do

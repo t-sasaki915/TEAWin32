@@ -142,8 +142,8 @@ instance IsGUIComponentProperty ComponentChildren where
             render child (Just componentHWND)) >>
                 addAttributeToHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
 
-    updateProperty (ComponentChildren newChildren) (ComponentChildren oldChildren) =
-        ApplicationInternal.updateChildren newChildren oldChildren
+    updateProperty (ComponentChildren newChildren) (ComponentChildren oldChildren) componentHWND =
+        ApplicationInternal.updateComponents newChildren oldChildren (Just componentHWND)
 
     unapplyProperty _ componentHWND =
         destroyChildren componentHWND >>

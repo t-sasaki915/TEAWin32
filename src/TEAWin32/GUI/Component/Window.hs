@@ -125,7 +125,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 destroyChildren :: Win32.HWND -> IO ()
 destroyChildren hwnd =
     Internal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
-        isWindow <- isManagedByTEAWin32GUI child
+        isWindow <- isManagedByTEAWin32 child
 
         unless isWindow $
             finaliseHWND child
