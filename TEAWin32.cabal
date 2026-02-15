@@ -59,7 +59,6 @@ library
       TEAWin32.Internal.Foreign
       TEAWin32.Application
       TEAWin32.Drawing
-      TEAWin32.Effect
       TEAWin32.GUI
   other-modules:
       Paths_TEAWin32

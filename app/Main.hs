@@ -8,7 +8,6 @@ import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
 import           TEAWin32.Application       (Settings (..), runTEA)
-import           TEAWin32.Effect            (showMessageBox)
 import           TEAWin32.Effect.MessageBox
 import           TEAWin32.GUI.DSL
 
