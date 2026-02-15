@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unsupported-calling-conventions #-}
-
 module TEAWin32.Foreign
     ( ACTCTX (..)
     , c_SetClassLongPtr
