@@ -102,7 +102,7 @@ issueMsg msg = do
         updateComponents newGUIComponents currentGUIComponents Nothing
 
 updateComponents :: [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
-updateComponents newChildren oldChildren parentHWND = do
+updateComponents newChildren oldChildren parentHWND =
     forM_ (ComponentInternal.compareGUIComponents newChildren oldChildren) $ \case
         ComponentInternal.NoChange ->
             pure ()
