@@ -8,6 +8,8 @@ import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
 import           TEAWin32.Application       (Settings (..), runTEA)
+import           TEAWin32.Effect            (showMessageBox)
+import           TEAWin32.Effect.MessageBox
 import           TEAWin32.GUI.DSL
 
 
@@ -31,9 +33,25 @@ update :: Msg -> Model -> IO Model
 update ButtonClicked model =
     print model >>
         pure (over clickedCount (+1) model)
-update ButtonClicked2 model =
-    print model >>
-        pure (over clickedCount (+2) model)
+
+update ButtonClicked2 model = do
+    msgBoxResult <- showMessageBox defaultMessageBoxSettings
+            { messageBoxTitle         = "TEAWin32"
+            , messageBoxContent       = "!?!?!?"
+            , messageBoxButtons       = MessageBoxButtonsYesNo
+            , messageBoxIcon          = MessageBoxIconError
+            , messageBoxDefaultButton = Just MessageBoxButton2
+            }
+
+    case msgBoxResult of
+        MessageBoxResultYes ->
+            pure (over clickedCount (+100) model)
+
+        MessageBoxResultNo ->
+            pure model
+
+        _ ->
+            error "!?"
 
 view :: Model -> GUIComponents
 view model = do

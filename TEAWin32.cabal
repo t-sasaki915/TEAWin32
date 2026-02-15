@@ -40,6 +40,7 @@ executable TEAWin32-Experiment
 library
   exposed-modules:
       TEAWin32.Application.Internal
+      TEAWin32.Effect.MessageBox
       TEAWin32.GUI.Component.Button.DSL
       TEAWin32.GUI.Component.Button.Internal
       TEAWin32.GUI.Component.Button.Property
@@ -58,6 +59,7 @@ library
       TEAWin32.Internal.Foreign
       TEAWin32.Application
       TEAWin32.Drawing
+      TEAWin32.Effect
       TEAWin32.GUI
   other-modules:
       Paths_TEAWin32
