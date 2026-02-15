@@ -13,22 +13,23 @@ module TEAWin32.GUI.Internal
     , finaliseFontCache
     ) where
 
-import                          Control.Concurrent (MVar, modifyMVar_, newMVar,
-                                                    takeMVar)
-import                          Control.Exception  (SomeException, try)
-import                          Control.Monad      (filterM)
-import                          Data.IORef         (IORef, atomicModifyIORef',
-                                                    modifyIORef, newIORef,
-                                                    readIORef)
-import                          Data.Map           (Map)
-import                qualified Data.Map           as Map
-import                          Foreign            (freeHaskellFunPtr)
-import                qualified Graphics.Win32     as Win32
-import                          System.IO.Unsafe   (unsafePerformIO)
-import                qualified System.Win32       as Win32
-import                qualified TEAWin32.Foreign   as Win32
-import {-# SOURCE #-}           TEAWin32.GUI       (Cursor (..), Font,
-                                                    Icon (..))
+import                          Control.Concurrent        (MVar, modifyMVar_,
+                                                           newMVar, takeMVar)
+import                          Control.Exception         (SomeException, try)
+import                          Control.Monad             (filterM)
+import                          Data.IORef                (IORef,
+                                                           atomicModifyIORef',
+                                                           modifyIORef,
+                                                           newIORef, readIORef)
+import                          Data.Map                  (Map)
+import                qualified Data.Map                  as Map
+import                          Foreign                   (freeHaskellFunPtr)
+import                qualified Graphics.Win32            as Win32
+import                          System.IO.Unsafe          (unsafePerformIO)
+import                qualified System.Win32              as Win32
+import {-# SOURCE #-}           TEAWin32.GUI              (Cursor (..), Font,
+                                                           Icon (..))
+import                qualified TEAWin32.Internal.Foreign as Win32
 
 activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)

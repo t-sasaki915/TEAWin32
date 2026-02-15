@@ -20,7 +20,6 @@ import                          Foreign                                   hiding
                                                                           (new,
                                                                            void)
 import                qualified Graphics.Win32                            as Win32
-import                qualified TEAWin32.Foreign                          as Win32
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component                    (GUIComponent,
                                                                            IsGUIComponent (..))
@@ -28,6 +27,7 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component.Button.Internal    (resto
 import                          TEAWin32.GUI.Component.Internal.Attribute
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (restoreWindowFromHWND)
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
+import                qualified TEAWin32.Internal.Foreign                 as Win32
 
 data UpdateAction = Render
                   | UpdateProperties

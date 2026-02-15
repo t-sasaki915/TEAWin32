@@ -55,9 +55,9 @@ library
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
       TEAWin32.GUI.Internal
+      TEAWin32.Internal.Foreign
       TEAWin32.Application
       TEAWin32.Drawing
-      TEAWin32.Foreign
       TEAWin32.GUI
   other-modules:
       Paths_TEAWin32

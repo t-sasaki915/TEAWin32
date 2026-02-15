@@ -10,7 +10,6 @@ import qualified Graphics.Win32                            as Win32
 import qualified System.Win32                              as Win32
 import qualified TEAWin32.Application.Internal             as ApplicationInternal
 import           TEAWin32.Drawing                          (toWin32Colour)
-import qualified TEAWin32.Foreign                          as Win32
 import           TEAWin32.GUI                              (UniqueId,
                                                             WindowStyle,
                                                             toWin32WindowStyle)
@@ -21,6 +20,7 @@ import           TEAWin32.GUI.Component.Property           (GUIComponentProperty
                                                             IsGUIComponentProperty (applyProperty))
 import           TEAWin32.GUI.Component.Window.Property    (WindowProperty (..))
 import qualified TEAWin32.GUI.Internal                     as Internal
+import qualified TEAWin32.Internal.Foreign                 as Win32
 
 data Window = Window UniqueId Text WindowStyle [WindowProperty] deriving (Show, Eq)
 

@@ -11,22 +11,22 @@ module TEAWin32.GUI
     , withVisualStyles
     ) where
 
-import                          Control.Concurrent    (modifyMVar, readMVar)
-import                          Control.Monad         (unless, void)
-import                          Data.Bits             ((.|.))
-import                          Data.Map              ((!))
-import                qualified Data.Map              as Map
-import                          Data.Text             (Text)
-import                qualified Data.Text             as Text
-import                          Foreign               (Storable (poke, sizeOf),
-                                                       alloca)
-import                          Foreign.C             (withCWString)
-import                qualified Graphics.Win32        as Win32
-import                qualified System.Win32          as Win32
-import                qualified TEAWin32.Foreign      as Win32
-import {-# SOURCE #-}           TEAWin32.GUI.Internal (cursorCacheRef,
-                                                       fontCacheRef,
-                                                       iconCacheRef)
+import                          Control.Concurrent        (modifyMVar, readMVar)
+import                          Control.Monad             (unless, void)
+import                          Data.Bits                 ((.|.))
+import                          Data.Map                  ((!))
+import                qualified Data.Map                  as Map
+import                          Data.Text                 (Text)
+import                qualified Data.Text                 as Text
+import                          Foreign                   (Storable (poke, sizeOf),
+                                                           alloca)
+import                          Foreign.C                 (withCWString)
+import                qualified Graphics.Win32            as Win32
+import                qualified System.Win32              as Win32
+import {-# SOURCE #-}           TEAWin32.GUI.Internal     (cursorCacheRef,
+                                                           fontCacheRef,
+                                                           iconCacheRef)
+import                qualified TEAWin32.Internal.Foreign as Win32
 
 newtype UniqueId = UniqueId Text deriving (Show, Eq, Ord)
 

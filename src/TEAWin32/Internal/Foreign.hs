@@ -1,4 +1,4 @@
-module TEAWin32.Foreign
+module TEAWin32.Internal.Foreign
     ( ACTCTX (..)
     , c_SetClassLongPtr
     , c_SetWindowPos
