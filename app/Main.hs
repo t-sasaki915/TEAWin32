@@ -40,11 +40,11 @@ view model = do
     let isCountEven = even (model ^. clickedCount)
 
     when isCountEven $
-        window_ "TEAWin32GUI-SubSubSub" "TEAWin32GUI-SubSubSub" Normal
+        window_ "TEAWin32-SubSubSub" "TEAWin32-SubSubSub" Normal
             [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
 
-    window_ "TEAWin32GUI-Main" "TEAWin32GUI-Main" Normal
-        ([ title_ ("TEAWin32GUI - Click Count: " <> Text.show (model ^. clickedCount))
+    window_ "TEAWin32-Main" "TEAWin32-Main" Normal
+        ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
         , icon_ Application
         , size_ (model ^. displayWidth, model ^. displayHeight)
         --, position_ (0, 0)
@@ -54,7 +54,7 @@ view model = do
 
             button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]
 
-            window_ "TEAWin32GUI-Sub" "TEAWin32GUI-Sub" NormalChild
+            window_ "TEAWin32-Sub" "TEAWin32-Sub" NormalChild
                 [ title_ "HELLO"
                 , icon_ Exclamation
                 , cursor_ Arrow
@@ -69,7 +69,7 @@ view model = do
                     button_ "TestButton5"
                         [title_ "おはようございます", size_ (200, 50), position_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
 
-                    window_ "TEAWin32GUI-Sub-Sub" "TEAWin32GUI-Sub-Sub" BorderlessChild
+                    window_ "TEAWin32-Sub-Sub" "TEAWin32-Sub-Sub" BorderlessChild
                         [title_ "GOOD MORNING", icon_ Application, cursor_ Wait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
 
 main :: IO ()

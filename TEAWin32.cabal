@@ -1,10 +1,10 @@
 cabal-version: 2.2
 
-name:           TEAWin32GUI
+name:           TEAWin32
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/t-sasaki915/TEAWin32GUI#readme>
-homepage:       https://github.com/t-sasaki915/TEAWin32GUI#readme
-bug-reports:    https://github.com/t-sasaki915/TEAWin32GUI/issues
+description:    Please see the README on GitHub at <https://github.com/t-sasaki915/TEAWin32#readme>
+homepage:       https://github.com/t-sasaki915/TEAWin32#readme
+bug-reports:    https://github.com/t-sasaki915/TEAWin32/issues
 author:         Toma Sasaki
 maintainer:     netst915@gmail.com
 copyright:      2026 Toma Sasaki
@@ -16,20 +16,20 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/t-sasaki915/TEAWin32GUI
+  location: https://github.com/t-sasaki915/TEAWin32
 
-executable TEAWin32GUI-Experiment
+executable TEAWin32-Experiment
   main-is: Main.hs
   other-modules:
-      Paths_TEAWin32GUI
+      Paths_TEAWin32
       Model
   autogen-modules:
-      Paths_TEAWin32GUI
+      Paths_TEAWin32
   hs-source-dirs:
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      TEAWin32GUI
+      TEAWin32
     , base >=4.7 && <5
     , Win32 >=2.14 && <2.15
     , text >=2.1 && <2.2
@@ -60,9 +60,9 @@ library
       TEAWin32.Foreign
       TEAWin32.GUI
   other-modules:
-      Paths_TEAWin32GUI
+      Paths_TEAWin32
   autogen-modules:
-      Paths_TEAWin32GUI
+      Paths_TEAWin32
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
@@ -76,18 +76,18 @@ library
   default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
 
 
-test-suite TEAWin32GUI-test
+test-suite TEAWin32-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_TEAWin32GUI
+      Paths_TEAWin32
   autogen-modules:
-      Paths_TEAWin32GUI
+      Paths_TEAWin32
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      TEAWin32GUI
+      TEAWin32
     , base >=4.7 && <5
   default-language: Haskell2010
   default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
