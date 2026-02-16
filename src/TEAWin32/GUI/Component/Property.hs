@@ -11,6 +11,7 @@ module TEAWin32.GUI.Component.Property
     , ComponentPosition (..)
     , ComponentFont (..)
     , ComponentChildren (..)
+    , ComponentZIndex (..)
     , ComponentOnClick (..)
     ) where
 
@@ -71,6 +72,7 @@ newtype ComponentSize     = ComponentSize     (Int, Int)     deriving (Show, Eq)
 newtype ComponentPosition = ComponentPosition (Int, Int)     deriving (Show, Eq)
 newtype ComponentFont     = ComponentFont     Font           deriving (Show, Eq)
 newtype ComponentChildren = ComponentChildren [GUIComponent] deriving (Show, Eq)
+newtype ComponentZIndex   = ComponentZIndex   Int            deriving (Show, Eq)
 data    ComponentOnClick  = forall a. (Typeable a, Show a, Eq a) => ComponentOnClick a
 
 instance Eq ComponentOnClick where
@@ -148,6 +150,14 @@ instance IsGUIComponentProperty ComponentChildren where
     unapplyProperty _ componentHWND =
         destroyChildren componentHWND >>
             removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
+
+instance IsGUIComponentProperty ComponentZIndex where
+    -- Processes regarding ZIndex will be done inside TEAWin32.Application.Internal.
+    applyProperty _ _ = pure ()
+
+    updateProperty _ _ _ = pure ()
+
+    unapplyProperty _ _ = pure ()
 
 instance IsGUIComponentProperty ComponentOnClick where
     applyProperty (ComponentOnClick msg) componentHWND =

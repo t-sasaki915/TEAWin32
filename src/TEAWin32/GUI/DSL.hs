@@ -11,6 +11,7 @@ module TEAWin32.GUI.DSL
     , size_
     , position_
     , font_
+    , zIndex_
     , onClick_
     ) where
 
@@ -38,6 +39,9 @@ position_ = wrapComponentProperty . ComponentPosition
 
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> a
 font_ = wrapComponentProperty . ComponentFont
+
+zIndex_ :: (IsPropertyWrapper a ComponentZIndex) => Int -> a
+zIndex_ = wrapComponentProperty . ComponentZIndex
 
 onClick_ :: (IsPropertyWrapper a ComponentOnClick, Typeable b, Show b, Eq b) => b -> a
 onClick_ = wrapComponentProperty . ComponentOnClick

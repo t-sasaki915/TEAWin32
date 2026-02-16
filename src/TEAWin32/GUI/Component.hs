@@ -4,6 +4,7 @@ module TEAWin32.GUI.Component
     ( GUIComponents
     , IsGUIComponent (..)
     , GUIComponent (..)
+    , ZIndex (..)
     ) where
 
 import                          Control.Monad.Writer            (Writer)
@@ -45,3 +46,22 @@ instance IsGUIComponent GUIComponent where
         case cast b of
             Just b' -> doesNeedToRedraw a b'
             Nothing -> True
+
+data ZIndex = SystemCalculatedZIndex Int
+            | ZIndexWithUserSpecification Int Int
+            deriving (Eq, Show)
+
+instance Ord ZIndex where
+    compare (ZIndexWithUserSpecification usrIndex1 sysIndex1) (ZIndexWithUserSpecification usrIndex2 sysIndex2) =
+        compare usrIndex1 usrIndex2 <> compare sysIndex1 sysIndex2
+
+    compare (ZIndexWithUserSpecification usrIndex1 _) (SystemCalculatedZIndex _)
+        | usrIndex1 >= 0 = GT
+        | otherwise      = LT
+
+    compare (SystemCalculatedZIndex _) (ZIndexWithUserSpecification usrIndex2 _)
+        | usrIndex2 >= 0 = LT
+        | otherwise      = GT
+
+    compare (SystemCalculatedZIndex sysIndex1) (SystemCalculatedZIndex sysIndex2) =
+        compare sysIndex1 sysIndex2

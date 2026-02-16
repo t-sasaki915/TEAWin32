@@ -13,7 +13,10 @@ module TEAWin32.GUI.Component.Internal
     , restoreComponentFromHWND
     ) where
 
+import                          Control.Monad                             (filterM,
+                                                                           forM)
 import                          Data.Functor                              (void)
+import                qualified Data.List                                 as List
 import                qualified Data.Map                                  as Map
 import                          Data.Text                                 (Text)
 import                qualified Data.Text                                 as Text
@@ -26,6 +29,7 @@ import                          TEAWin32.GUI.Component                    (GUICo
                                                                            IsGUIComponent (..))
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Button.Internal    (restoreButtonFromHWND)
 import                          TEAWin32.GUI.Component.Internal.Attribute
+import                          TEAWin32.GUI.Component.Property           (ComponentZIndex (..), GUIComponentProperty (GUIComponentProperty))
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (restoreWindowFromHWND)
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
 import                qualified TEAWin32.Internal.Foreign                 as Win32
@@ -57,6 +61,39 @@ compareGUIComponents newComponents oldComponents =
                         RenderComponent newComponent
 
     in deletedComponents ++ newComponentsWithAction
+
+sortComponentsWithZIndex :: [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
+sortComponentsWithZIndex guiComponents maybeParent = do
+    children <-
+        case maybeParent of
+            Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
+            Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
+
+    componentsWithZIndex <-
+        forM (zip [1..(length children)] children) $ \(sysIndex, child) ->
+            getComponentUniqueIdFromHWND child >>= \childUniqueId ->
+                case List.find (\child' -> getUniqueId child' == childUniqueId) guiComponents of
+                    Just logicalChild ->
+                        case [ usrIndex | GUIComponentProperty (ComponentZIndex usrIndex) <- getProperties logicalChild ] of
+                            [ usrIndex ] -> pure ()
+                            [] -> pure ()
+                            x -> error $ "Illegal ComponentZIndex state: " <> show x
+
+                    Nothing ->
+                        error $ show childUniqueId <> " was not in the list given."
+
+    pure (List.sort componentsWithZIndex)
+
+calculateZIndexOfChildren :: Maybe Win32.HWND -> IO [(UniqueId, Int)]
+calculateZIndexOfChildren parent = do
+    children <-
+        case parent of
+            Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
+            Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
+
+    mapM getComponentUniqueIdFromHWND children >>= \case
+        []        -> pure []
+        uniqueIds -> pure $ zip uniqueIds [1..(length uniqueIds)]
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do
