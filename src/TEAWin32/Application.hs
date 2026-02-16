@@ -5,7 +5,7 @@ module TEAWin32.Application
     ) where
 
 import           Control.Exception             (SomeException, try)
-import           Control.Monad                 (forM_, void, when)
+import           Control.Monad                 (forM_)
 import           Control.Monad.Writer          (execWriter)
 import           Data.Data                     (Typeable, cast)
 import           Data.Functor                  ((<&>))
@@ -60,7 +60,7 @@ runTEA' init update view = do
 
     let initGUIComponents = execWriter (view initModel)
 
-    forM_ initGUIComponents $ \guiComponent ->
+    forM_ (reverse initGUIComponents) $ \guiComponent ->
         render guiComponent Nothing
 
     messagePump
@@ -68,12 +68,14 @@ runTEA' init update view = do
     finaliseFontCache
 
 messagePump :: IO ()
-messagePump =
-    Win32.allocaMessage $ \msg ->
-        let pump =
-                (try $ Win32.getMessage msg Nothing :: IO (Either SomeException Bool)) >>= \r ->
-                    when (or r) $
-                        void $ Win32.translateMessage msg >>
-                            Win32.dispatchMessage msg >>
-                                pump
-        in pump
+messagePump = Win32.allocaMessage messagePump'
+    where
+        messagePump' msgPtr =
+            (try (Win32.getMessage msgPtr Nothing) :: IO (Either SomeException Bool)) >>= \case
+                Right True ->
+                    Win32.translateMessage msgPtr >>
+                        Win32.dispatchMessage msgPtr >>
+                            messagePump' msgPtr
+
+                _ ->
+                    pure ()
