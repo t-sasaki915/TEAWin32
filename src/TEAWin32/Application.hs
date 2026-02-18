@@ -62,7 +62,7 @@ runTEA' init update view = do
     let initGUIComponents = execWriter (view initModel)
 
     sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
-    forM_ (reverse sortedInitGUIComponents) $ \guiComponent ->
+    forM_ sortedInitGUIComponents $ \guiComponent ->
         render guiComponent Nothing
 
     messagePump

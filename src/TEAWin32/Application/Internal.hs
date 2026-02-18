@@ -104,7 +104,7 @@ issueMsg msg = do
 updateComponents :: [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
 updateComponents newChildren oldChildren parentHWND =
     ComponentInternal.sortComponentsWithZIndex newChildren parentHWND >>= \sortedNewChildren ->
-        forM_ (ComponentInternal.compareGUIComponents (reverse sortedNewChildren) oldChildren) $ \case
+        forM_ (ComponentInternal.compareGUIComponents sortedNewChildren oldChildren) $ \case
             (ComponentInternal.NoComponentChange component) ->
                 getHWNDByUniqueId (getUniqueId component) >>= \case
                     Just hwnd -> ComponentInternal.bringComponentToTop hwnd

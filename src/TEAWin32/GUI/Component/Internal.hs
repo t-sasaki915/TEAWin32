@@ -72,7 +72,6 @@ sortComponentsWithZIndex guiComponents maybeParent = do
         Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
         Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
 
-    (mapM getComponentUniqueIdFromHWND children) >>= print
     uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] (reverse children)) (\(i, hwnd) ->
         getComponentUniqueIdFromHWND hwnd >>= \uniqueId ->
             pure (uniqueId, i))

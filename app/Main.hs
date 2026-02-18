@@ -58,14 +58,18 @@ view model = do
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" "TEAWin32-SubSubSub" Normal
-            [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255), zIndex_ 1] noChildren
+            [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255), zIndex_ 2] noChildren
+
+    window_ "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" Normal
+        [title_ "!?", icon_ Exclamation, size_ (400, 200), position_ (200, 0), zIndex_ 3] $
+            button_ "TestButton6" [title_ "!?!?", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
     window_ "TEAWin32-Main" "TEAWin32-Main" Normal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
         , icon_ Application
         , size_ (model ^. displayWidth, model ^. displayHeight)
-        , zIndex_ 0
         , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
+        , zIndex_ 0
         ] ++ [cursor_ IBeam | isCountEven]) $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
@@ -76,7 +80,7 @@ view model = do
                 , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
                 , position_ (100, 100)
                 , backgroundColour_ (RGB 255 0 0)
-                , zIndex_ (if isCountEven then 0 else 1)
+                --, zIndex_ (if isCountEven then 0 else 1)
                 ] $ do
                     button_ "TestButton2" [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), position_ (20, 50)]
 
@@ -95,7 +99,7 @@ view model = do
                 , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
                 , position_ (200, 200)
                 , backgroundColour_ (RGB 0 0 255)
-                , zIndex_ (if isCountEven then 1 else 0)
+                --, zIndex_ (if isCountEven then 1 else 0)
                 ] noChildren
 
             button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]

@@ -149,7 +149,7 @@ instance IsGUIComponentProperty ComponentFont where
 instance IsGUIComponentProperty ComponentChildren where
     applyProperty (ComponentChildren children) componentHWND =
         ComponentInternal.sortComponentsWithZIndex children (Just componentHWND) >>= \sortedChildren ->
-            forM_ (reverse sortedChildren) (\(GUIComponent child) ->
+            forM_ sortedChildren (\(GUIComponent child) ->
                 render child (Just componentHWND)) >>
                     addAttributeToHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
 

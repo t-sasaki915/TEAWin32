@@ -67,12 +67,12 @@ instance Ord ZIndex where
         compare u1 u2 <> GT
 
     compare (ZIndexWithUserSpecification u1 _) _
-        | u1 >= 0   = LT
-        | otherwise = GT
+        | u1 >= 0   = GT
+        | otherwise = LT
 
     compare _ (ZIndexWithUserSpecification u2 _)
-        | u2 >= 0   = GT
-        | otherwise = LT
+        | u2 >= 0   = LT
+        | otherwise = GT
 
     compare (NewlyCreatedZIndexWithUserSpecification u1 _) _
         | u1 >= 0   = GT
