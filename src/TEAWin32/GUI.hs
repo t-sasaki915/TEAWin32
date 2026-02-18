@@ -37,10 +37,11 @@ data WindowStyle = Borderless
                  deriving (Show, Eq, Ord)
 
 toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
-toWin32WindowStyle Borderless      = Win32.wS_POPUP
-toWin32WindowStyle Normal          = Win32.wS_OVERLAPPEDWINDOW
-toWin32WindowStyle BorderlessChild = Win32.wS_CHILD
-toWin32WindowStyle NormalChild     = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP
+toWin32WindowStyle Borderless      = Win32.wS_POPUP .|. Win32.wS_CLIPCHILDREN
+toWin32WindowStyle Normal          = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CLIPCHILDREN
+toWin32WindowStyle BorderlessChild = Win32.wS_CHILD .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
+toWin32WindowStyle NormalChild     =
+    Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
 
 data Icon = Application
           | Hand

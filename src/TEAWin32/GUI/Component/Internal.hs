@@ -72,7 +72,8 @@ sortComponentsWithZIndex guiComponents maybeParent = do
         Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
         Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
 
-    uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] children) (\(i, hwnd) ->
+    (mapM getComponentUniqueIdFromHWND children) >>= print
+    uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] (reverse children)) (\(i, hwnd) ->
         getComponentUniqueIdFromHWND hwnd >>= \uniqueId ->
             pure (uniqueId, i))
 
@@ -110,7 +111,7 @@ getRelativeRectFromHWNDUsingWin32 hwnd = do
 bringComponentToTop :: Win32.HWND -> IO ()
 bringComponentToTop hwnd =
     void $ Win32.c_SetWindowPos hwnd Win32.nullPtr 0 0 0 0
-        (Win32.sWP_NOMOVE .|. Win32.sWP_NOSIZE .|. Win32.sWP_SHOWWINDOW .|. Win32.sWP_NOREDRAW)
+        (Win32.sWP_NOMOVE .|. Win32.sWP_NOSIZE .|. Win32.sWP_SHOWWINDOW)
 
 setComponentTitle :: Text -> Win32.HWND -> IO ()
 setComponentTitle title hwnd = Win32.setWindowText hwnd (Text.unpack title)

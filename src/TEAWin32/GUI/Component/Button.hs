@@ -28,7 +28,7 @@ instance IsGUIComponent Button where
         button <- Win32.createWindow
             (Win32.mkClassName "BUTTON")
             ""
-            (Win32.wS_TABSTOP .|. Win32.wS_VISIBLE .|. Win32.wS_CHILD .|. Win32.bS_DEFPUSHBUTTON)
+            (Win32.wS_TABSTOP .|. Win32.wS_VISIBLE .|. Win32.wS_CHILD .|. Win32.bS_DEFPUSHBUTTON .|. Win32.wS_CLIPSIBLINGS)
             Nothing
             Nothing
             Nothing

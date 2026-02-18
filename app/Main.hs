@@ -69,17 +69,6 @@ view model = do
         ] ++ [cursor_ IBeam | isCountEven]) $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
-            button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]
-
-            window_ "TEAWin32-SubSubSubSub" "TEAWin32-SubSubSubSub" NormalChild
-                [ title_ "HELLO 2"
-                , icon_ Exclamation
-                , cursor_ SizeNWSE
-                , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
-                , position_ (200, 200)
-                , backgroundColour_ (RGB 0 0 255)
-                ] noChildren
-
             window_ "TEAWin32-Sub" "TEAWin32-Sub" NormalChild
                 [ title_ "HELLO"
                 , icon_ Exclamation
@@ -87,6 +76,7 @@ view model = do
                 , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
                 , position_ (100, 100)
                 , backgroundColour_ (RGB 255 0 0)
+                , zIndex_ (if isCountEven then 0 else 1)
                 ] $ do
                     button_ "TestButton2" [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), position_ (20, 50)]
 
@@ -97,6 +87,18 @@ view model = do
 
                     window_ "TEAWin32-Sub-Sub" "TEAWin32-Sub-Sub" BorderlessChild
                         [title_ "GOOD MORNING", icon_ Application, cursor_ Wait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
+
+            window_ "TEAWin32-SubSubSubSub" "TEAWin32-SubSubSubSub" NormalChild
+                [ title_ "HELLO 2"
+                , icon_ Exclamation
+                , cursor_ SizeNWSE
+                , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
+                , position_ (200, 200)
+                , backgroundColour_ (RGB 0 0 255)
+                , zIndex_ (if isCountEven then 1 else 0)
+                ] noChildren
+
+            button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]
 
 main :: IO ()
 main =
