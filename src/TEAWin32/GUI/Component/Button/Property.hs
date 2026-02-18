@@ -27,6 +27,12 @@ instance (Typeable a, Show a, IsGUIComponentProperty a, IsButtonProperty a) => I
 instance HasPropertyName ButtonProperty where
     getPropertyName (ButtonProperty a) = typeOf a
 
+instance MayHaveZIndexProperty ButtonProperty where
+    getZIndexProperty (ButtonProperty a) =
+        case cast a of
+            Just prop@(ComponentZIndex _) -> Just prop
+            Nothing                       -> Nothing
+
 class Eq a => IsButtonProperty a
 
 instance IsButtonProperty ButtonProperty
@@ -45,4 +51,5 @@ instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize
 instance IsButtonProperty ComponentPosition
 instance IsButtonProperty ComponentFont
+instance IsButtonProperty ComponentZIndex
 instance IsButtonProperty ComponentOnClick

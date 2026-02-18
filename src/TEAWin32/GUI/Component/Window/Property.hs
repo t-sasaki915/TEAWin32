@@ -35,6 +35,12 @@ instance (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => I
 instance HasPropertyName WindowProperty where
     getPropertyName (WindowProperty a) = typeOf a
 
+instance MayHaveZIndexProperty WindowProperty where
+    getZIndexProperty (WindowProperty a) =
+        case cast a of
+            Just prop@(ComponentZIndex _) -> Just prop
+            Nothing                       -> Nothing
+
 class Eq a => IsWindowProperty a
 
 instance IsWindowProperty WindowProperty
@@ -61,6 +67,7 @@ instance IsWindowProperty ComponentTitle
 instance IsWindowProperty ComponentSize
 instance IsWindowProperty ComponentPosition
 instance IsWindowProperty ComponentFont
+instance IsWindowProperty ComponentZIndex
 instance IsWindowProperty ComponentChildren
 
 instance IsGUIComponentProperty WindowIcon where

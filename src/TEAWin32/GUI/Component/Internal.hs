@@ -1,6 +1,7 @@
 module TEAWin32.GUI.Component.Internal
     ( ComponentUpdateAction (..)
     , compareGUIComponents
+    , sortComponentsWithZIndex
     , getRelativeRectFromHWNDUsingWin32
     , setComponentTitle
     , setComponentPosition
@@ -17,7 +18,8 @@ import                          Control.Monad                             (filte
                                                                            forM)
 import                          Data.Functor                              (void)
 import                qualified Data.List                                 as List
-import                qualified Data.Map                                  as Map
+import                          Data.Map.Strict                           ((!))
+import                qualified Data.Map.Strict                           as Map
 import                          Data.Text                                 (Text)
 import                qualified Data.Text                                 as Text
 import                          Foreign                                   hiding
@@ -26,10 +28,11 @@ import                          Foreign                                   hiding
 import                qualified Graphics.Win32                            as Win32
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component                    (GUIComponent,
-                                                                           IsGUIComponent (..))
+                                                                           IsGUIComponent (..),
+                                                                           ZIndex (..))
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Button.Internal    (restoreButtonFromHWND)
 import                          TEAWin32.GUI.Component.Internal.Attribute
-import                          TEAWin32.GUI.Component.Property           (ComponentZIndex (..), GUIComponentProperty (GUIComponentProperty))
+import                          TEAWin32.GUI.Component.Property
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (restoreWindowFromHWND)
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
 import                qualified TEAWin32.Internal.Foreign                 as Win32
@@ -64,36 +67,31 @@ compareGUIComponents newComponents oldComponents =
 
 sortComponentsWithZIndex :: [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
-    children <-
-        case maybeParent of
-            Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
-            Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
+    children <- case maybeParent of
+        Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
+        Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
 
-    componentsWithZIndex <-
-        forM (zip [1..(length children)] children) $ \(sysIndex, child) ->
-            getComponentUniqueIdFromHWND child >>= \childUniqueId ->
-                case List.find (\child' -> getUniqueId child' == childUniqueId) guiComponents of
-                    Just logicalChild ->
-                        case [ usrIndex | GUIComponentProperty (ComponentZIndex usrIndex) <- getProperties logicalChild ] of
-                            [ usrIndex ] -> pure ()
-                            [] -> pure ()
-                            x -> error $ "Illegal ComponentZIndex state: " <> show x
+    uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] children) (\(i, hwnd) ->
+        getComponentUniqueIdFromHWND hwnd >>= \uniqueId ->
+            pure (uniqueId, i))
 
-                    Nothing ->
-                        error $ show childUniqueId <> " was not in the list given."
+    let guiComponentMap = Map.fromList [ (getUniqueId comp, comp) | comp <- guiComponents ]
 
-    pure (List.sort componentsWithZIndex)
+    componentsUniqueIdWithZIndex <- forM (zip [1..] guiComponents) $ \(listIndex, guiComponent) -> do
+        let uniqueId      = getUniqueId guiComponent
+            maybeSysIndex = Map.lookup uniqueId uniqueIdsWithZIndex
+            maybeUsrIndex = case [ usrIndex | Just (ComponentZIndex usrIndex) <- map getZIndexProperty (getProperties guiComponent) ] of
+                [ usrIndex ] -> Just usrIndex
+                []           -> Nothing
+                x            -> error $ "Illegal ComponentZIndex state: " <> show x
 
-calculateZIndexOfChildren :: Maybe Win32.HWND -> IO [(UniqueId, Int)]
-calculateZIndexOfChildren parent = do
-    children <-
-        case parent of
-            Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
-            Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
+        case (maybeUsrIndex, maybeSysIndex) of
+            (Just usrIndex, Just sysIndex) -> pure (ZIndexWithUserSpecification usrIndex sysIndex, uniqueId)
+            (Nothing      , Just sysIndex) -> pure (SystemCalculatedZIndex sysIndex, uniqueId)
+            (Just usrIndex, Nothing      ) -> pure (NewlyCreatedZIndexWithUserSpecification usrIndex listIndex, uniqueId)
+            (Nothing      , Nothing      ) -> pure (NewlyCreatedZIndex listIndex, uniqueId)
 
-    mapM getComponentUniqueIdFromHWND children >>= \case
-        []        -> pure []
-        uniqueIds -> pure $ zip uniqueIds [1..(length uniqueIds)]
+    pure [ guiComponentMap ! uid | (_, uid) <- List.sort componentsUniqueIdWithZIndex ]
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do

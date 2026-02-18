@@ -34,7 +34,7 @@ data WindowStyle = Borderless
                  | Normal
                  | BorderlessChild
                  | NormalChild
-                 deriving (Show, Eq)
+                 deriving (Show, Eq, Ord)
 
 toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
 toWin32WindowStyle Borderless      = Win32.wS_POPUP

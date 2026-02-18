@@ -58,13 +58,13 @@ view model = do
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" "TEAWin32-SubSubSub" Normal
-            [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
+            [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255), zIndex_ 1] noChildren
 
     window_ "TEAWin32-Main" "TEAWin32-Main" Normal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
         , icon_ Application
         , size_ (model ^. displayWidth, model ^. displayHeight)
-        --, position_ (0, 0)
+        , zIndex_ 0
         , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
         ] ++ [cursor_ IBeam | isCountEven]) $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]

@@ -2,6 +2,7 @@ module TEAWin32.GUI.Component.Internal
     ( ComponentUpdateAction (..)
     , restoreComponentFromHWND
     , compareGUIComponents
+    , sortComponentsWithZIndex
     , setComponentTitle
     , setComponentPosition
     , setComponentSize
@@ -23,6 +24,8 @@ data ComponentUpdateAction = RenderComponent GUIComponent
 restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
+
+sortComponentsWithZIndex :: [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 
 setComponentTitle :: Text -> Win32.HWND -> IO ()
 

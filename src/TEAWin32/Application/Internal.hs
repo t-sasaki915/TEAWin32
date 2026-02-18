@@ -102,39 +102,41 @@ issueMsg msg = do
         updateComponents newGUIComponents currentGUIComponents Nothing
 
 updateComponents :: [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
-updateComponents newChildren oldChildren parentHWND =
-    forM_ (ComponentInternal.compareGUIComponents newChildren oldChildren) $ \case
-        ComponentInternal.NoComponentChange ->
-            pure ()
+updateComponents newChildren oldChildren parentHWND = do
+    print newChildren
+    ComponentInternal.sortComponentsWithZIndex newChildren parentHWND >>= \sortedNewChildren ->
+        forM_ (ComponentInternal.compareGUIComponents sortedNewChildren oldChildren) $ \case
+            ComponentInternal.NoComponentChange ->
+                pure ()
 
-        (ComponentInternal.RenderComponent addedComponent) ->
-            void (render addedComponent parentHWND)
+            (ComponentInternal.RenderComponent addedComponent) ->
+                void (render addedComponent parentHWND)
 
-        (ComponentInternal.DeleteComponent deletedComponent) ->
-            getHWNDByUniqueId (getUniqueId deletedComponent) >>= \case
-                Just hwnd -> Win32.destroyWindow hwnd
-                Nothing   -> error "Tried to delete a component that was not in the map."
+            (ComponentInternal.DeleteComponent deletedComponent) ->
+                getHWNDByUniqueId (getUniqueId deletedComponent) >>= \case
+                    Just hwnd -> Win32.destroyWindow hwnd
+                    Nothing   -> error "Tried to delete a component that was not in the map."
 
-        (ComponentInternal.RedrawComponent modifiedComponent) ->
-            getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
-                Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND)
-                Nothing   -> error "Tried to redraw a component that was not in the map."
+            (ComponentInternal.RedrawComponent modifiedComponent) ->
+                getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
+                    Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND)
+                    Nothing   -> error "Tried to redraw a component that was not in the map."
 
-        (ComponentInternal.UpdateProperties newComponent oldComponent) ->
-            getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
-                Just hwnd ->
-                    forM_ (PropertyInternal.compareProperties (getProperties newComponent) (getProperties oldComponent)) $ \case
-                        PropertyInternal.NoPropertyChange ->
-                            pure ()
+            (ComponentInternal.UpdateProperties newComponent oldComponent) ->
+                getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
+                    Just hwnd ->
+                        forM_ (PropertyInternal.compareProperties (getProperties newComponent) (getProperties oldComponent)) $ \case
+                            PropertyInternal.NoPropertyChange ->
+                                pure ()
 
-                        (PropertyInternal.AddProperty addedProperty) ->
-                            applyProperty addedProperty hwnd
+                            (PropertyInternal.AddProperty addedProperty) ->
+                                applyProperty addedProperty hwnd
 
-                        (PropertyInternal.DeleteProperty deletedProperty) ->
-                            unapplyProperty deletedProperty hwnd
+                            (PropertyInternal.DeleteProperty deletedProperty) ->
+                                unapplyProperty deletedProperty hwnd
 
-                        (PropertyInternal.UpdateProperty newProperty oldProperty) ->
-                            updateProperty newProperty oldProperty hwnd
+                            (PropertyInternal.UpdateProperty newProperty oldProperty) ->
+                                updateProperty newProperty oldProperty hwnd
 
-                Nothing ->
-                    error "Tried to update the properties of a component that was not in the map."
+                    Nothing ->
+                        error "Tried to update the properties of a component that was not in the map."

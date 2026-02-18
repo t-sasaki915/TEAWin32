@@ -6,6 +6,7 @@ module TEAWin32.GUI.Component.Property
     , IsGUIComponentProperty (..)
     , IsPropertyWrapper (..)
     , HasPropertyName (..)
+    , MayHaveZIndexProperty (..)
     , ComponentTitle (..)
     , ComponentSize (..)
     , ComponentPosition (..)
@@ -29,7 +30,8 @@ import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as Com
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Window             (destroyChildren)
 
-data GUIComponentProperty = forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a) => GUIComponentProperty a
+data GUIComponentProperty =  forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
+                          => GUIComponentProperty a
 
 instance Eq GUIComponentProperty where
     (GUIComponentProperty x) == (GUIComponentProperty y) =
@@ -64,8 +66,14 @@ class IsPropertyWrapper a b where
 class HasPropertyName a where
     getPropertyName :: a -> TypeRep
 
+class MayHaveZIndexProperty a where
+    getZIndexProperty :: a -> Maybe ComponentZIndex
+
 instance HasPropertyName GUIComponentProperty where
     getPropertyName (GUIComponentProperty a) = getPropertyName a
+
+instance MayHaveZIndexProperty GUIComponentProperty where
+    getZIndexProperty (GUIComponentProperty a) = getZIndexProperty a
 
 newtype ComponentTitle    = ComponentTitle    Text           deriving (Show, Eq)
 newtype ComponentSize     = ComponentSize     (Int, Int)     deriving (Show, Eq)
