@@ -19,7 +19,7 @@ import           TEAWin32.GUI.Component.Internal.Attribute
 import           TEAWin32.GUI.Component.Property           (GUIComponentProperty (..),
                                                             IsGUIComponentProperty (applyProperty))
 import           TEAWin32.GUI.Component.Window.Property    (WindowProperty (..))
-import qualified TEAWin32.GUI.Internal                     as Internal
+import qualified TEAWin32.GUI.Internal                     as GUIInternal
 import qualified TEAWin32.Internal.Foreign                 as Win32
 
 data Window = Window UniqueId Text WindowStyle [WindowProperty] deriving (Show, Eq)
@@ -76,7 +76,7 @@ instance IsGUIComponent Window where
         _ <- Win32.showWindow window Win32.sW_SHOWNORMAL
         Win32.updateWindow window
 
-        atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, ())
+        atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n + 1, ())
 
         pure window
 
@@ -86,7 +86,7 @@ defaultWindowProc hwnd wMsg wParam lParam
         destroyChildren hwnd
         finaliseHWND hwnd
 
-        remainingWindow <- atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n - 1, n - 1)
+        remainingWindow <- atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n - 1, n - 1)
         when (remainingWindow == 0) $
             Win32.postQuitMessage 0
 
@@ -127,7 +127,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 
 destroyChildren :: Win32.HWND -> IO ()
 destroyChildren hwnd =
-    Internal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
+    GUIInternal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
         isWindow <- isManagedByTEAWin32 child
 
         unless isWindow $

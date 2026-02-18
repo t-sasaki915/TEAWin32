@@ -81,7 +81,7 @@ instance IsGUIComponentProperty WindowIcon where
             updateAttributeOfHWND windowHWND (WindowIconAttr icon)
 
     unapplyProperty (WindowIcon icon) windowHWND =
-        ComponentInternal.setWindowIcon Application windowHWND >>
+        ComponentInternal.setWindowIcon IconApplication windowHWND >>
             removeAttributeFromHWND windowHWND (WindowIconAttr icon) >>
                 removeAttributeFromHWND windowHWND (ComponentFlagAttr WindowIconSet)
 
@@ -96,7 +96,7 @@ instance IsGUIComponentProperty WindowCursor where
             updateAttributeOfHWND windowHWND (WindowCursorAttr cursor)
 
     unapplyProperty (WindowCursor cursor) windowHWND =
-        ComponentInternal.setWindowCursor Arrow windowHWND >>
+        ComponentInternal.setWindowCursor CursorArrow windowHWND >>
             removeAttributeFromHWND windowHWND (WindowCursorAttr cursor) >>
                 removeAttributeFromHWND windowHWND (ComponentFlagAttr WindowCursorSet)
 

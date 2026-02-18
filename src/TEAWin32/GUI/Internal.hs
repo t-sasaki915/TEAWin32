@@ -51,15 +51,15 @@ initialiseCursorCache :: IO ()
 initialiseCursorCache = do
     buildInCursorCache <- Map.fromList <$>
         mapM (\(a, b) -> Win32.loadCursor Nothing b >>= \b' -> pure (a, b'))
-            [ (Arrow   , Win32.iDC_ARROW   )
-            , (IBeam   , Win32.iDC_IBEAM   )
-            , (Wait    , Win32.iDC_WAIT    )
-            , (Cross   , Win32.iDC_CROSS   )
-            , (Uparrow , Win32.iDC_UPARROW )
-            , (SizeNWSE, Win32.iDC_SIZENWSE)
-            , (SizeNESW, Win32.iDC_SIZENESW)
-            , (SizeWE  , Win32.iDC_SIZEWE  )
-            , (SizeNS  , Win32.iDC_SIZENS  )
+            [ (CursorArrow   , Win32.iDC_ARROW   )
+            , (CursorIBeam   , Win32.iDC_IBEAM   )
+            , (CursorWait    , Win32.iDC_WAIT    )
+            , (CursorCross   , Win32.iDC_CROSS   )
+            , (CursorUparrow , Win32.iDC_UPARROW )
+            , (CursorSizeNWSE, Win32.iDC_SIZENWSE)
+            , (CursorSizeNESW, Win32.iDC_SIZENESW)
+            , (CursorSizeWE  , Win32.iDC_SIZEWE  )
+            , (CursorSizeNS  , Win32.iDC_SIZENS  )
             ]
 
     modifyMVar_ cursorCacheRef (const $ pure buildInCursorCache)
@@ -68,11 +68,11 @@ initialiseIconCache :: IO ()
 initialiseIconCache = do
     builtInIconCache <- Map.fromList <$>
         mapM (\(a, b) -> Win32.loadIcon Nothing b >>= \b' -> pure (a, b'))
-            [ (Application, Win32.iDI_APPLICATION)
-            , (Hand,        Win32.iDI_HAND       )
-            , (Question,    Win32.iDI_QUESTION   )
-            , (Exclamation, Win32.iDI_EXCLAMATION)
-            , (Asterisk,    Win32.iDI_ASTERISK   )
+            [ (IconApplication, Win32.iDI_APPLICATION)
+            , (IconHand,        Win32.iDI_HAND       )
+            , (IconQuestion,    Win32.iDI_QUESTION   )
+            , (IconExclamation, Win32.iDI_EXCLAMATION)
+            , (IconAsterisk,    Win32.iDI_ASTERISK   )
             ]
 
     modifyMVar_ iconCacheRef (const $ pure builtInIconCache)

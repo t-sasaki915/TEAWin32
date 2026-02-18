@@ -30,29 +30,29 @@ import                qualified TEAWin32.Internal.Foreign as Win32
 
 newtype UniqueId = UniqueId Text deriving (Show, Eq, Ord)
 
-data WindowStyle = Borderless
-                 | Normal
-                 | BorderlessChild
-                 | NormalChild
+data WindowStyle = WindowStyleBorderless
+                 | WindowStyleNormal
+                 | WindowStyleBorderlessChild
+                 | WindowStyleNormalChild
                  deriving (Show, Eq, Ord)
 
 toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
-toWin32WindowStyle Borderless      = Win32.wS_POPUP .|. Win32.wS_CLIPCHILDREN
-toWin32WindowStyle Normal          = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CLIPCHILDREN
-toWin32WindowStyle BorderlessChild = Win32.wS_CHILD .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
-toWin32WindowStyle NormalChild     =
+toWin32WindowStyle WindowStyleBorderless      = Win32.wS_POPUP .|. Win32.wS_CLIPCHILDREN
+toWin32WindowStyle WindowStyleNormal          = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CLIPCHILDREN
+toWin32WindowStyle WindowStyleBorderlessChild = Win32.wS_CHILD .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
+toWin32WindowStyle WindowStyleNormalChild     =
     Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
 
-data Icon = Application
-          | Hand
-          | Question
-          | Exclamation
-          | Asterisk
-          | FromResource Int
+data Icon = IconApplication
+          | IconHand
+          | IconQuestion
+          | IconExclamation
+          | IconAsterisk
+          | IconFromResource Int
           deriving (Show, Eq, Ord)
 
 toWin32Icon :: Icon -> IO Win32.HANDLE
-toWin32Icon icon@(FromResource resourceId) =
+toWin32Icon icon@(IconFromResource resourceId) =
     modifyMVar iconCacheRef $ \iconCache ->
         case Map.lookup icon iconCache of
             Just hndl -> pure (iconCache, hndl)
@@ -65,15 +65,15 @@ toWin32Icon icon =
     readMVar iconCacheRef >>= \iconCache ->
         pure (iconCache ! icon)
 
-data Cursor = Arrow
-            | IBeam
-            | Wait
-            | Cross
-            | Uparrow
-            | SizeNWSE
-            | SizeNESW
-            | SizeWE
-            | SizeNS
+data Cursor = CursorArrow
+            | CursorIBeam
+            | CursorWait
+            | CursorCross
+            | CursorUparrow
+            | CursorSizeNWSE
+            | CursorSizeNESW
+            | CursorSizeWE
+            | CursorSizeNS
             deriving (Show, Eq, Ord)
 
 toWin32Cursor :: Cursor -> IO Win32.HANDLE

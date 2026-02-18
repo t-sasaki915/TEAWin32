@@ -10,7 +10,7 @@ import           TEAWin32.GUI.Component.Internal.Attribute
 import           TEAWin32.GUI.Component.Property
 import           TEAWin32.GUI.Component.Window             (Window (Window))
 import           TEAWin32.GUI.Component.Window.Property
-import qualified TEAWin32.GUI.Internal                     as Internal
+import qualified TEAWin32.GUI.Internal                     as GUIInternal
 
 restoreWindowFromHWND :: Win32.HWND -> IO GUIComponent
 restoreWindowFromHWND hwnd = do
@@ -49,7 +49,7 @@ restoreWindowFromHWND hwnd = do
                 tell [WindowProperty $ WindowBackgroundColour backgroundColour]
 
         when isComponentChildrenSet $
-            liftIO (Internal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
+            liftIO (GUIInternal.withImmediateChildWindows hwnd (mapM ComponentInternal.restoreComponentFromHWND)) >>= \children ->
                 tell [WindowProperty $ ComponentChildren children]
 
         when isWindowIconSet $

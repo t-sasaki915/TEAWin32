@@ -57,25 +57,25 @@ view model = do
     let isCountEven = even (model ^. clickedCount)
 
     when isCountEven $
-        window_ "TEAWin32-SubSubSub" "TEAWin32-SubSubSub" Normal
-            [title_ "Count is even!", icon_ Exclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
+        window_ "TEAWin32-SubSubSub" "TEAWin32-SubSubSub" WindowStyleNormal
+            [title_ "Count is even!", icon_ IconExclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
 
-    window_ "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" Normal
-        [title_ "!?", icon_ Exclamation, size_ (400, 200), position_ (200, 0)] $
+    window_ "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
+        [title_ "!?", icon_ IconExclamation, size_ (400, 200), position_ (200, 0)] $
             button_ "TestButton6" [title_ "!?!?", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
-    window_ "TEAWin32-Main" "TEAWin32-Main" Normal
+    window_ "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
-        , icon_ Application
+        , icon_ IconApplication
         , size_ (model ^. displayWidth, model ^. displayHeight)
         , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
-        ] ++ [cursor_ IBeam | isCountEven]) $ do
+        ] ++ [cursor_ CursorIBeam | isCountEven]) $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
 
-            window_ "TEAWin32-Sub" "TEAWin32-Sub" NormalChild
+            window_ "TEAWin32-Sub" "TEAWin32-Sub" WindowStyleNormalChild
                 [ title_ "HELLO"
-                , icon_ Exclamation
-                , cursor_ Arrow
+                , icon_ IconExclamation
+                , cursor_ CursorArrow
                 , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
                 , position_ (100, 100)
                 , backgroundColour_ (RGB 255 0 0)
@@ -89,13 +89,13 @@ view model = do
                     button_ "TestButton5"
                         [title_ "おはようございます", size_ (200, 50), position_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
 
-                    window_ "TEAWin32-Sub-Sub" "TEAWin32-Sub-Sub" BorderlessChild
-                        [title_ "GOOD MORNING", icon_ Application, cursor_ Wait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
+                    window_ "TEAWin32-Sub-Sub" "TEAWin32-Sub-Sub" WindowStyleBorderlessChild
+                        [title_ "GOOD MORNING", icon_ IconApplication, cursor_ CursorWait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
 
-            window_ "TEAWin32-SubSubSubSub" "TEAWin32-SubSubSubSub" NormalChild
+            window_ "TEAWin32-SubSubSubSub" "TEAWin32-SubSubSubSub" WindowStyleNormalChild
                 [ title_ "HELLO 2"
-                , icon_ Exclamation
-                , cursor_ SizeNWSE
+                , icon_ IconExclamation
+                , cursor_ CursorSizeNWSE
                 , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
                 , position_ (200, 200)
                 , backgroundColour_ (RGB 0 0 255)

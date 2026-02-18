@@ -2,24 +2,24 @@ module TEAWin32.GUI (Icon (..), Cursor (..), Font (..)) where
 
 import           Data.Text (Text)
 
-data Icon = Application
-          | Hand
-          | Question
-          | Exclamation
-          | Asterisk
-          | FromResource Int
+data Icon = IconApplication
+          | IconHand
+          | IconQuestion
+          | IconExclamation
+          | IconAsterisk
+          | IconFromResource Int
 
 instance Ord Icon
 
-data Cursor = Arrow
-            | IBeam
-            | Wait
-            | Cross
-            | Uparrow
-            | SizeNWSE
-            | SizeNESW
-            | SizeWE
-            | SizeNS
+data Cursor = CursorArrow
+            | CursorIBeam
+            | CursorWait
+            | CursorCross
+            | CursorUparrow
+            | CursorSizeNWSE
+            | CursorSizeNESW
+            | CursorSizeWE
+            | CursorSizeNS
 
 instance Ord Cursor
 
