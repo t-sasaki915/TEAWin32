@@ -105,19 +105,22 @@ defaultWindowProc hwnd wMsg wParam lParam
             _ ->
                 Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
-    | wMsg == Win32.wM_ERASEBKGND =
+    | wMsg == Win32.wM_ERASEBKGND = do
+        let hdc = intPtrToPtr $ fromIntegral wParam
+        rect <- Win32.getClientRect hwnd
+
         getComponentBackgroundColourFromHWNDMaybe hwnd >>= \case
             Just backgroundColour -> do
-                let hdc = intPtrToPtr $ fromIntegral wParam
-
-                rect <- Win32.getClientRect hwnd
                 bracket (Win32.createSolidBrush (toWin32Colour backgroundColour)) Win32.c_DeleteObject $
                     Win32.fillRect hdc rect
 
                 pure 1
 
-            Nothing ->
-                pure 0
+            Nothing -> do
+                Win32.c_GetSysColorBrush Win32.cOLOR_WINDOW >>= \brush ->
+                    Win32.fillRect hdc rect brush
+
+                pure 1
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam

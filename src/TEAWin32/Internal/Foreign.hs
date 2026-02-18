@@ -9,6 +9,7 @@ module TEAWin32.Internal.Foreign
     , c_CreateActCtx
     , c_ActivateActCtx
     , c_ReleaseActCtx
+    , c_GetSysColorBrush
     , gCLP_HICON
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
@@ -82,6 +83,9 @@ foreign import ccall "ActivateActCtx"
 
 foreign import ccall "ReleaseActCtx"
     c_ReleaseActCtx :: Win32.HANDLE -> IO ()
+
+foreign import ccall "GetSysColorBrush"
+    c_GetSysColorBrush :: Word32 -> IO Win32.HBRUSH
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14
