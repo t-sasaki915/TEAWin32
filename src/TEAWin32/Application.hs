@@ -4,21 +4,22 @@ module TEAWin32.Application
     , runTEA
     ) where
 
-import           Control.Exception             (SomeException, try)
-import           Control.Monad                 (forM_)
-import           Control.Monad.Writer          (execWriter)
-import           Data.Data                     (Typeable, cast)
-import           Data.Functor                  ((<&>))
-import           Data.IORef                    (atomicModifyIORef')
-import qualified Graphics.Win32                as Win32
-import           Prelude                       hiding (init)
+import           Control.Exception               (SomeException, try)
+import           Control.Monad                   (forM_)
+import           Control.Monad.Writer            (execWriter)
+import           Data.Data                       (Typeable, cast)
+import           Data.Functor                    ((<&>))
+import           Data.IORef                      (atomicModifyIORef')
+import qualified Graphics.Win32                  as Win32
+import           Prelude                         hiding (init)
 import           TEAWin32.Application.Internal
-import           TEAWin32.GUI                  (withVisualStyles)
-import           TEAWin32.GUI.Component        (GUIComponents,
-                                                IsGUIComponent (render))
-import           TEAWin32.GUI.Internal         (finaliseFontCache,
-                                                initialiseCursorCache,
-                                                initialiseIconCache)
+import           TEAWin32.GUI                    (withVisualStyles)
+import           TEAWin32.GUI.Component          (GUIComponents,
+                                                  IsGUIComponent (render))
+import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
+import           TEAWin32.GUI.Internal           (finaliseFontCache,
+                                                  initialiseCursorCache,
+                                                  initialiseIconCache)
 
 newtype Settings = Settings
     { useVisualStyles :: Bool
@@ -60,7 +61,8 @@ runTEA' init update view = do
 
     let initGUIComponents = execWriter (view initModel)
 
-    forM_ (reverse initGUIComponents) $ \guiComponent ->
+    sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
+    forM_ (reverse sortedInitGUIComponents) $ \guiComponent ->
         render guiComponent Nothing
 
     messagePump

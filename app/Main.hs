@@ -71,6 +71,15 @@ view model = do
 
             button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100)]
 
+            window_ "TEAWin32-SubSubSubSub" "TEAWin32-SubSubSubSub" NormalChild
+                [ title_ "HELLO 2"
+                , icon_ Exclamation
+                , cursor_ SizeNWSE
+                , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
+                , position_ (200, 200)
+                , backgroundColour_ (RGB 0 0 255)
+                ] noChildren
+
             window_ "TEAWin32-Sub" "TEAWin32-Sub" NormalChild
                 [ title_ "HELLO"
                 , icon_ Exclamation

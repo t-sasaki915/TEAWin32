@@ -3,6 +3,7 @@ module TEAWin32.GUI.Component.Internal
     , compareGUIComponents
     , sortComponentsWithZIndex
     , getRelativeRectFromHWNDUsingWin32
+    , bringComponentToTop
     , setComponentTitle
     , setComponentPosition
     , setComponentSize
@@ -41,7 +42,7 @@ data ComponentUpdateAction = RenderComponent GUIComponent
                            | UpdateProperties GUIComponent GUIComponent
                            | RedrawComponent GUIComponent
                            | DeleteComponent GUIComponent
-                           | NoComponentChange
+                           | NoComponentChange GUIComponent
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 compareGUIComponents newComponents oldComponents =
@@ -52,7 +53,7 @@ compareGUIComponents newComponents oldComponents =
             flip map newComponents $ \newComponent ->
                 case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
                     Just oldComponent | newComponent == oldComponent ->
-                        NoComponentChange
+                        NoComponentChange newComponent
 
                     Just oldComponent | doesNeedToRedraw oldComponent newComponent ->
                         RedrawComponent newComponent
@@ -105,6 +106,11 @@ getRelativeRectFromHWNDUsingWin32 hwnd = do
             (x, y) <- Win32.screenToClient parentHWND (fromIntegral l, fromIntegral t)
 
             pure (fromIntegral x, fromIntegral y, r - l, b - t)
+
+bringComponentToTop :: Win32.HWND -> IO ()
+bringComponentToTop hwnd =
+    void $ Win32.c_SetWindowPos hwnd Win32.nullPtr 0 0 0 0
+        (Win32.sWP_NOMOVE .|. Win32.sWP_NOSIZE .|. Win32.sWP_SHOWWINDOW .|. Win32.sWP_NOREDRAW)
 
 setComponentTitle :: Text -> Win32.HWND -> IO ()
 setComponentTitle title hwnd = Win32.setWindowText hwnd (Text.unpack title)

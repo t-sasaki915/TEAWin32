@@ -102,12 +102,13 @@ issueMsg msg = do
         updateComponents newGUIComponents currentGUIComponents Nothing
 
 updateComponents :: [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
-updateComponents newChildren oldChildren parentHWND = do
-    print newChildren
+updateComponents newChildren oldChildren parentHWND =
     ComponentInternal.sortComponentsWithZIndex newChildren parentHWND >>= \sortedNewChildren ->
-        forM_ (ComponentInternal.compareGUIComponents sortedNewChildren oldChildren) $ \case
-            ComponentInternal.NoComponentChange ->
-                pure ()
+        forM_ (ComponentInternal.compareGUIComponents (reverse sortedNewChildren) oldChildren) $ \case
+            (ComponentInternal.NoComponentChange component) ->
+                getHWNDByUniqueId (getUniqueId component) >>= \case
+                    Just hwnd -> ComponentInternal.bringComponentToTop hwnd
+                    Nothing   -> error "Tried to change the z-index of a component that was not in the map."
 
             (ComponentInternal.RenderComponent addedComponent) ->
                 void (render addedComponent parentHWND)
@@ -124,7 +125,7 @@ updateComponents newChildren oldChildren parentHWND = do
 
             (ComponentInternal.UpdateProperties newComponent oldComponent) ->
                 getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
-                    Just hwnd ->
+                    Just hwnd -> do
                         forM_ (PropertyInternal.compareProperties (getProperties newComponent) (getProperties oldComponent)) $ \case
                             PropertyInternal.NoPropertyChange ->
                                 pure ()
@@ -137,6 +138,8 @@ updateComponents newChildren oldChildren parentHWND = do
 
                             (PropertyInternal.UpdateProperty newProperty oldProperty) ->
                                 updateProperty newProperty oldProperty hwnd
+
+                        ComponentInternal.bringComponentToTop hwnd
 
                     Nothing ->
                         error "Tried to update the properties of a component that was not in the map."
