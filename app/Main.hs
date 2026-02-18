@@ -11,7 +11,6 @@ import           TEAWin32.Application       (Settings (..), runTEA)
 import           TEAWin32.Effect.MessageBox
 import           TEAWin32.GUI.DSL
 
-
 data Msg = ButtonClicked
          | ButtonClicked2
          deriving (Show, Eq)
@@ -67,7 +66,7 @@ view model = do
     window_ "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
         , icon_ IconApplication
-        , size_ (model ^. displayWidth, model ^. displayHeight)
+        , size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
         , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
         ] ++ [cursor_ CursorIBeam | isCountEven]) $ do
             button_ "TestButton" [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
@@ -76,7 +75,7 @@ view model = do
                 [ title_ "HELLO"
                 , icon_ IconExclamation
                 , cursor_ CursorArrow
-                , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
+                , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
                 , position_ (100, 100)
                 , backgroundColour_ (RGB 255 0 0)
                 , zIndex_ (if isCountEven then 1 else 2)
@@ -96,7 +95,7 @@ view model = do
                 [ title_ "HELLO 2"
                 , icon_ IconExclamation
                 , cursor_ CursorSizeNWSE
-                , size_ (model ^. displayWidth `div` 2, model ^. displayHeight `div` 2)
+                , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
                 , position_ (200, 200)
                 , backgroundColour_ (RGB 0 0 255)
                 , zIndex_ (if isCountEven then 2 else 1)

@@ -3,6 +3,7 @@ module TEAWin32.GUI.Component.Internal
     , restoreComponentFromHWND
     , compareGUIComponents
     , sortComponentsWithZIndex
+    , resolveScalableValueForHWND
     , bringComponentToTop
     , setComponentTitle
     , setComponentPosition
@@ -13,7 +14,7 @@ module TEAWin32.GUI.Component.Internal
 
 import           Data.Text              (Text)
 import qualified Graphics.Win32         as Win32
-import           TEAWin32.GUI           (Font)
+import           TEAWin32.GUI           (Font, ScalableValue)
 import           TEAWin32.GUI.Component (GUIComponent)
 
 data ComponentUpdateAction = RenderComponent GUIComponent
@@ -27,6 +28,8 @@ restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 
 sortComponentsWithZIndex :: [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
+
+resolveScalableValueForHWND :: Win32.HWND -> ScalableValue -> IO Int
 
 bringComponentToTop :: Win32.HWND -> IO ()
 

@@ -2,6 +2,7 @@ module TEAWin32.GUI.Component.Internal
     ( ComponentUpdateAction (..)
     , compareGUIComponents
     , sortComponentsWithZIndex
+    , resolveScalableValueForHWND
     , getRelativeRectFromHWNDUsingWin32
     , bringComponentToTop
     , setComponentTitle
@@ -15,6 +16,7 @@ module TEAWin32.GUI.Component.Internal
     , restoreComponentFromHWND
     ) where
 
+import                          Control.Concurrent                        (modifyMVar)
 import                          Control.Monad                             (filterM,
                                                                            forM)
 import                          Data.Functor                              (void)
@@ -94,6 +96,12 @@ sortComponentsWithZIndex guiComponents maybeParent = do
 
     pure [ guiComponentMap ! uid | (_, uid) <- List.sort componentsUniqueIdWithZIndex ]
 
+resolveScalableValueForHWND :: Win32.HWND -> ScalableValue -> IO Int
+resolveScalableValueForHWND _ (RawValue x) = pure (round x)
+resolveScalableValueForHWND hwnd (ScalableValue x) =
+    getComponentCurrentDPIFromHWND hwnd >>= \currentDpi ->
+        pure (round (x * fromIntegral currentDpi / 96.0))
+
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
@@ -136,9 +144,31 @@ setComponentSize width height hwnd = void $ Win32.c_SetWindowPos
     (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
 setComponentFont :: Font -> Win32.HWND -> IO ()
-setComponentFont font hwnd =
-    toWin32Font font >>= \font' ->
-        void $ Win32.sendMessage hwnd Win32.wM_SETFONT (fromIntegral $ ptrToWordPtr font') 1
+setComponentFont DefaultGUIFont hwnd =
+    Win32.getStockFont Win32.dEFAULT_GUI_FONT >>= \font ->
+        setComponentFont' font hwnd
+
+setComponentFont SystemFont hwnd =
+    Win32.getStockFont Win32.sYSTEM_FONT >>= \font ->
+        setComponentFont' font hwnd
+
+setComponentFont font@(Font fontName fontSize) hwnd =
+    modifyMVar GUIInternal.fontCacheRef $ \fontCache ->
+        case Map.lookup font fontCache of
+            Just hndl ->
+                setComponentFont' hndl hwnd >>
+                    pure (fontCache, ())
+            Nothing ->
+                resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
+                    Win32.createFont (fromIntegral fontSize') 0 0 0 Win32.fW_NORMAL False False False Win32.dEFAULT_CHARSET
+                        Win32.oUT_DEFAULT_PRECIS Win32.cLIP_DEFAULT_PRECIS Win32.dEFAULT_QUALITY
+                            (Win32.fIXED_PITCH .|. Win32.fF_DONTCARE) (Text.unpack fontName) >>= \fontHandle ->
+                                setComponentFont' fontHandle hwnd >>
+                                    pure (Map.insert font fontHandle fontCache, ())
+
+setComponentFont' :: Win32.HANDLE -> Win32.HWND -> IO ()
+setComponentFont' font hwnd =
+    void $ Win32.sendMessage hwnd Win32.wM_SETFONT (fromIntegral $ ptrToWordPtr font) 1
 
 useDefaultFont :: Win32.HWND -> IO ()
 useDefaultFont = setComponentFont DefaultGUIFont

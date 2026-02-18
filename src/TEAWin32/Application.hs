@@ -19,6 +19,7 @@ import           TEAWin32.GUI.Component          (GUIComponents,
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
 import           TEAWin32.GUI.Internal           (finaliseFontCache,
                                                   initialiseCursorCache,
+                                                  initialiseDPIStrategy,
                                                   initialiseIconCache)
 
 newtype Settings = Settings
@@ -38,6 +39,7 @@ runTEA settings init update view =
 
 runTEA' :: (Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA' init update view = do
+    initialiseDPIStrategy
     initialiseCursorCache
     initialiseIconCache
 

@@ -12,6 +12,7 @@ module TEAWin32.GUI.Component.Internal.Attribute
     , isManagedByTEAWin32
     , getComponentUniqueIdFromHWND
     , getComponentTypeFromHWND
+    , getComponentCurrentDPIFromHWND
     , doesHWNDHaveFlag
     , getEventHandlerFromHWNDMaybe
     , getEventHandlerFromHWND
@@ -59,6 +60,7 @@ data ComponentFlagKey = ComponentTitleSet
 
 data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | ComponentTypeAttr             ComponentType
+                        | ComponentCurrentDPIAttr       Int
                         | ComponentFlagAttr             ComponentFlagKey
                         | ComponentEventHandlerAttr     EventType ApplicationInternal.Msg
                         | ComponentBackgroundColourAttr Colour
@@ -73,6 +75,7 @@ data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
 isSameKind :: ComponentAttribute -> ComponentAttribute -> Bool
 isSameKind (ComponentUniqueIdAttr _) (ComponentUniqueIdAttr _)                 = True
 isSameKind (ComponentTypeAttr _) (ComponentTypeAttr _)                         = True
+isSameKind (ComponentCurrentDPIAttr _) (ComponentCurrentDPIAttr _)             = True
 isSameKind (ComponentFlagAttr _) (ComponentFlagAttr _)                         = True
 isSameKind (ComponentEventHandlerAttr _ _) (ComponentEventHandlerAttr _ _)     = True
 isSameKind (ComponentBackgroundColourAttr _) (ComponentBackgroundColourAttr _) = True
@@ -159,6 +162,13 @@ getComponentTypeFromHWND hwnd =
         case [ componentType | ComponentTypeAttr componentType <- attrs ] of
             [ componentType ] -> pure componentType
             x                 -> error $ "Illegal AttributeMap state: " <> show x
+
+getComponentCurrentDPIFromHWND :: Win32.HWND -> IO Int
+getComponentCurrentDPIFromHWND hwnd =
+    getAttributesFromHWND hwnd >>= \attrs ->
+        case [ currentDPI | ComponentCurrentDPIAttr currentDPI <- attrs ] of
+            [ currentDPI ] -> pure currentDPI
+            x              -> error $ "Illegal AttributeMap state: " <> show x
 
 doesHWNDHaveFlag :: ComponentFlagKey -> Win32.HWND -> IO Bool
 doesHWNDHaveFlag flagKey hwnd =

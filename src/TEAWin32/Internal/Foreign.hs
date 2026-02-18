@@ -1,5 +1,6 @@
 module TEAWin32.Internal.Foreign
     ( ACTCTX (..)
+    , GetDpiForWindow
     , c_SetClassLongPtr
     , c_SetWindowPos
     , c_DeleteObject
@@ -10,9 +11,13 @@ module TEAWin32.Internal.Foreign
     , c_ActivateActCtx
     , c_ReleaseActCtx
     , c_GetSysColorBrush
+    , c_SetProcessDPIAware
+    , c_GetDeviceCaps
+    , makeGetDpiForWindow
     , gCLP_HICON
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
+    , wM_DPICHANGED
     , makeIntResource
     ) where
 
@@ -87,6 +92,17 @@ foreign import ccall "ReleaseActCtx"
 foreign import ccall "GetSysColorBrush"
     c_GetSysColorBrush :: Word32 -> IO Win32.HBRUSH
 
+foreign import ccall "SetProcessDPIAware"
+    c_SetProcessDPIAware :: IO Bool
+
+foreign import ccall "GetDeviceCaps"
+    c_GetDeviceCaps :: Win32.HDC -> Int -> IO Int
+
+type GetDpiForWindow = Win32.HWND -> IO Word32
+
+foreign import ccall "dynamic"
+    makeGetDpiForWindow :: FunPtr GetDpiForWindow -> GetDpiForWindow
+
 gCLP_HICON :: Int32
 gCLP_HICON = -14
 
@@ -95,6 +111,9 @@ gCLP_HCURSOR = -12
 
 dEFAULT_GUI_FONT :: Word16
 dEFAULT_GUI_FONT = 17
+
+wM_DPICHANGED :: Win32.WindowMessage
+wM_DPICHANGED = 0x02E0
 
 makeIntResource :: Int -> Win32.LPCTSTR
 makeIntResource = intPtrToPtr . fromIntegral

@@ -60,11 +60,14 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
+        currentDPI <- GUIInternal.getDPIFromHWND window
+
         ApplicationInternal.registerHWND windowUniqueId window
 
         registerHWNDToAttributeMap window
         addAttributeToHWND window (ComponentUniqueIdAttr windowUniqueId)
         addAttributeToHWND window (ComponentTypeAttr ComponentWindow)
+        addAttributeToHWND window (ComponentCurrentDPIAttr currentDPI)
         addAttributeToHWND window (WindowClassNameAttr windowClassName)
         addAttributeToHWND window (WindowStyleAttr windowStyle)
 
@@ -121,6 +124,12 @@ defaultWindowProc hwnd wMsg wParam lParam
                     Win32.fillRect hdc rect brush
 
                 pure 1
+
+    | wMsg == Win32.wM_DPICHANGED = do
+        putStrLn "!?!?"
+        let newDPI = Win32.lOWORD (fromIntegral wParam)
+
+        Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam

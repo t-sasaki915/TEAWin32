@@ -1,5 +1,6 @@
 module TEAWin32.GUI.Internal
-    ( activeWindowCountRef
+    ( DPIStrategy (..)
+    , activeWindowCountRef
     , withChildWindows
     , whoseParentIs
     , isTopLevelWindow
@@ -11,19 +12,23 @@ module TEAWin32.GUI.Internal
     , initialiseCursorCache
     , initialiseIconCache
     , finaliseFontCache
+    , initialiseDPIStrategy
+    , getDPIFromHWND
     ) where
 
 import                          Control.Concurrent        (MVar, modifyMVar_,
                                                            newMVar, takeMVar)
 import                          Control.Exception         (SomeException, try)
 import                          Control.Monad             (filterM)
+import                          Data.Either               (fromRight)
 import                          Data.IORef                (IORef,
                                                            atomicModifyIORef',
                                                            modifyIORef,
                                                            newIORef, readIORef)
 import                          Data.Map                  (Map)
 import                qualified Data.Map                  as Map
-import                          Foreign                   (freeHaskellFunPtr)
+import                          Foreign                   (castPtrToFunPtr,
+                                                           freeHaskellFunPtr)
 import                qualified Graphics.Win32            as Win32
 import                          System.IO.Unsafe          (unsafePerformIO)
 import                qualified System.Win32              as Win32
@@ -46,6 +51,13 @@ iconCacheRef = unsafePerformIO (newMVar Map.empty)
 fontCacheRef :: MVar (Map Font Win32.HANDLE)
 fontCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE fontCacheRef #-}
+
+dpiStrategyRef :: IORef DPIStrategy
+dpiStrategyRef = unsafePerformIO (newIORef (error "DPIStrategy is not initialised."))
+{-# NOINLINE dpiStrategyRef #-}
+
+data DPIStrategy = ModernDPIStrategy Win32.GetDpiForWindow
+                 | LegacyDPIStrategy
 
 initialiseCursorCache :: IO ()
 initialiseCursorCache = do
@@ -76,6 +88,34 @@ initialiseIconCache = do
             ]
 
     modifyMVar_ iconCacheRef (const $ pure builtInIconCache)
+
+initialiseDPIStrategy :: IO ()
+initialiseDPIStrategy = do
+    user32 <- Win32.getModuleHandle (Just "user32.dll")
+
+    getDpiForWindowPtr <- fromRight Win32.nullPtr <$> try_ (Win32.getProcAddress user32 "GetDpiForWindow")
+
+    let dpiStrategy
+            | getDpiForWindowPtr /= Win32.nullPtr = ModernDPIStrategy (Win32.makeGetDpiForWindow (castPtrToFunPtr getDpiForWindowPtr))
+            | otherwise                           = LegacyDPIStrategy
+
+    atomicModifyIORef' dpiStrategyRef (const (dpiStrategy, ()))
+
+    where
+        try_ :: IO a -> IO (Either SomeException a)
+        try_ = try
+
+getDPIFromHWND :: Win32.HWND -> IO Int
+getDPIFromHWND hwnd =
+    readIORef dpiStrategyRef >>= \case
+        (ModernDPIStrategy getDpiForWindow) ->
+            fromIntegral <$> getDpiForWindow hwnd
+
+        LegacyDPIStrategy -> do
+            hdc <- Win32.getDC (Just hwnd)
+            dpi <- Win32.c_GetDeviceCaps hdc 88
+            Win32.releaseDC (Just hwnd) hdc
+            pure dpi
 
 finaliseFontCache :: IO ()
 finaliseFontCache =

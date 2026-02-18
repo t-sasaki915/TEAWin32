@@ -4,6 +4,7 @@ import           Control.Monad                             (when)
 import           Control.Monad.Writer                      (MonadIO (liftIO),
                                                             execWriterT, tell)
 import qualified Graphics.Win32                            as Win32
+import           TEAWin32.GUI                              (raw)
 import           TEAWin32.GUI.Component                    (GUIComponent (..))
 import           TEAWin32.GUI.Component.Button             (Button (Button))
 import           TEAWin32.GUI.Component.Button.Property
@@ -29,10 +30,10 @@ restoreButtonFromHWND hwnd = do
         when (isComponentSizeSet || isComponentPositionSet) $
             liftIO (ComponentInternal.getRelativeRectFromHWNDUsingWin32 hwnd) >>= \(x, y, w, h) -> do
                 when isComponentSizeSet $
-                    tell [ButtonProperty $ ComponentSize (w, h)]
+                    tell [ButtonProperty $ ComponentSize (raw w, raw h)]
 
                 when isComponentPositionSet $
-                    tell [ButtonProperty $ ComponentPosition (x, y)]
+                    tell [ButtonProperty $ ComponentPosition (raw x, raw y)]
 
         when isComponentFontSet $
             liftIO (getComponentFontFromHWND hwnd) >>= \font ->

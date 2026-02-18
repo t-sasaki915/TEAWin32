@@ -23,7 +23,8 @@ import                          Data.Data                                 (TypeR
 import                          Data.Text                                 (Text)
 import                qualified Graphics.Win32                            as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal             as ApplicationInternal
-import                          TEAWin32.GUI                              (Font)
+import                          TEAWin32.GUI                              (Font,
+                                                                           ScalableValue)
 import {-# SOURCE #-}           TEAWin32.GUI.Component                    (GUIComponent (..),
                                                                            IsGUIComponent (..))
 import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
@@ -75,12 +76,12 @@ instance HasPropertyName GUIComponentProperty where
 instance MayHaveZIndexProperty GUIComponentProperty where
     getZIndexProperty (GUIComponentProperty a) = getZIndexProperty a
 
-newtype ComponentTitle    = ComponentTitle    Text           deriving (Show, Eq)
-newtype ComponentSize     = ComponentSize     (Int, Int)     deriving (Show, Eq)
-newtype ComponentPosition = ComponentPosition (Int, Int)     deriving (Show, Eq)
-newtype ComponentFont     = ComponentFont     Font           deriving (Show, Eq)
-newtype ComponentChildren = ComponentChildren [GUIComponent] deriving (Show, Eq)
-newtype ComponentZIndex   = ComponentZIndex   Int            deriving (Show, Eq)
+newtype ComponentTitle    = ComponentTitle    Text                           deriving (Show, Eq)
+newtype ComponentSize     = ComponentSize     (ScalableValue, ScalableValue) deriving (Show, Eq)
+newtype ComponentPosition = ComponentPosition (ScalableValue, ScalableValue) deriving (Show, Eq)
+newtype ComponentFont     = ComponentFont     Font                           deriving (Show, Eq)
+newtype ComponentChildren = ComponentChildren [GUIComponent]                 deriving (Show, Eq)
+newtype ComponentZIndex   = ComponentZIndex   Int                            deriving (Show, Eq)
 data    ComponentOnClick  = forall a. (Typeable a, Show a, Eq a) => ComponentOnClick a
 
 instance Eq ComponentOnClick where
@@ -109,11 +110,15 @@ instance IsGUIComponentProperty ComponentTitle where
 
 instance IsGUIComponentProperty ComponentSize where
     applyProperty (ComponentSize (width, height)) componentHWND =
-        ComponentInternal.setComponentSize width height componentHWND >>
-            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
+        ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
+            ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
+                ComponentInternal.setComponentSize width' height' componentHWND >>
+                    addAttributeToHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
 
-    updateProperty (ComponentSize (width, height)) _ =
-        ComponentInternal.setComponentSize width height
+    updateProperty (ComponentSize (width, height)) _ componentHWND =
+        ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
+            ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
+                ComponentInternal.setComponentSize width' height' componentHWND
 
     unapplyProperty _ componentHWND =
         ComponentInternal.setComponentSize 0 0 componentHWND >>
@@ -121,11 +126,15 @@ instance IsGUIComponentProperty ComponentSize where
 
 instance IsGUIComponentProperty ComponentPosition where
     applyProperty (ComponentPosition (x, y)) componentHWND =
-        ComponentInternal.setComponentPosition x y componentHWND >>
-            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
+        ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
+            ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
+                ComponentInternal.setComponentPosition x' y' componentHWND >>
+                    addAttributeToHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
 
-    updateProperty (ComponentPosition (x, y)) _ =
-        ComponentInternal.setComponentPosition x y
+    updateProperty (ComponentPosition (x, y)) _ componentHWND =
+        ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
+            ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
+                ComponentInternal.setComponentPosition x' y' componentHWND
 
     unapplyProperty _ componentHWND =
         ComponentInternal.setComponentPosition 0 0 componentHWND >>

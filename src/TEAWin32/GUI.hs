@@ -1,13 +1,16 @@
+{-# LANGUAGE InstanceSigs #-}
 module TEAWin32.GUI
     ( UniqueId (..)
     , WindowStyle (..)
     , Icon (..)
     , Cursor (..)
     , Font (..)
+    , ScalableValue (..)
+    , CanBeRawValue (..)
+    , fontCacheRef
     , toWin32WindowStyle
     , toWin32Icon
     , toWin32Cursor
-    , toWin32Font
     , withVisualStyles
     ) where
 
@@ -17,7 +20,6 @@ import                          Data.Bits                 ((.|.))
 import                          Data.Map                  ((!))
 import                qualified Data.Map                  as Map
 import                          Data.Text                 (Text)
-import                qualified Data.Text                 as Text
 import                          Foreign                   (Storable (poke, sizeOf),
                                                            alloca)
 import                          Foreign.C                 (withCWString)
@@ -83,21 +85,55 @@ toWin32Cursor cursor =
 
 data Font = DefaultGUIFont
           | SystemFont
-          | Font Text Int
+          | Font Text ScalableValue
           deriving (Show, Eq, Ord)
 
-toWin32Font :: Font -> IO Win32.HFONT
-toWin32Font DefaultGUIFont = Win32.getStockFont Win32.dEFAULT_GUI_FONT
-toWin32Font SystemFont     = Win32.getStockFont Win32.sYSTEM_FONT
-toWin32Font font@(Font fontName fontSize) =
-    modifyMVar fontCacheRef $ \fontCache ->
-        case Map.lookup font fontCache of
-            Just hndl -> pure (fontCache, hndl)
-            Nothing ->
-                Win32.createFont (fromIntegral fontSize) 0 0 0 Win32.fW_NORMAL False False False Win32.dEFAULT_CHARSET
-                    Win32.oUT_DEFAULT_PRECIS Win32.cLIP_DEFAULT_PRECIS Win32.dEFAULT_QUALITY
-                        (Win32.fIXED_PITCH .|. Win32.fF_DONTCARE) (Text.unpack fontName) >>= \fontHandle ->
-                            pure (Map.insert font fontHandle fontCache, fontHandle)
+data ScalableValue = RawValue      Double
+                   | ScalableValue Double
+                   deriving (Show, Eq, Ord)
+
+class CanBeRawValue a where
+    raw :: a -> ScalableValue
+
+instance CanBeRawValue Integer where
+    raw = RawValue . fromIntegral
+
+instance CanBeRawValue Int where
+    raw = RawValue . fromIntegral
+
+instance CanBeRawValue Double where
+    raw = RawValue
+
+instance Num ScalableValue where
+    fromInteger :: Integer -> ScalableValue
+    fromInteger a = ScalableValue (fromInteger a)
+
+    (ScalableValue a) + (ScalableValue b) = ScalableValue (a + b)
+    (RawValue a)      + (RawValue b)      = RawValue      (a + b)
+    (ScalableValue a) + (RawValue b)      = ScalableValue (a + b)
+    (RawValue a)      + (ScalableValue b) = RawValue      (a + b)
+
+    (ScalableValue a) * (ScalableValue b) = ScalableValue (a * b)
+    (RawValue a)      * (RawValue b)      = RawValue      (a * b)
+    (ScalableValue a) * (RawValue b)      = ScalableValue (a * b)
+    (RawValue a)      * (ScalableValue b) = RawValue      (a * b)
+
+    abs (ScalableValue a) = ScalableValue (abs a)
+    abs (RawValue a)      = RawValue      (abs a)
+
+    signum (ScalableValue a) = ScalableValue (signum a)
+    signum (RawValue a)      = RawValue      (signum a)
+
+    negate (ScalableValue a) = ScalableValue (negate a)
+    negate (RawValue a)      = RawValue      (negate a)
+
+instance Fractional ScalableValue where
+    fromRational a = ScalableValue (fromRational a)
+
+    (ScalableValue a) / (ScalableValue b) = ScalableValue (a / b)
+    (RawValue a)      / (RawValue b)      = RawValue      (a / b)
+    (ScalableValue a) / (RawValue b)      = ScalableValue (a / b)
+    (RawValue a)      / (ScalableValue b) = RawValue      (a / b)
 
 withVisualStyles :: IO a -> IO a
 withVisualStyles action =

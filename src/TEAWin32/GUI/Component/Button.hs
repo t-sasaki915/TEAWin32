@@ -12,6 +12,7 @@ import qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
 import           TEAWin32.GUI.Component.Internal.Attribute
 import           TEAWin32.GUI.Component.Property           (GUIComponentProperty (..),
                                                             IsGUIComponentProperty (applyProperty))
+import qualified TEAWin32.GUI.Internal                     as GUIInternal
 
 data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
@@ -38,11 +39,14 @@ instance IsGUIComponent Button where
             (intPtrToPtr $ fromIntegral parentInstance)
             (const $ const $ const $ const $ pure 0)
 
+        currentDPI <- GUIInternal.getDPIFromHWND button
+
         ApplicationInternal.registerHWND buttonUniqueId button
 
         registerHWNDToAttributeMap button
         addAttributeToHWND button (ComponentUniqueIdAttr buttonUniqueId)
         addAttributeToHWND button (ComponentTypeAttr ComponentButton)
+        addAttributeToHWND button (ComponentCurrentDPIAttr currentDPI)
 
         ComponentInternal.useDefaultFont button
         ComponentInternal.bringComponentToTop button

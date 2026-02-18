@@ -25,6 +25,9 @@ instance Ord Cursor
 
 data Font = DefaultGUIFont
           | SystemFont
-          | Font Text Int
+          | Font Text ScalableValue
 
 instance Ord Font
+
+data ScalableValue = RawValue      Double
+                   | ScalableValue Double

@@ -19,7 +19,8 @@ import           Data.Data                         (Typeable)
 import           Data.Text                         (Text)
 import           TEAWin32.Drawing                  (Colour (..))
 import           TEAWin32.GUI                      (Cursor (..), Font (..),
-                                                    Icon (..), WindowStyle (..))
+                                                    Icon (..), ScalableValue,
+                                                    WindowStyle (..), raw)
 import           TEAWin32.GUI.Component            (GUIComponents)
 import           TEAWin32.GUI.Component.Button.DSL
 import           TEAWin32.GUI.Component.Property
@@ -31,10 +32,10 @@ noChildren = pure ()
 title_ :: (IsPropertyWrapper a ComponentTitle) => Text -> a
 title_ = wrapComponentProperty . ComponentTitle
 
-size_ :: (IsPropertyWrapper a ComponentSize) => (Int, Int) -> a
+size_ :: (IsPropertyWrapper a ComponentSize) => (ScalableValue, ScalableValue) -> a
 size_ = wrapComponentProperty . ComponentSize
 
-position_ :: (IsPropertyWrapper a ComponentPosition) => (Int, Int) -> a
+position_ :: (IsPropertyWrapper a ComponentPosition) => (ScalableValue, ScalableValue) -> a
 position_ = wrapComponentProperty . ComponentPosition
 
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> a

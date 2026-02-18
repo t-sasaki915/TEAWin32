@@ -35,6 +35,7 @@ data ComponentFlagKey = ComponentTitleSet
 
 data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | ComponentTypeAttr             ComponentType
+                        | ComponentCurrentDPIAttr       Int
                         | ComponentFlagAttr             ComponentFlagKey
                         | ComponentEventHandlerAttr     EventType ApplicationInternal.Msg
                         | ComponentBackgroundColourAttr Colour
