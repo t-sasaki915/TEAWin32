@@ -60,8 +60,15 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
-        registerHWNDToAttributeMap window
+        ApplicationInternal.registerHWND windowUniqueId window
 
+        registerHWNDToAttributeMap window
+        addAttributeToHWND window (ComponentUniqueIdAttr windowUniqueId)
+        addAttributeToHWND window (ComponentTypeAttr ComponentWindow)
+        addAttributeToHWND window (WindowClassNameAttr windowClassName)
+        addAttributeToHWND window (WindowStyleAttr windowStyle)
+
+        ComponentInternal.bringComponentToTop window
         ComponentInternal.useDefaultFont window
 
         mapM_ (`applyProperty` window) windowProperties
@@ -70,13 +77,6 @@ instance IsGUIComponent Window where
         Win32.updateWindow window
 
         atomicModifyIORef' Internal.activeWindowCountRef $ \n -> (n + 1, ())
-
-        ApplicationInternal.registerHWND windowUniqueId window
-
-        addAttributeToHWND window (ComponentUniqueIdAttr windowUniqueId)
-        addAttributeToHWND window (ComponentTypeAttr ComponentWindow)
-        addAttributeToHWND window (WindowClassNameAttr windowClassName)
-        addAttributeToHWND window (WindowStyleAttr windowStyle)
 
         pure window
 

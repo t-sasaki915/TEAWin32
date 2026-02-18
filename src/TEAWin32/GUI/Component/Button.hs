@@ -38,14 +38,15 @@ instance IsGUIComponent Button where
             (intPtrToPtr $ fromIntegral parentInstance)
             (const $ const $ const $ const $ pure 0)
 
-        registerHWNDToAttributeMap button
-        ComponentInternal.useDefaultFont button
-
-        mapM_ (`applyProperty` button) buttonProperties
-
         ApplicationInternal.registerHWND buttonUniqueId button
 
+        registerHWNDToAttributeMap button
         addAttributeToHWND button (ComponentUniqueIdAttr buttonUniqueId)
         addAttributeToHWND button (ComponentTypeAttr ComponentButton)
+
+        ComponentInternal.useDefaultFont button
+        ComponentInternal.bringComponentToTop button
+
+        mapM_ (`applyProperty` button) buttonProperties
 
         pure button
