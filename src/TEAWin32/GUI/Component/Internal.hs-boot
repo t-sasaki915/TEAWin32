@@ -13,6 +13,7 @@ module TEAWin32.GUI.Component.Internal
     ) where
 
 import           Data.Text              (Text)
+import           GHC.Stack              (HasCallStack)
 import qualified Graphics.Win32         as Win32
 import           TEAWin32.GUI           (Font, ScalableValue)
 import           TEAWin32.GUI.Component (GUIComponent)
@@ -23,13 +24,13 @@ data ComponentUpdateAction = RenderComponent GUIComponent
                            | DeleteComponent GUIComponent
                            | NoComponentChange GUIComponent
 
-restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
+restoreComponentFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 
-sortComponentsWithZIndex :: [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
+sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 
-resolveScalableValueForHWND :: Win32.HWND -> ScalableValue -> IO Int
+resolveScalableValueForHWND :: HasCallStack => Win32.HWND -> ScalableValue -> IO Int
 
 bringComponentToTop :: Win32.HWND -> IO ()
 
@@ -39,6 +40,6 @@ setComponentPosition :: Int -> Int -> Win32.HWND -> IO ()
 
 setComponentSize :: Int -> Int -> Win32.HWND -> IO ()
 
-setComponentFont :: Font -> Win32.HWND -> IO ()
+setComponentFont :: HasCallStack => Font -> Win32.HWND -> IO ()
 
-useDefaultFont :: Win32.HWND -> IO ()
+useDefaultFont :: HasCallStack => Win32.HWND -> IO ()

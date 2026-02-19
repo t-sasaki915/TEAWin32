@@ -17,6 +17,7 @@ import           TEAWin32.GUI
 import qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
 import           TEAWin32.GUI.Component.Internal.Attribute
 import           TEAWin32.GUI.Component.Property
+import           TEAWin32.Internal                         (throwTEAWin32InternalError)
 
 data WindowProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
@@ -51,7 +52,7 @@ instance IsGUIComponentProperty WindowProperty where
     updateProperty (WindowProperty new) (WindowProperty old) =
         case cast old of
             Just old' -> updateProperty new old'
-            Nothing   -> error "Failed to cast WindowProperty"
+            Nothing   -> throwTEAWin32InternalError "Failed to cast WindowProperty"
 
     unapplyProperty (WindowProperty x) = unapplyProperty x
 

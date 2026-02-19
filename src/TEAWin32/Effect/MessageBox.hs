@@ -12,13 +12,15 @@ module TEAWin32.Effect.MessageBox
     , fromWin32MessageBoxResult
     ) where
 
-import           Data.Bits      ((.|.))
-import           Data.Maybe     (fromMaybe)
-import           Data.Text      (Text)
-import qualified Data.Text      as Text
-import qualified Graphics.Win32 as Win32
+import           Data.Bits         ((.|.))
+import           Data.Maybe        (fromMaybe)
+import           Data.Text         (Text)
+import qualified Data.Text         as Text
+import           GHC.Stack         (HasCallStack)
+import qualified Graphics.Win32    as Win32
+import           TEAWin32.Internal (throwTEAWin32InternalError)
 
-showMessageBox :: MessageBoxSettings -> IO MessageBoxResult
+showMessageBox :: HasCallStack => MessageBoxSettings -> IO MessageBoxResult
 showMessageBox (MessageBoxSettings msgBoxTitle msgBoxContent msgBoxBtns msgBoxIcon msgBoxDefBtn) =
     let msgBoxBtns' = toWin32MessageBoxButtons msgBoxBtns
         msgBoxIcon' = toWin32MessageBoxIcon msgBoxIcon
@@ -107,7 +109,7 @@ data MessageBoxResult = MessageBoxResultAbort
                       | MessageBoxResultYes
                       deriving (Show, Eq)
 
-fromWin32MessageBoxResult :: Win32.MBStatus -> MessageBoxResult
+fromWin32MessageBoxResult :: HasCallStack => Win32.MBStatus -> MessageBoxResult
 fromWin32MessageBoxResult 3  = MessageBoxResultAbort
 fromWin32MessageBoxResult 2  = MessageBoxResultCancel
 fromWin32MessageBoxResult 11 = MessageBoxResultContinue
@@ -117,4 +119,4 @@ fromWin32MessageBoxResult 1  = MessageBoxResultOK
 fromWin32MessageBoxResult 4  = MessageBoxResultRetry
 fromWin32MessageBoxResult 10 = MessageBoxResultTryAgain
 fromWin32MessageBoxResult 6  = MessageBoxResultYes
-fromWin32MessageBoxResult _  = error "Unknown MessageBox MBStatus."
+fromWin32MessageBoxResult _  = throwTEAWin32InternalError "Unknown MessageBox MBStatus."

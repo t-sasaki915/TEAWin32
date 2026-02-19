@@ -19,9 +19,7 @@ module TEAWin32.GUI.Internal
 
 import                          Control.Concurrent        (MVar, modifyMVar_,
                                                            newMVar, takeMVar)
-import                          Control.Exception         (SomeException, try)
-import                          Control.Monad             (filterM, unless,
-                                                           void)
+import                          Control.Monad             (filterM, void)
 import                          Data.Either               (fromRight)
 import                          Data.IORef                (IORef,
                                                            atomicModifyIORef',
@@ -36,6 +34,8 @@ import                          System.IO.Unsafe          (unsafePerformIO)
 import                qualified System.Win32              as Win32
 import {-# SOURCE #-}           TEAWin32.GUI              (Cursor (..), Font,
                                                            Icon (..))
+import                          TEAWin32.Internal         (throwTEAWin32InternalError,
+                                                           try_)
 import                qualified TEAWin32.Internal.Foreign as Win32
 
 activeWindowCountRef :: IORef Int
@@ -55,7 +55,7 @@ fontCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE fontCacheRef #-}
 
 dpiStrategyRef :: IORef DPIStrategy
-dpiStrategyRef = unsafePerformIO (newIORef (error "DPIStrategy is not initialised."))
+dpiStrategyRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "DPIStrategy is not initialised."))
 {-# NOINLINE dpiStrategyRef #-}
 
 data DPIStrategy = ModernDPIStrategy Win32.GetDpiForWindow
@@ -93,14 +93,14 @@ initialiseIconCache = do
 
 setProcessDPIAware :: IO ()
 setProcessDPIAware = do
-    _ <- Win32.c_SetProcessDPIAware
-
     shcore                    <- fromRight Win32.nullPtr <$> try_ (Win32.getModuleHandle (Just "shcore.dll"))
     setProcessDpiAwarenessPtr <- fromRight Win32.nullPtr <$> try_ (Win32.getProcAddress shcore "SetProcessDpiAwareness")
 
-    unless (setProcessDpiAwarenessPtr == Win32.nullPtr) $ do
-        let setProcessDpiAwareness = Win32.makeSetProcessDpiAwareness (castPtrToFunPtr setProcessDpiAwarenessPtr)
-        void (setProcessDpiAwareness 2)
+    if setProcessDpiAwarenessPtr == Win32.nullPtr
+        then void Win32.c_SetProcessDPIAware
+        else
+            let setProcessDpiAwareness = Win32.makeSetProcessDpiAwareness (castPtrToFunPtr setProcessDpiAwarenessPtr) in
+                void (setProcessDpiAwareness 2)
 
 initialiseDPIStrategy :: IO ()
 initialiseDPIStrategy = do
@@ -159,7 +159,7 @@ isTopLevelWindow = (`whoseParentIs` Win32.nullPtr)
 
 whoseParentIs :: Win32.HWND -> Win32.HWND -> IO Bool
 whoseParentIs hwnd parent =
-    (try (Win32.getParent hwnd) :: IO (Either SomeException Win32.HWND)) >>= \case
+    try_ (Win32.getParent hwnd) >>= \case
         Left _        -> pure (parent == Win32.nullPtr)
         Right parent' -> pure (parent == parent')
 
@@ -182,6 +182,3 @@ withTopLevelWindows func = do
     freeHaskellFunPtr enumPtr
 
     pure x
-
-try_ :: IO a -> IO (Either SomeException a)
-try_ = try

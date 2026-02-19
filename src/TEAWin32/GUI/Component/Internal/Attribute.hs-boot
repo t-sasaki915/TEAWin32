@@ -10,6 +10,7 @@ module TEAWin32.GUI.Component.Internal.Attribute
     ) where
 
 import                          Data.Text                     (Text)
+import                          GHC.Stack                     (HasCallStack)
 import                qualified Graphics.Win32                as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal as ApplicationInternal
 import                          TEAWin32.Drawing              (Colour)
@@ -50,10 +51,10 @@ data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | WindowCursorAttr              Cursor
                         | WindowIconAttr                Icon
 
-addAttributeToHWND :: Win32.HWND -> ComponentAttribute -> IO ()
+addAttributeToHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 
-updateAttributeOfHWND :: Win32.HWND -> ComponentAttribute -> IO ()
+updateAttributeOfHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 
-removeAttributeFromHWND :: Win32.HWND -> ComponentAttribute -> IO ()
+removeAttributeFromHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 
 isManagedByTEAWin32 :: Win32.HWND -> IO Bool

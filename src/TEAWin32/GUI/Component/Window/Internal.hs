@@ -3,6 +3,7 @@ module TEAWin32.GUI.Component.Window.Internal (restoreWindowFromHWND) where
 import           Control.Monad                             (when)
 import           Control.Monad.Writer                      (MonadIO (liftIO),
                                                             execWriterT, tell)
+import           GHC.Stack                                 (HasCallStack)
 import qualified Graphics.Win32                            as Win32
 import           TEAWin32.GUI                              (raw)
 import           TEAWin32.GUI.Component                    (GUIComponent (GUIComponent))
@@ -13,7 +14,7 @@ import           TEAWin32.GUI.Component.Window             (Window (Window))
 import           TEAWin32.GUI.Component.Window.Property
 import qualified TEAWin32.GUI.Internal                     as GUIInternal
 
-restoreWindowFromHWND :: Win32.HWND -> IO GUIComponent
+restoreWindowFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
 restoreWindowFromHWND hwnd = do
     windowUniqueId  <- getComponentUniqueIdFromHWND hwnd
     windowClassName <- getWindowClassNameFromHWND hwnd

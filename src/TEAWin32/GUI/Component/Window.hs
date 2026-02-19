@@ -2,6 +2,7 @@ module TEAWin32.GUI.Component.Window (Window (..), destroyChildren) where
 
 import           Control.Exception                         (bracket)
 import           Control.Monad                             (unless, when)
+import           Data.Bits                                 ((.|.))
 import           Data.IORef                                (atomicModifyIORef')
 import           Data.Text                                 (Text)
 import qualified Data.Text                                 as Text
@@ -9,6 +10,7 @@ import           Foreign                                   (Storable (peek),
                                                             castPtr,
                                                             intPtrToPtr,
                                                             wordPtrToPtr)
+import           GHC.Stack                                 (HasCallStack)
 import qualified Graphics.Win32                            as Win32
 import qualified System.Win32                              as Win32
 import qualified TEAWin32.Application.Internal             as ApplicationInternal
@@ -86,7 +88,7 @@ instance IsGUIComponent Window where
 
         pure window
 
-defaultWindowProc :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
+defaultWindowProc :: HasCallStack => Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
 defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
         destroyChildren hwnd
@@ -129,11 +131,11 @@ defaultWindowProc hwnd wMsg wParam lParam
                 pure 1
 
     | wMsg == Win32.wM_DPICHANGED = do
+        putStrLn "!?"
         let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam
-        (x, y, w, h) <- peek rectPtr :: IO Win32.RECT
+        (l, t, r, b) <- peek rectPtr :: IO Win32.RECT
 
-        ComponentInternal.setComponentSize (fromIntegral w) (fromIntegral h) hwnd
-        ComponentInternal.setComponentPosition (fromIntegral x) (fromIntegral y) hwnd
+        Win32.c_SetWindowPos hwnd Win32.nullPtr l t (r - l) (b - t) (Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE .|. Win32.sWP_FRAMECHANGED) >>= print
 
         let newDPI = Win32.lOWORD (fromIntegral wParam)
         ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)

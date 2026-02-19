@@ -34,13 +34,16 @@ import qualified Data.List                     as List
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
 import           Data.Text                     (Text)
+import qualified Data.Text                     as Text
 import           GHC.IO                        (unsafePerformIO)
+import           GHC.Stack                     (HasCallStack)
 import qualified Graphics.Win32                as Win32
 import qualified TEAWin32.Application.Internal as ApplicationInternal
 import           TEAWin32.Drawing              (Colour)
 import           TEAWin32.GUI                  (Cursor, Font, Icon,
                                                 ScalableValue, UniqueId,
                                                 WindowStyle)
+import           TEAWin32.Internal             (throwTEAWin32InternalError)
 
 data ComponentType = ComponentWindow
                    | ComponentButton
@@ -110,7 +113,7 @@ unregisterHWNDFromAttributeMap hwnd =
         let newMap = Map.delete hwnd attrMap in
             (newMap, ())
 
-addAttributeToHWND :: Win32.HWND -> ComponentAttribute -> IO ()
+addAttributeToHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 addAttributeToHWND hwnd attr =
     atomicModifyIORef' attributeMapRef $ \attrMap ->
         case Map.lookup hwnd attrMap of
@@ -119,9 +122,9 @@ addAttributeToHWND hwnd attr =
                     newMap = Map.insert hwnd newHWNDAttrs attrMap in
                         (newMap, ())
             Nothing ->
-                error $ "AttributeMap for " <> show hwnd <> " is not initialised."
+                throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
-updateAttributeOfHWND :: Win32.HWND -> ComponentAttribute -> IO ()
+updateAttributeOfHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 updateAttributeOfHWND hwnd newAttr =
     atomicModifyIORef' attributeMapRef $ \attrMap ->
         case Map.lookup hwnd attrMap of
@@ -131,9 +134,9 @@ updateAttributeOfHWND hwnd newAttr =
                         (newMap, ())
 
             Nothing ->
-                error $ "AttributeMap for " <> show hwnd <> " is not initialised."
+                throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
-removeAttributeFromHWND :: Win32.HWND -> ComponentAttribute -> IO ()
+removeAttributeFromHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 removeAttributeFromHWND hwnd attr =
     atomicModifyIORef' attributeMapRef $ \attrMap ->
         case Map.lookup hwnd attrMap of
@@ -142,129 +145,129 @@ removeAttributeFromHWND hwnd attr =
                     newMap = Map.insert hwnd newHWNDAttrs attrMap in
                         (newMap, ())
             Nothing ->
-                error $ "AttributeMap for " <> show hwnd <> " is not initialised."
+                throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
-getAttributesFromHWND :: Win32.HWND -> IO [ComponentAttribute]
+getAttributesFromHWND :: HasCallStack => Win32.HWND -> IO [ComponentAttribute]
 getAttributesFromHWND hwnd =
     readIORef attributeMapRef >>= \attrMap ->
         case Map.lookup hwnd attrMap of
             Just hwndAttrs -> pure hwndAttrs
-            Nothing        -> error $ "AttributeMap for " <> show hwnd <> " is not initialised."
+            Nothing        -> throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
 isManagedByTEAWin32 :: Win32.HWND -> IO Bool
 isManagedByTEAWin32 hwnd =
     readIORef attributeMapRef >>= \attrMap ->
         pure $ hwnd `Map.member` attrMap
 
-getComponentUniqueIdFromHWND :: Win32.HWND -> IO UniqueId
+getComponentUniqueIdFromHWND :: HasCallStack => Win32.HWND -> IO UniqueId
 getComponentUniqueIdFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ uniqueId | ComponentUniqueIdAttr uniqueId <- attrs ] of
             [ uniqueId ] -> pure uniqueId
-            x            -> error $ "Illegal AttributeMap state: " <> show x
+            x            -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getComponentTypeFromHWND :: Win32.HWND -> IO ComponentType
+getComponentTypeFromHWND :: HasCallStack => Win32.HWND -> IO ComponentType
 getComponentTypeFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ componentType | ComponentTypeAttr componentType <- attrs ] of
             [ componentType ] -> pure componentType
-            x                 -> error $ "Illegal AttributeMap state: " <> show x
+            x                 -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getComponentCurrentDPIFromHWND :: Win32.HWND -> IO Int
+getComponentCurrentDPIFromHWND :: HasCallStack => Win32.HWND -> IO Int
 getComponentCurrentDPIFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ currentDPI | ComponentCurrentDPIAttr currentDPI <- attrs ] of
             [ currentDPI ] -> pure currentDPI
-            x              -> error $ "Illegal AttributeMap state: " <> show x
+            x              -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-doesHWNDHaveFlag :: ComponentFlagKey -> Win32.HWND -> IO Bool
+doesHWNDHaveFlag :: HasCallStack => ComponentFlagKey -> Win32.HWND -> IO Bool
 doesHWNDHaveFlag flagKey hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ () | ComponentFlagAttr flagKey' <- attrs, flagKey' == flagKey ] of
             [ () ] -> pure True
             []     -> pure False
-            x      -> error $ "Illegal AttributeMap state: " <> show x
+            x      -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getEventHandlerFromHWNDMaybe :: EventType -> Win32.HWND -> IO (Maybe ApplicationInternal.Msg)
+getEventHandlerFromHWNDMaybe :: HasCallStack => EventType -> Win32.HWND -> IO (Maybe ApplicationInternal.Msg)
 getEventHandlerFromHWNDMaybe eventType hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ msg | ComponentEventHandlerAttr eventType' msg <- attrs, eventType' == eventType ] of
             [ msg ] -> pure (Just msg)
             []      -> pure Nothing
-            x       -> error $ "Illegal AttributeMap state: " <> show x
+            x       -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getEventHandlerFromHWND :: EventType -> Win32.HWND -> IO ApplicationInternal.Msg
+getEventHandlerFromHWND :: HasCallStack => EventType -> Win32.HWND -> IO ApplicationInternal.Msg
 getEventHandlerFromHWND eventType hwnd =
     getEventHandlerFromHWNDMaybe eventType hwnd >>= \case
         Just msg -> pure msg
-        Nothing  -> error "Illegal AttributeMap state: []"
+        Nothing  -> throwTEAWin32InternalError "Illegal AttributeMap state: []"
 
-getComponentBackgroundColourFromHWNDMaybe :: Win32.HWND -> IO (Maybe Colour)
+getComponentBackgroundColourFromHWNDMaybe :: HasCallStack => Win32.HWND -> IO (Maybe Colour)
 getComponentBackgroundColourFromHWNDMaybe hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ colour | ComponentBackgroundColourAttr colour <- attrs ] of
             [ colour ] -> pure (Just colour)
             []         -> pure Nothing
-            x          -> error $ "Illegal AttributeMap state: " <> show x
+            x          -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getComponentBackgroundColourFromHWND :: Win32.HWND -> IO Colour
+getComponentBackgroundColourFromHWND :: HasCallStack => Win32.HWND -> IO Colour
 getComponentBackgroundColourFromHWND hwnd =
     getComponentBackgroundColourFromHWNDMaybe hwnd >>= \case
         Just colour -> pure colour
-        Nothing     -> error "Illegal AttributeMap state: []"
+        Nothing     -> throwTEAWin32InternalError "Illegal AttributeMap state: []"
 
-getComponentFontFromHWND :: Win32.HWND -> IO Font
+getComponentFontFromHWND :: HasCallStack => Win32.HWND -> IO Font
 getComponentFontFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ font | ComponentFontAttr font <- attrs ] of
             [ font ] -> pure font
-            x        -> error $ "Illegal AttributeMap state: " <> show x
+            x        -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getComponentTitleFromHWND :: Win32.HWND -> IO Text
+getComponentTitleFromHWND :: HasCallStack => Win32.HWND -> IO Text
 getComponentTitleFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ title | ComponentTitleAttr title <- attrs ] of
             [ title ] -> pure title
-            x         -> error $ "Illegal AttributeMap state: " <> show x
+            x         -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getComponentSizeFromHWND :: Win32.HWND -> IO (ScalableValue, ScalableValue)
+getComponentSizeFromHWND :: HasCallStack => Win32.HWND -> IO (ScalableValue, ScalableValue)
 getComponentSizeFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ size | ComponentSizeAttr size <- attrs ] of
             [ size ] -> pure size
-            x        -> error $ "Illegal AttributeMap state: " <> show x
+            x        -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getComponentPositionFromHWND :: Win32.HWND -> IO (ScalableValue, ScalableValue)
+getComponentPositionFromHWND :: HasCallStack => Win32.HWND -> IO (ScalableValue, ScalableValue)
 getComponentPositionFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ position | ComponentPositionAttr position <- attrs ] of
             [ position ] -> pure position
-            x            -> error $ "Illegal AttributeMap state: " <> show x
+            x            -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getWindowClassNameFromHWND :: Win32.HWND -> IO Text
+getWindowClassNameFromHWND :: HasCallStack => Win32.HWND -> IO Text
 getWindowClassNameFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ className | WindowClassNameAttr className <- attrs ] of
             [ className ] -> pure className
-            x             -> error $ "Illegal AttributeMap state: " <> show x
+            x             -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getWindowStyleFromHWND :: Win32.HWND -> IO WindowStyle
+getWindowStyleFromHWND :: HasCallStack => Win32.HWND -> IO WindowStyle
 getWindowStyleFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ windowStyle | WindowStyleAttr windowStyle <- attrs ] of
             [ windowStyle ] -> pure windowStyle
-            x               -> error $ "Illegal AttributeMap state: " <> show x
+            x               -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getWindowCursorFromHWND :: Win32.HWND -> IO Cursor
+getWindowCursorFromHWND :: HasCallStack => Win32.HWND -> IO Cursor
 getWindowCursorFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ cursor | WindowCursorAttr cursor <- attrs ] of
             [ cursor ] -> pure cursor
-            x          -> error $ "Illegal AttributeMap state: " <> show x
+            x          -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
-getWindowIconFromHWND :: Win32.HWND -> IO Icon
+getWindowIconFromHWND :: HasCallStack => Win32.HWND -> IO Icon
 getWindowIconFromHWND hwnd =
     getAttributesFromHWND hwnd >>= \attrs ->
         case [ icon | WindowIconAttr icon <- attrs ] of
             [ icon ] -> pure icon
-            x        -> error $ "Illegal AttributeMap state: " <> show x
+            x        -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x

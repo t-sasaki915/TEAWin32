@@ -21,6 +21,7 @@ import                          Data.Data                                 (TypeR
                                                                            Typeable,
                                                                            cast)
 import                          Data.Text                                 (Text)
+import                          GHC.Stack                                 (HasCallStack)
 import                qualified Graphics.Win32                            as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal             as ApplicationInternal
 import                          TEAWin32.GUI                              (Font,
@@ -30,6 +31,7 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component                    (GUICo
 import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Window             (destroyChildren)
+import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
 
 data GUIComponentProperty =  forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
                           => GUIComponentProperty a
@@ -44,11 +46,11 @@ instance Show GUIComponentProperty where
     show (GUIComponentProperty x) = show x
 
 class Eq a => IsGUIComponentProperty a where
-    applyProperty :: a -> Win32.HWND -> IO ()
+    applyProperty :: HasCallStack => a -> Win32.HWND -> IO ()
 
-    updateProperty :: a -> a -> Win32.HWND -> IO ()
+    updateProperty :: HasCallStack => a -> a -> Win32.HWND -> IO ()
 
-    unapplyProperty :: a -> Win32.HWND -> IO ()
+    unapplyProperty :: HasCallStack => a -> Win32.HWND -> IO ()
 
 instance IsGUIComponentProperty GUIComponentProperty where
     applyProperty (GUIComponentProperty x) = applyProperty x
@@ -56,7 +58,7 @@ instance IsGUIComponentProperty GUIComponentProperty where
     updateProperty (GUIComponentProperty new) (GUIComponentProperty old) =
         case cast old of
             Just old' -> updateProperty new old'
-            Nothing   -> error "Failed to cast GUIComponentProperty"
+            Nothing   -> throwTEAWin32InternalError "Failed to cast GUIComponentProperty"
 
     unapplyProperty (GUIComponentProperty x) = unapplyProperty x
 

@@ -60,6 +60,7 @@ library
       TEAWin32.Application
       TEAWin32.Drawing
       TEAWin32.GUI
+      TEAWin32.Internal
   other-modules:
       Paths_TEAWin32
   autogen-modules:

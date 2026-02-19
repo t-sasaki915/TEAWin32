@@ -26,6 +26,7 @@ import                          Data.Map                                  (Map)
 import                qualified Data.Map                                  as Map
 import                          Data.Maybe                                (catMaybes)
 import                          GHC.IO                                    (unsafePerformIO)
+import                          GHC.Stack                                 (HasCallStack)
 import                qualified Graphics.Win32                            as Win32
 import                          TEAWin32.GUI                              (UniqueId)
 import                          TEAWin32.GUI.Component                    (GUIComponent,
@@ -36,6 +37,7 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute (isMan
 import                          TEAWin32.GUI.Component.Property           (IsGUIComponentProperty (..))
 import                          TEAWin32.GUI.Component.Property.Internal  as PropertyInternal
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
+import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -50,15 +52,15 @@ instance Eq Msg where
             Nothing -> False
 
 modelRef :: IORef Model
-modelRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
+modelRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
 {-# NOINLINE modelRef #-}
 
 updateFuncRef :: IORef (Msg -> Model -> IO Model)
-updateFuncRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
+updateFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
 {-# NOINLINE updateFuncRef #-}
 
-viewFuncRef :: IORef (Model -> GUIComponents)
-viewFuncRef = unsafePerformIO (newIORef (error "TEA is not initialised."))
+viewFuncRef :: IORef (Model -> IO GUIComponents)
+viewFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
 {-# NOINLINE viewFuncRef #-}
 
 uniqueIdAndHWNDMapRef :: IORef (Map UniqueId Win32.HWND)
@@ -82,7 +84,7 @@ unregisterHWND hwnd =
         let newHWNDMap = Map.filter (/= hwnd) hwndMap in
             (newHWNDMap, ())
 
-issueMsg :: Msg -> IO ()
+issueMsg :: HasCallStack => Msg -> IO ()
 issueMsg msg = do
     updateFunc   <- readIORef updateFuncRef
     currentModel <- readIORef modelRef
@@ -96,19 +98,19 @@ issueMsg msg = do
             False -> pure Nothing
 
     viewFunc <- readIORef viewFuncRef
-    let newGUIComponents = execWriter (viewFunc newModel)
+    newGUIComponents <- execWriter <$> viewFunc newModel
 
     unless (newGUIComponents == currentGUIComponents) $
         updateComponents newGUIComponents currentGUIComponents Nothing
 
-updateComponents :: [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
+updateComponents :: HasCallStack => [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
 updateComponents newChildren oldChildren parentHWND =
     ComponentInternal.sortComponentsWithZIndex newChildren parentHWND >>= \sortedNewChildren ->
         forM_ (ComponentInternal.compareGUIComponents sortedNewChildren oldChildren) $ \case
             (ComponentInternal.NoComponentChange component) ->
                 getHWNDByUniqueId (getUniqueId component) >>= \case
                     Just hwnd -> ComponentInternal.bringComponentToTop hwnd
-                    Nothing   -> error "Tried to change the z-index of a component that was not in the map."
+                    Nothing   -> throwTEAWin32InternalError "Tried to change the z-index of a component that was not in the map."
 
             (ComponentInternal.RenderComponent addedComponent) ->
                 void (render addedComponent parentHWND)
@@ -116,12 +118,12 @@ updateComponents newChildren oldChildren parentHWND =
             (ComponentInternal.DeleteComponent deletedComponent) ->
                 getHWNDByUniqueId (getUniqueId deletedComponent) >>= \case
                     Just hwnd -> Win32.destroyWindow hwnd
-                    Nothing   -> error "Tried to delete a component that was not in the map."
+                    Nothing   -> throwTEAWin32InternalError "Tried to delete a component that was not in the map."
 
             (ComponentInternal.RedrawComponent modifiedComponent) ->
                 getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
                     Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND)
-                    Nothing   -> error "Tried to redraw a component that was not in the map."
+                    Nothing   -> throwTEAWin32InternalError "Tried to redraw a component that was not in the map."
 
             (ComponentInternal.UpdateProperties newComponent oldComponent) ->
                 getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
@@ -142,4 +144,4 @@ updateComponents newChildren oldChildren parentHWND =
                         ComponentInternal.bringComponentToTop hwnd
 
                     Nothing ->
-                        error "Tried to update the properties of a component that was not in the map."
+                        throwTEAWin32InternalError "Tried to update the properties of a component that was not in the map."

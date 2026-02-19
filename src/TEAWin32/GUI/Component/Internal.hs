@@ -30,6 +30,7 @@ import                qualified Data.Text                                 as Tex
 import                          Foreign                                   hiding
                                                                           (new,
                                                                            void)
+import                          GHC.Stack                                 (HasCallStack)
 import                qualified Graphics.Win32                            as Win32
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component                    (GUIComponent,
@@ -40,6 +41,7 @@ import                          TEAWin32.GUI.Component.Internal.Attribute
 import                          TEAWin32.GUI.Component.Property
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (restoreWindowFromHWND)
 import                qualified TEAWin32.GUI.Internal                     as GUIInternal
+import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
 import                qualified TEAWin32.Internal.Foreign                 as Win32
 
 data ComponentUpdateAction = RenderComponent GUIComponent
@@ -70,7 +72,7 @@ compareGUIComponents newComponents oldComponents =
 
     in deletedComponents ++ newComponentsWithAction
 
-sortComponentsWithZIndex :: [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
+sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
     children <- case maybeParent of
         Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
@@ -88,7 +90,7 @@ sortComponentsWithZIndex guiComponents maybeParent = do
             maybeUsrIndex = case [ usrIndex | Just (ComponentZIndex usrIndex) <- map getZIndexProperty (getProperties guiComponent) ] of
                 [ usrIndex ] -> Just usrIndex
                 []           -> Nothing
-                x            -> error $ "Illegal ComponentZIndex state: " <> show x
+                x            -> throwTEAWin32InternalError $ "Illegal ComponentZIndex state: " <> Text.show x
 
         case (maybeUsrIndex, maybeSysIndex) of
             (Just usrIndex, Just sysIndex) -> pure (ZIndexWithUserSpecification usrIndex sysIndex, uniqueId)
@@ -98,13 +100,13 @@ sortComponentsWithZIndex guiComponents maybeParent = do
 
     pure [ guiComponentMap ! uid | (_, uid) <- List.sort componentsUniqueIdWithZIndex ]
 
-resolveScalableValueForHWND :: Win32.HWND -> ScalableValue -> IO Int
+resolveScalableValueForHWND :: HasCallStack => Win32.HWND -> ScalableValue -> IO Int
 resolveScalableValueForHWND _ (RawValue x) = pure (round x)
 resolveScalableValueForHWND hwnd (ScalableValue x) =
     getComponentCurrentDPIFromHWND hwnd >>= \currentDpi ->
         pure (round (x * fromIntegral currentDpi / 96.0))
 
-updateComponentDPI :: Win32.HWND -> Int -> IO ()
+updateComponentDPI :: HasCallStack => Win32.HWND -> Int -> IO ()
 updateComponentDPI hwnd newDPI = do
     updateAttributeOfHWND hwnd (ComponentCurrentDPIAttr newDPI)
 
@@ -175,7 +177,7 @@ setComponentSize width height hwnd = void $ Win32.c_SetWindowPos
     (fromIntegral height)
     (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
-setComponentFont :: Font -> Win32.HWND -> IO ()
+setComponentFont :: HasCallStack => Font -> Win32.HWND -> IO ()
 setComponentFont DefaultGUIFont hwnd =
     Win32.getStockFont Win32.dEFAULT_GUI_FONT >>= \font ->
         setComponentFont' font hwnd
@@ -202,7 +204,7 @@ setComponentFont' :: Win32.HANDLE -> Win32.HWND -> IO ()
 setComponentFont' font hwnd =
     void $ Win32.sendMessage hwnd Win32.wM_SETFONT (fromIntegral $ ptrToWordPtr font) 1
 
-useDefaultFont :: Win32.HWND -> IO ()
+useDefaultFont :: HasCallStack => Win32.HWND -> IO ()
 useDefaultFont = setComponentFont DefaultGUIFont
 
 setWindowIcon :: Icon -> Win32.HWND -> IO ()
@@ -219,7 +221,7 @@ requestRedraw :: Win32.HWND -> IO ()
 requestRedraw hwnd =
     Win32.invalidateRect (Just hwnd) Nothing True
 
-restoreComponentFromHWND :: Win32.HWND -> IO GUIComponent
+restoreComponentFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
 restoreComponentFromHWND hwnd =
     getComponentTypeFromHWND hwnd >>= \case
         ComponentButton -> restoreButtonFromHWND hwnd
