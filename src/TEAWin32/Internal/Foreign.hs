@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module TEAWin32.Internal.Foreign
     ( ACTCTX (..)
     , GetDpiForWindow
@@ -117,3 +120,22 @@ wM_DPICHANGED = 0x02E0
 
 makeIntResource :: Int -> Win32.LPCTSTR
 makeIntResource = intPtrToPtr . fromIntegral
+
+instance Storable Win32.RECT where
+    sizeOf _ = sizeOf (0 :: Win32.LONG) * 4
+
+    alignment _ = alignment (0 :: Win32.LONG)
+
+    peek ptr = do
+        left   <- peekByteOff ptr 0
+        top    <- peekByteOff ptr (sizeOf (0 :: Win32.LONG))
+        right  <- peekByteOff ptr (sizeOf (0 :: Win32.LONG) * 2)
+        bottom <- peekByteOff ptr (sizeOf (0 :: Win32.LONG) * 3)
+
+        pure (left, top, right, bottom)
+
+    poke ptr (left, top, right, bottom) = do
+        pokeByteOff ptr 0 left
+        pokeByteOff ptr (sizeOf (0 :: Win32.LONG)) top
+        pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 2) right
+        pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 3) bottom

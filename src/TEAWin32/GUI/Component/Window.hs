@@ -5,7 +5,11 @@ import           Control.Monad                             (unless, when)
 import           Data.IORef                                (atomicModifyIORef')
 import           Data.Text                                 (Text)
 import qualified Data.Text                                 as Text
-import           Foreign                                   (intPtrToPtr)
+import           Foreign                                   (Storable (peek),
+                                                            castPtr,
+                                                            intPtrToPtr,
+                                                            wordPtrToPtr)
+import           GHC.Ptr                                   (Ptr (Ptr))
 import qualified Graphics.Win32                            as Win32
 import qualified System.Win32                              as Win32
 import qualified TEAWin32.Application.Internal             as ApplicationInternal
@@ -127,9 +131,15 @@ defaultWindowProc hwnd wMsg wParam lParam
 
     | wMsg == Win32.wM_DPICHANGED = do
         let newDPI = Win32.lOWORD (fromIntegral wParam)
-        ComponentInternal.updateWindowDPI hwnd (fromIntegral newDPI)
+        ComponentInternal.updateComponentDPIProperty hwnd (fromIntegral newDPI)
 
-        Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
+        let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam :: Ptr Win32.RECT
+        (w, h, x, y) <- peek rectPtr
+
+        ComponentInternal.setComponentSize (fromIntegral w) (fromIntegral h) hwnd
+        ComponentInternal.setComponentPosition (fromIntegral x) (fromIntegral y) hwnd
+
+        pure 0
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
