@@ -3,6 +3,7 @@ module TEAWin32.GUI.Component.Internal
     , compareGUIComponents
     , sortComponentsWithZIndex
     , resolveScalableValueForHWND
+    , updateWindowDPI
     , getRelativeRectFromHWNDUsingWin32
     , bringComponentToTop
     , setComponentTitle
@@ -101,6 +102,14 @@ resolveScalableValueForHWND _ (RawValue x) = pure (round x)
 resolveScalableValueForHWND hwnd (ScalableValue x) =
     getComponentCurrentDPIFromHWND hwnd >>= \currentDpi ->
         pure (round (x * fromIntegral currentDpi / 96.0))
+
+updateWindowDPI :: Win32.HWND -> Int -> IO ()
+updateWindowDPI hwnd newDPI = do
+    updateAttributeOfHWND hwnd (ComponentCurrentDPIAttr newDPI)
+    requestRedraw hwnd
+
+    GUIInternal.withImmediateChildWindows hwnd $ \children ->
+        mapM_ (`updateWindowDPI` newDPI) children
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do

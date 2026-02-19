@@ -126,8 +126,8 @@ defaultWindowProc hwnd wMsg wParam lParam
                 pure 1
 
     | wMsg == Win32.wM_DPICHANGED = do
-        putStrLn "!?!?"
         let newDPI = Win32.lOWORD (fromIntegral wParam)
+        ComponentInternal.updateWindowDPI hwnd (fromIntegral newDPI)
 
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
