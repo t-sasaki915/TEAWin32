@@ -19,19 +19,29 @@ import qualified Data.Text                     as Text
 import           GHC.Stack                     (HasCallStack)
 import qualified Graphics.Win32                as Win32
 import qualified TEAWin32.Application.Internal as ApplicationInternal
-import           TEAWin32.GUI                  (UniqueId)
+import           TEAWin32.GUI                  (UniqueId (..))
 import           TEAWin32.Internal             (throwTEAWin32InternalError)
+import qualified TEAWin32.Internal.Foreign     as Win32
 
 showMessageBox :: HasCallStack => MessageBoxSettings -> IO MessageBoxResult
-showMessageBox (MessageBoxSettings msgBoxTitle msgBoxContent msgBoxBtns msgBoxIcon msgBoxDefBtn msgBoxIsTaskModal msgBoxOwner) =
-    let msgBoxBtns' = toWin32MessageBoxButtons msgBoxBtns
-        msgBoxIcon' = toWin32MessageBoxIcon msgBoxIcon
-        msgBoxDefBtn' = toWin32MessageBoxDefaultButton (fromMaybe MessageBoxButton1 msgBoxDefBtn)
-        msgBoxIsTaskModal' = if msgBoxIsTaskModal then Win32.mB_TASKMODAL else 0x00000000
-        msgBoxStyle = msgBoxBtns' .|. msgBoxIcon' .|. msgBoxDefBtn' .|. msgBoxIsTaskModal' in
-            maybe (pure Nothing) ApplicationInternal.getHWNDByUniqueId msgBoxOwner >>= \owner ->
-                fromWin32MessageBoxResult <$>
-                    Win32.messageBox owner (Text.unpack msgBoxContent) (Text.unpack msgBoxTitle) msgBoxStyle
+showMessageBox settings = do
+    let msgBoxBtns          = toWin32MessageBoxButtons       (messageBoxButtons settings)
+        msgBoxIcon          = toWin32MessageBoxIcon          (messageBoxIcon settings)
+        msgBoxDefBtn        = toWin32MessageBoxDefaultButton (fromMaybe MessageBoxButton1 (messageBoxDefaultButton settings))
+        msgBoxTaskModal     = if messageBoxTaskModal settings     then Win32.mB_TASKMODAL     else 0x00000000
+        msgBoxRightText     = if messageBoxRightText settings     then Win32.mB_RIGHT         else 0x00000000
+        msgBoxSetForeground = if messageBoxSetForeground settings then Win32.mB_SETFOREGROUND else 0x00000000
+        msgBoxTopMost       = if messageBoxTopMost settings       then Win32.mB_TOPMOST       else 0x00000000
+
+        msgBoxStyle = foldr (.|.) 0
+            [msgBoxBtns, msgBoxIcon, msgBoxDefBtn, msgBoxTaskModal, msgBoxRightText, msgBoxSetForeground, msgBoxTopMost]
+
+    maybeOwner <- case messageBoxOwnerUniqueId settings of
+        Just uniqueId -> ApplicationInternal.getHWNDByUniqueId (UniqueId uniqueId)
+        Nothing       -> pure Nothing
+
+    fromWin32MessageBoxResult <$>
+        Win32.messageBox maybeOwner (Text.unpack (messageBoxContent settings)) (Text.unpack (messageBoxTitle settings)) msgBoxStyle
 
 data MessageBoxSettings = MessageBoxSettings
     { messageBoxTitle         :: Text
@@ -40,7 +50,10 @@ data MessageBoxSettings = MessageBoxSettings
     , messageBoxIcon          :: MessageBoxIcon
     , messageBoxDefaultButton :: Maybe MessageBoxDefaultButton
     , messageBoxTaskModal     :: Bool
-    , messageBoxOwnerUniqueId :: Maybe UniqueId
+    , messageBoxOwnerUniqueId :: Maybe Text
+    , messageBoxRightText     :: Bool
+    , messageBoxSetForeground :: Bool
+    , messageBoxTopMost       :: Bool
     } deriving (Show, Eq)
 
 defaultMessageBoxSettings :: MessageBoxSettings
@@ -50,13 +63,15 @@ defaultMessageBoxSettings = MessageBoxSettings
     , messageBoxButtons       = MessageBoxButtonsOK
     , messageBoxIcon          = MessageBoxIconInformation
     , messageBoxDefaultButton = Nothing
-    , messageBoxTaskModal     = False
+    , messageBoxTaskModal     = True
     , messageBoxOwnerUniqueId = Nothing
+    , messageBoxRightText     = False
+    , messageBoxSetForeground = True
+    , messageBoxTopMost       = False
     }
 
 data MessageBoxButtons = MessageBoxButtonsAbortRetryIgnore
                        | MessageBoxButtonsCancelTryAgainContinue
-                       | MessageBoxButtonsHelp
                        | MessageBoxButtonsOK
                        | MessageBoxButtonsOKCancel
                        | MessageBoxButtonsRetryCancel
@@ -65,14 +80,13 @@ data MessageBoxButtons = MessageBoxButtonsAbortRetryIgnore
                        deriving (Show, Eq)
 
 toWin32MessageBoxButtons :: MessageBoxButtons -> Win32.MBStyle
-toWin32MessageBoxButtons MessageBoxButtonsAbortRetryIgnore       = 0x00000002
-toWin32MessageBoxButtons MessageBoxButtonsCancelTryAgainContinue = 0x00000006
-toWin32MessageBoxButtons MessageBoxButtonsHelp                   = 0x00004000
-toWin32MessageBoxButtons MessageBoxButtonsOK                     = 0x00000000
-toWin32MessageBoxButtons MessageBoxButtonsOKCancel               = 0x00000001
-toWin32MessageBoxButtons MessageBoxButtonsRetryCancel            = 0x00000005
-toWin32MessageBoxButtons MessageBoxButtonsYesNo                  = 0x00000004
-toWin32MessageBoxButtons MessageBoxButtonsYesNoCancel            = 0x00000003
+toWin32MessageBoxButtons MessageBoxButtonsAbortRetryIgnore       = Win32.mB_ABORTRETRYIGNORE
+toWin32MessageBoxButtons MessageBoxButtonsCancelTryAgainContinue = Win32.mB_CANCELTRYIGNORE
+toWin32MessageBoxButtons MessageBoxButtonsOK                     = Win32.mB_OK
+toWin32MessageBoxButtons MessageBoxButtonsOKCancel               = Win32.mB_OKCANCEL
+toWin32MessageBoxButtons MessageBoxButtonsRetryCancel            = Win32.mB_RETRYCANCEL
+toWin32MessageBoxButtons MessageBoxButtonsYesNo                  = Win32.mB_YESNO
+toWin32MessageBoxButtons MessageBoxButtonsYesNoCancel            = Win32.mB_YESNOCANCEL
 
 data MessageBoxIcon = MessageBoxIconExclamation
                     | MessageBoxIconWarning
@@ -85,26 +99,24 @@ data MessageBoxIcon = MessageBoxIconExclamation
                     deriving (Show, Eq)
 
 toWin32MessageBoxIcon :: MessageBoxIcon -> Win32.MBStyle
-toWin32MessageBoxIcon MessageBoxIconExclamation = 0x00000030
-toWin32MessageBoxIcon MessageBoxIconWarning     = 0x00000030
-toWin32MessageBoxIcon MessageBoxIconInformation = 0x00000040
-toWin32MessageBoxIcon MessageBoxIconAsterisk    = 0x00000040
-toWin32MessageBoxIcon MessageBoxIconQuestion    = 0x00000020
-toWin32MessageBoxIcon MessageBoxIconStop        = 0x00000010
-toWin32MessageBoxIcon MessageBoxIconError       = 0x00000010
-toWin32MessageBoxIcon MessageBoxIconHand        = 0x00000010
+toWin32MessageBoxIcon MessageBoxIconExclamation = Win32.mB_ICONEXCLAMATION
+toWin32MessageBoxIcon MessageBoxIconWarning     = Win32.mB_ICONWARNING
+toWin32MessageBoxIcon MessageBoxIconInformation = Win32.mB_ICONINFORMATION
+toWin32MessageBoxIcon MessageBoxIconAsterisk    = Win32.mB_ICONASTERISK
+toWin32MessageBoxIcon MessageBoxIconQuestion    = Win32.mB_ICONQUESTION
+toWin32MessageBoxIcon MessageBoxIconStop        = Win32.mB_ICONSTOP
+toWin32MessageBoxIcon MessageBoxIconError       = Win32.mB_ICONERROR
+toWin32MessageBoxIcon MessageBoxIconHand        = Win32.mB_ICONHAND
 
 data MessageBoxDefaultButton = MessageBoxButton1
                              | MessageBoxButton2
                              | MessageBoxButton3
-                             | MessageBoxButton4
                              deriving (Show, Eq)
 
 toWin32MessageBoxDefaultButton :: MessageBoxDefaultButton -> Win32.MBStyle
-toWin32MessageBoxDefaultButton MessageBoxButton1 = 0x00000000
-toWin32MessageBoxDefaultButton MessageBoxButton2 = 0x00000100
-toWin32MessageBoxDefaultButton MessageBoxButton3 = 0x00000200
-toWin32MessageBoxDefaultButton MessageBoxButton4 = 0x00000300
+toWin32MessageBoxDefaultButton MessageBoxButton1 = Win32.mB_DEFBUTTON1
+toWin32MessageBoxDefaultButton MessageBoxButton2 = Win32.mB_DEFBUTTON2
+toWin32MessageBoxDefaultButton MessageBoxButton3 = Win32.mB_DEFBUTTON3
 
 data MessageBoxResult = MessageBoxResultAbort
                       | MessageBoxResultCancel
@@ -118,13 +130,14 @@ data MessageBoxResult = MessageBoxResultAbort
                       deriving (Show, Eq)
 
 fromWin32MessageBoxResult :: HasCallStack => Win32.MBStatus -> MessageBoxResult
-fromWin32MessageBoxResult 3  = MessageBoxResultAbort
-fromWin32MessageBoxResult 2  = MessageBoxResultCancel
-fromWin32MessageBoxResult 11 = MessageBoxResultContinue
-fromWin32MessageBoxResult 5  = MessageBoxResultIgnore
-fromWin32MessageBoxResult 7  = MessageBoxResultNo
-fromWin32MessageBoxResult 1  = MessageBoxResultOK
-fromWin32MessageBoxResult 4  = MessageBoxResultRetry
-fromWin32MessageBoxResult 10 = MessageBoxResultTryAgain
-fromWin32MessageBoxResult 6  = MessageBoxResultYes
-fromWin32MessageBoxResult _  = throwTEAWin32InternalError "Unknown MessageBox MBStatus."
+fromWin32MessageBoxResult x
+    | x == Win32.iDABORT    = MessageBoxResultAbort
+    | x == Win32.iDCANCEL   = MessageBoxResultCancel
+    | x == Win32.iDCONTINUE = MessageBoxResultContinue
+    | x == Win32.iDIGNORE   = MessageBoxResultIgnore
+    | x == Win32.iDNO       = MessageBoxResultNo
+    | x == Win32.iDOK       = MessageBoxResultOK
+    | x == Win32.iDRETRY    = MessageBoxResultRetry
+    | x == Win32.iDTRYAGAIN = MessageBoxResultTryAgain
+    | x == Win32.iDYES      = MessageBoxResultYes
+    | otherwise             = throwTEAWin32InternalError "Unknown MessageBox MBStatus."

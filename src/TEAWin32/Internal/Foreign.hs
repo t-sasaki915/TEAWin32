@@ -22,6 +22,13 @@ module TEAWin32.Internal.Foreign
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
     , wM_DPICHANGED
+    , mB_CANCELTRYIGNORE
+    , mB_ICONWARNING
+    , mB_ICONERROR
+    , mB_RIGHT
+    , mB_TOPMOST
+    , iDCONTINUE
+    , iDTRYAGAIN
     , makeIntResource
     ) where
 
@@ -123,6 +130,27 @@ dEFAULT_GUI_FONT = 17
 
 wM_DPICHANGED :: Win32.WindowMessage
 wM_DPICHANGED = 0x02E0
+
+mB_CANCELTRYIGNORE :: Win32.MBStyle
+mB_CANCELTRYIGNORE = 0x00000006
+
+mB_ICONWARNING :: Win32.MBStyle
+mB_ICONWARNING = 0x00000030
+
+mB_ICONERROR :: Win32.MBStyle
+mB_ICONERROR = 0x00000010
+
+mB_RIGHT :: Win32.MBStyle
+mB_RIGHT = 0x00080000
+
+mB_TOPMOST :: Win32.MBStyle
+mB_TOPMOST = 0x00040000
+
+iDCONTINUE :: Win32.MBStatus
+iDCONTINUE = 11
+
+iDTRYAGAIN :: Win32.MBStatus
+iDTRYAGAIN = 10
 
 makeIntResource :: Int -> Win32.LPCTSTR
 makeIntResource = intPtrToPtr . fromIntegral

@@ -39,7 +39,6 @@ update ButtonClicked2 model = do
             , messageBoxButtons       = MessageBoxButtonsYesNo
             , messageBoxIcon          = MessageBoxIconError
             , messageBoxDefaultButton = Just MessageBoxButton2
-            , messageBoxTaskModal     = True
             }
 
     case msgBoxResult of
@@ -47,7 +46,7 @@ update ButtonClicked2 model = do
             pure (over clickedCount (+100) model)
 
         MessageBoxResultNo ->
-            pure model
+            error "NO"
 
         _ ->
             error "!?"
