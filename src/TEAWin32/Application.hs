@@ -6,7 +6,7 @@ module TEAWin32.Application
 
 import           Control.Exception               (Exception (displayException))
 import           Control.Monad                   (forM_)
-import           Control.Monad.State.Strict      (runState)
+import           Control.Monad.State.Strict      (evalState)
 import           Control.Monad.Writer.Strict     (execWriterT)
 import           Data.Data                       (Typeable, cast)
 import           Data.IORef                      (atomicModifyIORef')
@@ -77,8 +77,7 @@ runTEA' init update view = do
     atomicModifyIORef' updateFuncRef (const (update', ()))
     atomicModifyIORef' viewFuncRef (const (view', ()))
 
-    let (initGUIComponents, lastIdNum) = runState (execWriterT $ view' (Model initModel)) 0
-    setLastSystemUniqueIdNumber lastIdNum
+    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) 0
 
     sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
     forM_ sortedInitGUIComponents $ \guiComponent ->

@@ -10,8 +10,6 @@ module TEAWin32.Application.Internal
     , getHWNDByUniqueId
     , unregisterHWND
     , isUpdateProgressing
-    , getLastSystemUniqueIdNumber
-    , setLastSystemUniqueIdNumber
     , issueMsg
     , updateComponents
     ) where
@@ -19,7 +17,7 @@ module TEAWin32.Application.Internal
 import                          Control.Monad                             (forM_,
                                                                            unless,
                                                                            void)
-import                          Control.Monad.State.Strict                (runState)
+import                          Control.Monad.State.Strict                (evalState)
 import                          Control.Monad.Writer.Strict               (execWriterT)
 import                          Data.Data                                 (Typeable,
                                                                            cast)
@@ -76,10 +74,6 @@ isUpdateProgressingRef :: IORef Bool
 isUpdateProgressingRef = unsafePerformIO (newIORef False)
 {-# NOINLINE isUpdateProgressingRef #-}
 
-lastSystemUniqueIdNumberRef :: IORef Int
-lastSystemUniqueIdNumberRef = unsafePerformIO (newIORef 0)
-{-# NOINLINE lastSystemUniqueIdNumberRef #-}
-
 getHWNDByUniqueId :: UniqueId -> IO (Maybe Win32.HWND)
 getHWNDByUniqueId uniqueId =
     readIORef uniqueIdAndHWNDMapRef >>= \uniqueIdAndHWNDMap ->
@@ -103,12 +97,6 @@ isUpdateProgressing = readIORef isUpdateProgressingRef
 setUpdateProgressing :: Bool -> IO ()
 setUpdateProgressing prog = atomicModifyIORef' isUpdateProgressingRef (const (prog, ()))
 
-getLastSystemUniqueIdNumber :: IO Int
-getLastSystemUniqueIdNumber = readIORef lastSystemUniqueIdNumberRef
-
-setLastSystemUniqueIdNumber :: Int -> IO ()
-setLastSystemUniqueIdNumber n = atomicModifyIORef' lastSystemUniqueIdNumberRef (const (n, ()))
-
 issueMsg :: HasCallStack => Msg -> IO ()
 issueMsg msg = do
     setUpdateProgressing True
@@ -124,10 +112,8 @@ issueMsg msg = do
             True  -> Just <$> ComponentInternal.restoreComponentFromHWND topLevelWindow
             False -> pure Nothing
 
-    viewFunc  <- readIORef viewFuncRef
-    lastIdNum <- getLastSystemUniqueIdNumber
-    let (newGUIComponents, newLastIdNum) = runState (execWriterT $ viewFunc newModel) lastIdNum
-    setLastSystemUniqueIdNumber newLastIdNum
+    viewFunc <- readIORef viewFuncRef
+    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) 0
 
     unless (newGUIComponents == currentGUIComponents) $
         updateComponents newGUIComponents currentGUIComponents Nothing
