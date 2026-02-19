@@ -21,6 +21,7 @@ import           TEAWin32.GUI.Internal           (finaliseFontCache,
                                                   initialiseCursorCache,
                                                   initialiseDPIStrategy,
                                                   initialiseIconCache)
+import qualified TEAWin32.Internal.Foreign       as Win32
 
 newtype Settings = Settings
     { useVisualStyles :: Bool
@@ -39,6 +40,8 @@ runTEA settings init update view =
 
 runTEA' :: (Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA' init update view = do
+    _ <- Win32.c_SetProcessDPIAware
+
     initialiseDPIStrategy
     initialiseCursorCache
     initialiseIconCache
