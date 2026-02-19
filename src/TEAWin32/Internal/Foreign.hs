@@ -17,6 +17,7 @@ module TEAWin32.Internal.Foreign
     , c_SetProcessDPIAware
     , c_GetDeviceCaps
     , makeGetDpiForWindow
+    , makeSetProcessDpiAwareness
     , gCLP_HICON
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
@@ -105,6 +106,11 @@ type GetDpiForWindow = Win32.HWND -> IO Word32
 
 foreign import ccall "dynamic"
     makeGetDpiForWindow :: FunPtr GetDpiForWindow -> GetDpiForWindow
+
+type SetProcessDpiAwareness = Int -> IO Bool
+
+foreign import ccall "dynamic"
+    makeSetProcessDpiAwareness :: FunPtr SetProcessDpiAwareness -> SetProcessDpiAwareness
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

@@ -11,6 +11,7 @@ module TEAWin32.GUI.Internal
     , fontCacheRef
     , initialiseCursorCache
     , initialiseIconCache
+    , setProcessDPIAware
     , finaliseFontCache
     , initialiseDPIStrategy
     , getDPIFromHWND
@@ -19,7 +20,8 @@ module TEAWin32.GUI.Internal
 import                          Control.Concurrent        (MVar, modifyMVar_,
                                                            newMVar, takeMVar)
 import                          Control.Exception         (SomeException, try)
-import                          Control.Monad             (filterM)
+import                          Control.Monad             (filterM, unless,
+                                                           void)
 import                          Data.Either               (fromRight)
 import                          Data.IORef                (IORef,
                                                            atomicModifyIORef',
@@ -89,10 +91,20 @@ initialiseIconCache = do
 
     modifyMVar_ iconCacheRef (const $ pure builtInIconCache)
 
+setProcessDPIAware :: IO ()
+setProcessDPIAware = do
+    _ <- Win32.c_SetProcessDPIAware
+
+    shcore                    <- fromRight Win32.nullPtr <$> try_ (Win32.getModuleHandle (Just "shcore.dll"))
+    setProcessDpiAwarenessPtr <- fromRight Win32.nullPtr <$> try_ (Win32.getProcAddress shcore "SetProcessDpiAwareness")
+
+    unless (setProcessDpiAwarenessPtr == Win32.nullPtr) $ do
+        let setProcessDpiAwareness = Win32.makeSetProcessDpiAwareness (castPtrToFunPtr setProcessDpiAwarenessPtr)
+        void (setProcessDpiAwareness 2)
+
 initialiseDPIStrategy :: IO ()
 initialiseDPIStrategy = do
-    user32 <- Win32.getModuleHandle (Just "user32.dll")
-
+    user32             <- Win32.getModuleHandle (Just "user32.dll")
     getDpiForWindowPtr <- fromRight Win32.nullPtr <$> try_ (Win32.getProcAddress user32 "GetDpiForWindow")
 
     let dpiStrategy
@@ -100,10 +112,6 @@ initialiseDPIStrategy = do
             | otherwise                           = LegacyDPIStrategy
 
     atomicModifyIORef' dpiStrategyRef (const (dpiStrategy, ()))
-
-    where
-        try_ :: IO a -> IO (Either SomeException a)
-        try_ = try
 
 getDPIFromHWND :: Win32.HWND -> IO Int
 getDPIFromHWND hwnd =
@@ -174,3 +182,6 @@ withTopLevelWindows func = do
     freeHaskellFunPtr enumPtr
 
     pure x
+
+try_ :: IO a -> IO (Either SomeException a)
+try_ = try
