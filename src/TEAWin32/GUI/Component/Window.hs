@@ -95,7 +95,9 @@ defaultWindowProc hwnd wMsg wParam lParam
         finaliseHWND hwnd
 
         remainingWindow <- atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n - 1, n - 1)
-        when (remainingWindow == 0) $
+
+        isUpdateProgressing' <- ApplicationInternal.isUpdateProgressing
+        when (remainingWindow == 0 && not isUpdateProgressing') $
             Win32.postQuitMessage 0
 
         pure 0
@@ -105,7 +107,7 @@ defaultWindowProc hwnd wMsg wParam lParam
             targetHWND   = intPtrToPtr (fromIntegral lParam)
 
         case notification of
-            0 -> do -- BN_CLICKED
+            0 -> -- BN_CLICKED
                 getEventHandlerFromHWNDMaybe ComponentClickEvent targetHWND >>= \case
                     Just msg -> ApplicationInternal.issueMsg msg >> pure 0
                     Nothing  -> Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam

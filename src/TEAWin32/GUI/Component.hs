@@ -7,14 +7,15 @@ module TEAWin32.GUI.Component
     , ZIndex (..)
     ) where
 
-import                          Control.Monad.Writer            (Writer)
+import                          Control.Monad.State.Strict      (State)
+import                          Control.Monad.Writer.Strict     (WriterT)
 import                          Data.Data                       (Typeable, cast)
 import                          GHC.Stack                       (HasCallStack)
 import                qualified Graphics.Win32                  as Win32
 import                          TEAWin32.GUI                    (UniqueId)
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Property (GUIComponentProperty)
 
-type GUIComponents = Writer [GUIComponent] ()
+type GUIComponents = WriterT [GUIComponent] (State Int) ()
 
 class Eq a => IsGUIComponent a where
     render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND

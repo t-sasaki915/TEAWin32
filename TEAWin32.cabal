@@ -53,6 +53,7 @@ library
       TEAWin32.GUI.Component.Internal
       TEAWin32.GUI.Component.Property
       TEAWin32.GUI.Component.Window
+      TEAWin32.GUI.DSL.Internal
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
       TEAWin32.GUI.Internal

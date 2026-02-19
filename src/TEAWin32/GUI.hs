@@ -30,7 +30,9 @@ import {-# SOURCE #-}           TEAWin32.GUI.Internal     (cursorCacheRef,
                                                            iconCacheRef)
 import                qualified TEAWin32.Internal.Foreign as Win32
 
-newtype UniqueId = UniqueId Text deriving (Show, Eq, Ord)
+data UniqueId = UserUniqueId  Text
+              | SystemUniqueId Int
+              deriving (Show, Eq, Ord)
 
 data WindowStyle = WindowStyleBorderless
                  | WindowStyleNormal
@@ -39,10 +41,16 @@ data WindowStyle = WindowStyleBorderless
                  deriving (Show, Eq, Ord)
 
 toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
-toWin32WindowStyle WindowStyleBorderless      = Win32.wS_POPUP .|. Win32.wS_CLIPCHILDREN
-toWin32WindowStyle WindowStyleNormal          = Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CLIPCHILDREN
-toWin32WindowStyle WindowStyleBorderlessChild = Win32.wS_CHILD .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
-toWin32WindowStyle WindowStyleNormalChild     =
+toWin32WindowStyle WindowStyleBorderless =
+    Win32.wS_POPUP .|. Win32.wS_CLIPCHILDREN
+
+toWin32WindowStyle WindowStyleNormal =
+    Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CLIPCHILDREN
+
+toWin32WindowStyle WindowStyleBorderlessChild =
+    Win32.wS_CHILD .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
+
+toWin32WindowStyle WindowStyleNormalChild =
     Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
 
 data Icon = IconApplication

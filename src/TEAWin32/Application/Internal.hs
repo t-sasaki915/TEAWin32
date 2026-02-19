@@ -9,6 +9,7 @@ module TEAWin32.Application.Internal
     , registerHWND
     , getHWNDByUniqueId
     , unregisterHWND
+    , isUpdateProgressing
     , issueMsg
     , updateComponents
     ) where
@@ -16,7 +17,8 @@ module TEAWin32.Application.Internal
 import                          Control.Monad                             (forM_,
                                                                            unless,
                                                                            void)
-import                          Control.Monad.Writer                      (execWriter)
+import                          Control.Monad.State.Strict                (evalState)
+import                          Control.Monad.Writer.Strict               (execWriterT)
 import                          Data.Data                                 (Typeable,
                                                                            cast)
 import                          Data.IORef                                (IORef,
@@ -68,6 +70,10 @@ uniqueIdAndHWNDMapRef :: IORef (Map UniqueId Win32.HWND)
 uniqueIdAndHWNDMapRef = unsafePerformIO (newIORef mempty)
 {-# NOINLINE uniqueIdAndHWNDMapRef #-}
 
+isUpdateProgressingRef :: IORef Bool
+isUpdateProgressingRef = unsafePerformIO (newIORef False)
+{-# NOINLINE isUpdateProgressingRef #-}
+
 getHWNDByUniqueId :: UniqueId -> IO (Maybe Win32.HWND)
 getHWNDByUniqueId uniqueId =
     readIORef uniqueIdAndHWNDMapRef >>= \uniqueIdAndHWNDMap ->
@@ -85,8 +91,16 @@ unregisterHWND hwnd =
         let newHWNDMap = Map.filter (/= hwnd) hwndMap in
             (newHWNDMap, ())
 
+isUpdateProgressing :: IO Bool
+isUpdateProgressing = readIORef isUpdateProgressingRef
+
+setUpdateProgressing :: Bool -> IO ()
+setUpdateProgressing prog = atomicModifyIORef' isUpdateProgressingRef (const (prog, ()))
+
 issueMsg :: HasCallStack => Msg -> IO ()
 issueMsg msg = do
+    setUpdateProgressing True
+
     updateFunc   <- readIORef updateFuncRef
     currentModel <- readIORef modelRef
 
@@ -99,10 +113,12 @@ issueMsg msg = do
             False -> pure Nothing
 
     viewFunc <- readIORef viewFuncRef
-    let newGUIComponents = execWriter $ viewFunc newModel
+    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) 0
 
     unless (newGUIComponents == currentGUIComponents) $
         updateComponents newGUIComponents currentGUIComponents Nothing
+
+    setUpdateProgressing False
 
 updateComponents :: HasCallStack => [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
 updateComponents newChildren oldChildren parentHWND =
@@ -123,7 +139,7 @@ updateComponents newChildren oldChildren parentHWND =
 
             (ComponentInternal.RedrawComponent modifiedComponent) ->
                 getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
-                    Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND)
+                    Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND) -- TODO
                     Nothing   -> throwTEAWin32InternalError "Tried to redraw a component that was not in the map."
 
             (ComponentInternal.UpdateProperties newComponent oldComponent) ->
