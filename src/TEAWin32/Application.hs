@@ -4,8 +4,7 @@ module TEAWin32.Application
     , runTEA
     ) where
 
-import           Control.Exception               (Exception (displayException),
-                                                  evaluate)
+import           Control.Exception               (Exception (displayException))
 import           Control.Monad                   (forM_)
 import           Control.Monad.Writer            (execWriter)
 import           Data.Data                       (Typeable, cast)
@@ -71,17 +70,13 @@ runTEA' init update view = do
 
         view' (Model model) =
             case cast model of
-                Just model' ->
-                    try_ (evaluate (view model')) >>= \case
-                        Right x  -> pure x
-                        Left err -> throwTEAWin32ApplicationError View (Text.pack $ displayException err)
-                _ ->
-                    throwTEAWin32InternalError "Failed to cast Model."
+                Just model' -> view model'
+                _           -> throwTEAWin32InternalError "Failed to cast Model."
 
     atomicModifyIORef' updateFuncRef (const (update', ()))
     atomicModifyIORef' viewFuncRef (const (view', ()))
 
-    initGUIComponents <- execWriter <$> view' (Model initModel)
+    let initGUIComponents = execWriter $ view' (Model initModel)
 
     sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
     forM_ sortedInitGUIComponents $ \guiComponent ->

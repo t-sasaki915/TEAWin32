@@ -59,7 +59,7 @@ updateFuncRef :: IORef (Msg -> Model -> IO Model)
 updateFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
 {-# NOINLINE updateFuncRef #-}
 
-viewFuncRef :: IORef (Model -> IO GUIComponents)
+viewFuncRef :: IORef (Model -> GUIComponents)
 viewFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
 {-# NOINLINE viewFuncRef #-}
 
@@ -98,7 +98,7 @@ issueMsg msg = do
             False -> pure Nothing
 
     viewFunc <- readIORef viewFuncRef
-    newGUIComponents <- execWriter <$> viewFunc newModel
+    let newGUIComponents = execWriter $ viewFunc newModel
 
     unless (newGUIComponents == currentGUIComponents) $
         updateComponents newGUIComponents currentGUIComponents Nothing

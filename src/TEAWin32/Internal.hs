@@ -15,7 +15,6 @@ import qualified Graphics.Win32    as Win32
 
 data ApplicationErrorLocation = Init
                               | Update
-                              | View
                               deriving Show
 
 throwTEAWin32ApplicationError :: HasCallStack => ApplicationErrorLocation -> Text -> a
