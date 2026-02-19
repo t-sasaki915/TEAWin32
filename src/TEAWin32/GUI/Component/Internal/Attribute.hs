@@ -20,6 +20,8 @@ module TEAWin32.GUI.Component.Internal.Attribute
     , getComponentBackgroundColourFromHWND
     , getComponentFontFromHWND
     , getComponentTitleFromHWND
+    , getComponentSizeFromHWND
+    , getComponentPositionFromHWND
     , getWindowClassNameFromHWND
     , getWindowStyleFromHWND
     , getWindowCursorFromHWND
@@ -36,7 +38,8 @@ import           GHC.IO                        (unsafePerformIO)
 import qualified Graphics.Win32                as Win32
 import qualified TEAWin32.Application.Internal as ApplicationInternal
 import           TEAWin32.Drawing              (Colour)
-import           TEAWin32.GUI                  (Cursor, Font, Icon, UniqueId,
+import           TEAWin32.GUI                  (Cursor, Font, Icon,
+                                                ScalableValue, UniqueId,
                                                 WindowStyle)
 
 data ComponentType = ComponentWindow
@@ -66,6 +69,8 @@ data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | ComponentBackgroundColourAttr Colour
                         | ComponentFontAttr             Font
                         | ComponentTitleAttr            Text
+                        | ComponentSizeAttr             (ScalableValue, ScalableValue)
+                        | ComponentPositionAttr         (ScalableValue, ScalableValue)
                         | WindowClassNameAttr           Text
                         | WindowStyleAttr               WindowStyle
                         | WindowCursorAttr              Cursor
@@ -81,6 +86,8 @@ isSameKind (ComponentEventHandlerAttr _ _) (ComponentEventHandlerAttr _ _)     =
 isSameKind (ComponentBackgroundColourAttr _) (ComponentBackgroundColourAttr _) = True
 isSameKind (ComponentFontAttr _) (ComponentFontAttr _)                         = True
 isSameKind (ComponentTitleAttr _) (ComponentTitleAttr _)                       = True
+isSameKind (ComponentSizeAttr _) (ComponentSizeAttr _)                         = True
+isSameKind (ComponentPositionAttr _) (ComponentPositionAttr _)                 = True
 isSameKind (WindowClassNameAttr _) (WindowClassNameAttr _)                     = True
 isSameKind (WindowStyleAttr _) (WindowStyleAttr _)                             = True
 isSameKind (WindowCursorAttr _) (WindowCursorAttr _)                           = True
@@ -219,6 +226,20 @@ getComponentTitleFromHWND hwnd =
         case [ title | ComponentTitleAttr title <- attrs ] of
             [ title ] -> pure title
             x         -> error $ "Illegal AttributeMap state: " <> show x
+
+getComponentSizeFromHWND :: Win32.HWND -> IO (ScalableValue, ScalableValue)
+getComponentSizeFromHWND hwnd =
+    getAttributesFromHWND hwnd >>= \attrs ->
+        case [ size | ComponentSizeAttr size <- attrs ] of
+            [ size ] -> pure size
+            x        -> error $ "Illegal AttributeMap state: " <> show x
+
+getComponentPositionFromHWND :: Win32.HWND -> IO (ScalableValue, ScalableValue)
+getComponentPositionFromHWND hwnd =
+    getAttributesFromHWND hwnd >>= \attrs ->
+        case [ position | ComponentPositionAttr position <- attrs ] of
+            [ position ] -> pure position
+            x            -> error $ "Illegal AttributeMap state: " <> show x
 
 getWindowClassNameFromHWND :: Win32.HWND -> IO Text
 getWindowClassNameFromHWND hwnd =

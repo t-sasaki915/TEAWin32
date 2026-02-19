@@ -113,32 +113,38 @@ instance IsGUIComponentProperty ComponentSize where
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
                 ComponentInternal.setComponentSize width' height' componentHWND >>
-                    addAttributeToHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
+                    addAttributeToHWND componentHWND (ComponentSizeAttr (width, height)) >>
+                        addAttributeToHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
 
     updateProperty (ComponentSize (width, height)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
-                ComponentInternal.setComponentSize width' height' componentHWND
+                ComponentInternal.setComponentSize width' height' componentHWND >>
+                    updateAttributeOfHWND componentHWND (ComponentSizeAttr (width, height))
 
-    unapplyProperty _ componentHWND =
+    unapplyProperty (ComponentSize (width, height)) componentHWND =
         ComponentInternal.setComponentSize 0 0 componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
+            removeAttributeFromHWND componentHWND (ComponentSizeAttr (width, height)) >>
+                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
 
 instance IsGUIComponentProperty ComponentPosition where
     applyProperty (ComponentPosition (x, y)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
                 ComponentInternal.setComponentPosition x' y' componentHWND >>
-                    addAttributeToHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
+                    addAttributeToHWND componentHWND (ComponentPositionAttr (x, y)) >>
+                        addAttributeToHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
 
     updateProperty (ComponentPosition (x, y)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
-                ComponentInternal.setComponentPosition x' y' componentHWND
+                ComponentInternal.setComponentPosition x' y' componentHWND >>
+                    updateAttributeOfHWND componentHWND (ComponentPositionAttr (x, y))
 
-    unapplyProperty _ componentHWND =
+    unapplyProperty (ComponentPosition (x, y)) componentHWND =
         ComponentInternal.setComponentPosition 0 0 componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
+            removeAttributeFromHWND componentHWND (ComponentPositionAttr (x, y)) >>
+                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
 
 instance IsGUIComponentProperty ComponentFont where
     applyProperty (ComponentFont font) componentHWND =

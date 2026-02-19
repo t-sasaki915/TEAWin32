@@ -14,7 +14,9 @@ import                qualified Graphics.Win32                as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal as ApplicationInternal
 import                          TEAWin32.Drawing              (Colour)
 import                          TEAWin32.GUI                  (Cursor, Font,
-                                                               Icon, UniqueId,
+                                                               Icon,
+                                                               ScalableValue,
+                                                               UniqueId,
                                                                WindowStyle)
 
 data ComponentType = ComponentWindow
@@ -41,6 +43,8 @@ data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | ComponentBackgroundColourAttr Colour
                         | ComponentFontAttr             Font
                         | ComponentTitleAttr            Text
+                        | ComponentSizeAttr             (ScalableValue, ScalableValue)
+                        | ComponentPositionAttr         (ScalableValue, ScalableValue)
                         | WindowClassNameAttr           Text
                         | WindowStyleAttr               WindowStyle
                         | WindowCursorAttr              Cursor

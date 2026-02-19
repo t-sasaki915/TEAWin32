@@ -129,14 +129,14 @@ defaultWindowProc hwnd wMsg wParam lParam
                 pure 1
 
     | wMsg == Win32.wM_DPICHANGED = do
-        let newDPI = Win32.lOWORD (fromIntegral wParam)
-        ComponentInternal.updateComponentDPIProperty hwnd (fromIntegral newDPI)
-
         let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam
         (x, y, w, h) <- peek rectPtr :: IO Win32.RECT
 
         ComponentInternal.setComponentSize (fromIntegral w) (fromIntegral h) hwnd
         ComponentInternal.setComponentPosition (fromIntegral x) (fromIntegral y) hwnd
+
+        let newDPI = Win32.lOWORD (fromIntegral wParam)
+        ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)
 
         pure 0
 

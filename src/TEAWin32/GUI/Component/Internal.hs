@@ -3,7 +3,7 @@ module TEAWin32.GUI.Component.Internal
     , compareGUIComponents
     , sortComponentsWithZIndex
     , resolveScalableValueForHWND
-    , updateComponentDPIProperty
+    , updateComponentDPI
     , getRelativeRectFromHWNDUsingWin32
     , bringComponentToTop
     , setComponentTitle
@@ -19,7 +19,8 @@ module TEAWin32.GUI.Component.Internal
 
 import                          Control.Concurrent                        (modifyMVar)
 import                          Control.Monad                             (filterM,
-                                                                           forM)
+                                                                           forM,
+                                                                           when)
 import                          Data.Functor                              (void)
 import                qualified Data.List                                 as List
 import                          Data.Map.Strict                           ((!))
@@ -103,12 +104,35 @@ resolveScalableValueForHWND hwnd (ScalableValue x) =
     getComponentCurrentDPIFromHWND hwnd >>= \currentDpi ->
         pure (round (x * fromIntegral currentDpi / 96.0))
 
-updateComponentDPIProperty :: Win32.HWND -> Int -> IO ()
-updateComponentDPIProperty hwnd newDPI = do
+updateComponentDPI :: Win32.HWND -> Int -> IO ()
+updateComponentDPI hwnd newDPI = do
     updateAttributeOfHWND hwnd (ComponentCurrentDPIAttr newDPI)
 
-    GUIInternal.withImmediateChildWindows hwnd $ \children ->
-        mapM_ (`updateComponentDPIProperty` newDPI) children
+    GUIInternal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
+        isManaged <- isManagedByTEAWin32 child
+
+        when isManaged $ do
+            isComponentFontSet <- doesHWNDHaveFlag ComponentFontSet child
+
+            when isComponentFontSet $
+                getComponentFontFromHWND child >>= \font ->
+                    updateProperty (ComponentFont font) (ComponentFont font) child
+
+            getComponentTypeFromHWND child >>= \case
+                ComponentWindow ->
+                    pure ()
+
+                _ -> do
+                    isComponentSizeSet     <- doesHWNDHaveFlag ComponentSizeSet child
+                    isComponentPositionSet <- doesHWNDHaveFlag ComponentPositionSet child
+
+                    when isComponentSizeSet $
+                        getComponentSizeFromHWND child >>= \size ->
+                            updateProperty (ComponentSize size) (ComponentSize size) child
+
+                    when isComponentPositionSet $
+                        getComponentPositionFromHWND child >>= \position ->
+                            updateProperty (ComponentPosition position) (ComponentPosition position) child
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do
