@@ -9,7 +9,7 @@ module TEAWin32.GUI.DSL
     , noChildren
     , title_
     , size_
-    , position_
+    , pos_
     , font_
     , zIndex_
     , onClick_
@@ -35,8 +35,8 @@ title_ = wrapComponentProperty . ComponentTitle
 size_ :: (IsPropertyWrapper a ComponentSize) => (ScalableValue, ScalableValue) -> a
 size_ = wrapComponentProperty . ComponentSize
 
-position_ :: (IsPropertyWrapper a ComponentPosition) => (ScalableValue, ScalableValue) -> a
-position_ = wrapComponentProperty . ComponentPosition
+pos_ :: (IsPropertyWrapper a ComponentPosition) => (ScalableValue, ScalableValue) -> a
+pos_ = wrapComponentProperty . ComponentPosition
 
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> a
 font_ = wrapComponentProperty . ComponentFont

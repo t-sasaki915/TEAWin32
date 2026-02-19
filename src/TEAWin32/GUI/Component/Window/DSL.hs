@@ -1,7 +1,7 @@
 module TEAWin32.GUI.Component.Window.DSL
     ( icon_
     , cursor_
-    , backgroundColour_
+    , bgColour_
     , window_'
     , window_
     ) where
@@ -25,8 +25,8 @@ icon_ = WindowProperty . WindowIcon
 cursor_ :: Cursor -> WindowProperty
 cursor_ = WindowProperty . WindowCursor
 
-backgroundColour_ :: Colour -> WindowProperty
-backgroundColour_ = WindowProperty . WindowBackgroundColour
+bgColour_ :: Colour -> WindowProperty
+bgColour_ = WindowProperty . WindowBackgroundColour
 
 window_' :: Text -> Text -> WindowStyle -> [WindowProperty] -> GUIComponents -> GUIComponents
 window_' windowUniqueId windowClass windowStyle windowProperties windowChildren =

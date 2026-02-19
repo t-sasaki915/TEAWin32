@@ -57,48 +57,48 @@ view model = do
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" WindowStyleNormal
-            [title_ "Count is even!", icon_ IconExclamation, size_ (400, 10), position_ (0, 0), backgroundColour_ (RGB 0 0 255)] noChildren
+            [title_ "Count is even!", icon_ IconExclamation, size_ (400, 10), pos_ (0, 0), bgColour_ (RGB 0 0 255)] noChildren
 
     window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
-        [title_ "!?", icon_ IconExclamation, size_ (400, 200), position_ (200, 0)] $
-            button_ [title_ "!?!?", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
+        [title_ "!?", icon_ IconExclamation, size_ (400, 200), pos_ (200, 0)] $
+            button_ [title_ "!?!?", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
         , icon_ IconApplication
         , size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
-        , backgroundColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
+        , bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
         ] ++ [cursor_ CursorIBeam | isCountEven]) $ do
-            button_ [title_ "TEST BUTTON", size_ (100, 50), position_ (0, 0), onClick_ ButtonClicked]
+            button_ [title_ "TEST BUTTON", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
 
             window_ "TEAWin32-Sub" WindowStyleNormalChild
                 [ title_ "HELLO"
                 , icon_ IconExclamation
                 , cursor_ CursorArrow
                 , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
-                , position_ (100, 100)
-                , backgroundColour_ (RGB 255 0 0)
+                , pos_ (100, 100)
+                , bgColour_ (RGB 255 0 0)
                 ] $ do
-                    button_ [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), position_ (20, 50)]
+                    button_ [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), pos_ (20, 50)]
 
-                    button_ [title_ "!?", size_ (50, 50), position_ (100, 150), onClick_ ButtonClicked2, font_ SystemFont]
+                    button_ [title_ "!?", size_ (50, 50), pos_ (100, 150), onClick_ ButtonClicked2, font_ SystemFont]
 
                     button_
-                        [title_ "おはようございます", size_ (200, 50), position_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
+                        [title_ "おはようございます", size_ (200, 50), pos_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
 
                     window_ "TEAWin32-Sub-Sub" WindowStyleBorderlessChild
-                        [title_ "GOOD MORNING", icon_ IconApplication, cursor_ CursorWait, size_ (50, 50), position_ (0, 0), backgroundColour_ (RGB 0 255 0)] noChildren
+                        [title_ "GOOD MORNING", icon_ IconApplication, cursor_ CursorWait, size_ (50, 50), pos_ (0, 0), bgColour_ (RGB 0 255 0)] noChildren
 
             window_ "TEAWin32-SubSubSubSub" WindowStyleNormalChild
                 [ title_ "HELLO 2"
                 , icon_ IconExclamation
                 , cursor_ CursorSizeNWSE
                 , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
-                , position_ (200, 200)
-                , backgroundColour_ (RGB 0 0 255)
+                , pos_ (200, 200)
+                , bgColour_ (RGB 0 0 255)
                 ] noChildren
 
-            button_ [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100), zIndex_ (-1)]
+            button_ [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), pos_ (150, 100), zIndex_ (-1)]
 
 main :: IO ()
 main =
