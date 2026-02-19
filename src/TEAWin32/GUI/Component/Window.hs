@@ -9,7 +9,6 @@ import           Foreign                                   (Storable (peek),
                                                             castPtr,
                                                             intPtrToPtr,
                                                             wordPtrToPtr)
-import           GHC.Ptr                                   (Ptr (Ptr))
 import qualified Graphics.Win32                            as Win32
 import qualified System.Win32                              as Win32
 import qualified TEAWin32.Application.Internal             as ApplicationInternal
@@ -133,8 +132,8 @@ defaultWindowProc hwnd wMsg wParam lParam
         let newDPI = Win32.lOWORD (fromIntegral wParam)
         ComponentInternal.updateComponentDPIProperty hwnd (fromIntegral newDPI)
 
-        let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam :: Ptr Win32.RECT
-        (w, h, x, y) <- peek rectPtr
+        let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam
+        (x, y, w, h) <- peek rectPtr :: IO Win32.RECT
 
         ComponentInternal.setComponentSize (fromIntegral w) (fromIntegral h) hwnd
         ComponentInternal.setComponentPosition (fromIntegral x) (fromIntegral y) hwnd
