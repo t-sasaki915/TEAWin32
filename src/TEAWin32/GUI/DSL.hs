@@ -20,6 +20,7 @@ import           Data.Text                         (Text)
 import           TEAWin32.Drawing                  (Colour (..))
 import           TEAWin32.GUI                      (Cursor (..), Font (..),
                                                     Icon (..), ScalableValue,
+                                                    UniqueId (..),
                                                     WindowStyle (..), raw)
 import           TEAWin32.GUI.Component            (GUIComponents)
 import           TEAWin32.GUI.Component.Button.DSL

@@ -12,22 +12,26 @@ module TEAWin32.Effect.MessageBox
     , fromWin32MessageBoxResult
     ) where
 
-import           Data.Bits         ((.|.))
-import           Data.Maybe        (fromMaybe)
-import           Data.Text         (Text)
-import qualified Data.Text         as Text
-import           GHC.Stack         (HasCallStack)
-import qualified Graphics.Win32    as Win32
-import           TEAWin32.Internal (throwTEAWin32InternalError)
+import           Data.Bits                     ((.|.))
+import           Data.Maybe                    (fromMaybe)
+import           Data.Text                     (Text)
+import qualified Data.Text                     as Text
+import           GHC.Stack                     (HasCallStack)
+import qualified Graphics.Win32                as Win32
+import qualified TEAWin32.Application.Internal as ApplicationInternal
+import           TEAWin32.GUI                  (UniqueId)
+import           TEAWin32.Internal             (throwTEAWin32InternalError)
 
 showMessageBox :: HasCallStack => MessageBoxSettings -> IO MessageBoxResult
-showMessageBox (MessageBoxSettings msgBoxTitle msgBoxContent msgBoxBtns msgBoxIcon msgBoxDefBtn) =
+showMessageBox (MessageBoxSettings msgBoxTitle msgBoxContent msgBoxBtns msgBoxIcon msgBoxDefBtn msgBoxIsTaskModal msgBoxOwner) =
     let msgBoxBtns' = toWin32MessageBoxButtons msgBoxBtns
         msgBoxIcon' = toWin32MessageBoxIcon msgBoxIcon
         msgBoxDefBtn' = toWin32MessageBoxDefaultButton (fromMaybe MessageBoxButton1 msgBoxDefBtn)
-        msgBoxStyle = msgBoxBtns' .|. msgBoxIcon' .|. msgBoxDefBtn' in
-            fromWin32MessageBoxResult <$>
-                Win32.messageBox Nothing (Text.unpack msgBoxContent) (Text.unpack msgBoxTitle) msgBoxStyle
+        msgBoxIsTaskModal' = if msgBoxIsTaskModal then Win32.mB_TASKMODAL else 0x00000000
+        msgBoxStyle = msgBoxBtns' .|. msgBoxIcon' .|. msgBoxDefBtn' .|. msgBoxIsTaskModal' in
+            maybe (pure Nothing) ApplicationInternal.getHWNDByUniqueId msgBoxOwner >>= \owner ->
+                fromWin32MessageBoxResult <$>
+                    Win32.messageBox owner (Text.unpack msgBoxContent) (Text.unpack msgBoxTitle) msgBoxStyle
 
 data MessageBoxSettings = MessageBoxSettings
     { messageBoxTitle         :: Text
@@ -35,6 +39,8 @@ data MessageBoxSettings = MessageBoxSettings
     , messageBoxButtons       :: MessageBoxButtons
     , messageBoxIcon          :: MessageBoxIcon
     , messageBoxDefaultButton :: Maybe MessageBoxDefaultButton
+    , messageBoxTaskModal     :: Bool
+    , messageBoxOwnerUniqueId :: Maybe UniqueId
     } deriving (Show, Eq)
 
 defaultMessageBoxSettings :: MessageBoxSettings
@@ -44,6 +50,8 @@ defaultMessageBoxSettings = MessageBoxSettings
     , messageBoxButtons       = MessageBoxButtonsOK
     , messageBoxIcon          = MessageBoxIconInformation
     , messageBoxDefaultButton = Nothing
+    , messageBoxTaskModal     = False
+    , messageBoxOwnerUniqueId = Nothing
     }
 
 data MessageBoxButtons = MessageBoxButtonsAbortRetryIgnore

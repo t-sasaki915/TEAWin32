@@ -39,6 +39,7 @@ update ButtonClicked2 model = do
             , messageBoxButtons       = MessageBoxButtonsYesNo
             , messageBoxIcon          = MessageBoxIconError
             , messageBoxDefaultButton = Just MessageBoxButton2
+            , messageBoxTaskModal     = True
             }
 
     case msgBoxResult of
@@ -78,8 +79,6 @@ view model = do
                 , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
                 , position_ (100, 100)
                 , backgroundColour_ (RGB 255 0 0)
-                , zIndex_ (if isCountEven then 1 else 2)
-                --, zIndex_ 2
                 ] $ do
                     button_ "TestButton2" [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), position_ (20, 50)]
 
@@ -98,11 +97,9 @@ view model = do
                 , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
                 , position_ (200, 200)
                 , backgroundColour_ (RGB 0 0 255)
-                , zIndex_ (if isCountEven then 2 else 1)
-                --, zIndex_ 1
                 ] noChildren
 
-            button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100), zIndex_ 0]
+            button_ "TestButton4" [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), position_ (150, 100), zIndex_ (-1)]
 
 main :: IO ()
 main =

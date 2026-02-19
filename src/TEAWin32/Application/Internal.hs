@@ -7,6 +7,7 @@ module TEAWin32.Application.Internal
     , updateFuncRef
     , viewFuncRef
     , registerHWND
+    , getHWNDByUniqueId
     , unregisterHWND
     , issueMsg
     , updateComponents
