@@ -6,6 +6,7 @@ module TEAWin32.GUI.Component
     , IsGUIComponent (..)
     , GUIComponent (..)
     , ZIndex (..)
+    , EventType (..)
     ) where
 
 import                          Control.Monad.State.Strict      (State)
@@ -21,6 +22,9 @@ type GUIComponents = WriterT [GUIComponent] (State Int) ()
 data ComponentType = ComponentWindow
                    | ComponentButton
                    deriving (Eq, Show, Ord)
+
+data EventType = ComponentClickEvent
+               deriving (Eq, Show)
 
 class Eq a => IsGUIComponent a where
     render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND

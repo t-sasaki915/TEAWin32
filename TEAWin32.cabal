@@ -50,6 +50,7 @@ library
       TEAWin32.GUI.Component.Window.Internal
       TEAWin32.GUI.Component.Window.Property
       TEAWin32.GUI.Component.Button
+      TEAWin32.GUI.Component.ComponentRegistry
       TEAWin32.GUI.Component.Internal
       TEAWin32.GUI.Component.Property
       TEAWin32.GUI.Component.Window
@@ -60,6 +61,7 @@ library
       TEAWin32.Internal.Foreign
       TEAWin32.Application
       TEAWin32.Drawing
+      TEAWin32.Exception
       TEAWin32.GUI
       TEAWin32.Internal
   other-modules:
