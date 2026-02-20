@@ -10,6 +10,7 @@ module TEAWin32.GUI.Component.Internal.Attribute
     , removeAttributeFromHWND
     , getAttributesFromHWND
     , isManagedByTEAWin32
+    , isComponentWindow
     , getComponentUniqueIdFromHWND
     , getComponentTypeFromHWND
     , getComponentCurrentDPIFromHWND
@@ -22,14 +23,16 @@ module TEAWin32.GUI.Component.Internal.Attribute
     , getComponentTitleFromHWND
     , getComponentSizeFromHWND
     , getComponentPositionFromHWND
+    , getComponentZIndexFromHWND
     , getWindowClassNameFromHWND
     , getWindowStyleFromHWND
     , getWindowCursorFromHWND
     , getWindowIconFromHWND
     ) where
 
-import           Data.IORef                    (IORef, atomicModifyIORef',
-                                                newIORef, readIORef)
+import           Control.Concurrent            (MVar, modifyMVar, newMVar,
+                                                readMVar)
+import           Data.Functor                  ((<&>))
 import qualified Data.List                     as List
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
@@ -43,11 +46,8 @@ import           TEAWin32.Drawing              (Colour)
 import           TEAWin32.GUI                  (Cursor, Font, Icon,
                                                 ScalableValue, UniqueId,
                                                 WindowStyle)
+import           TEAWin32.GUI.Component        (ComponentType (..))
 import           TEAWin32.Internal             (throwTEAWin32InternalError)
-
-data ComponentType = ComponentWindow
-                   | ComponentButton
-                   deriving (Eq, Show, Ord)
 
 data EventType = ComponentClickEvent
                deriving (Eq, Show, Ord)
@@ -59,6 +59,7 @@ data ComponentFlagKey = ComponentTitleSet
                       | ComponentOnClickSet
                       | ComponentChildrenSet
                       | ComponentBackgroundColourSet
+                      | ComponentZIndexSet
                       | WindowIconSet
                       | WindowCursorSet
                       | WindowBackgroundColourSet
@@ -74,6 +75,7 @@ data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | ComponentTitleAttr            Text
                         | ComponentSizeAttr             (ScalableValue, ScalableValue)
                         | ComponentPositionAttr         (ScalableValue, ScalableValue)
+                        | ComponentZIndexAttr           Int
                         | WindowClassNameAttr           Text
                         | WindowStyleAttr               WindowStyle
                         | WindowCursorAttr              Cursor
@@ -97,67 +99,71 @@ isSameKind (WindowCursorAttr _) (WindowCursorAttr _)                           =
 isSameKind (WindowIconAttr _) (WindowIconAttr _)                               = True
 isSameKind _ _                                                                 = False
 
-attributeMapRef :: IORef (Map Win32.HWND [ComponentAttribute])
-attributeMapRef = unsafePerformIO (newIORef Map.empty)
+attributeMapRef :: MVar (Map Win32.HWND [ComponentAttribute])
+attributeMapRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE attributeMapRef #-}
 
 registerHWNDToAttributeMap :: Win32.HWND -> IO ()
 registerHWNDToAttributeMap hwnd =
-    atomicModifyIORef' attributeMapRef $ \attrMap ->
+    modifyMVar attributeMapRef $ \attrMap ->
         let newMap = Map.insert hwnd [] attrMap in
-            (newMap, ())
+            pure (newMap, ())
 
 unregisterHWNDFromAttributeMap :: Win32.HWND -> IO ()
 unregisterHWNDFromAttributeMap hwnd =
-    atomicModifyIORef' attributeMapRef $ \attrMap ->
+    modifyMVar attributeMapRef $ \attrMap ->
         let newMap = Map.delete hwnd attrMap in
-            (newMap, ())
+            pure (newMap, ())
 
 addAttributeToHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 addAttributeToHWND hwnd attr =
-    atomicModifyIORef' attributeMapRef $ \attrMap ->
+    modifyMVar attributeMapRef $ \attrMap ->
         case Map.lookup hwnd attrMap of
             Just hwndAttrs ->
                 let newHWNDAttrs = hwndAttrs ++ [attr]
                     newMap = Map.insert hwnd newHWNDAttrs attrMap in
-                        (newMap, ())
+                        pure (newMap, ())
             Nothing ->
                 throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
 updateAttributeOfHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 updateAttributeOfHWND hwnd newAttr =
-    atomicModifyIORef' attributeMapRef $ \attrMap ->
+    modifyMVar attributeMapRef $ \attrMap ->
         case Map.lookup hwnd attrMap of
             Just hwndAttrs ->
                 let newHWNDAttrs = [attr | attr <- hwndAttrs, not (attr `isSameKind` newAttr)] ++ [newAttr]
                     newMap = Map.insert hwnd newHWNDAttrs attrMap in
-                        (newMap, ())
+                        pure (newMap, ())
 
             Nothing ->
                 throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
 removeAttributeFromHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 removeAttributeFromHWND hwnd attr =
-    atomicModifyIORef' attributeMapRef $ \attrMap ->
+    modifyMVar attributeMapRef $ \attrMap ->
         case Map.lookup hwnd attrMap of
             Just hwndAttrs ->
                 let newHWNDAttrs = List.delete attr hwndAttrs
                     newMap = Map.insert hwnd newHWNDAttrs attrMap in
-                        (newMap, ())
+                        pure (newMap, ())
             Nothing ->
                 throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
 getAttributesFromHWND :: HasCallStack => Win32.HWND -> IO [ComponentAttribute]
 getAttributesFromHWND hwnd =
-    readIORef attributeMapRef >>= \attrMap ->
+    readMVar attributeMapRef >>= \attrMap ->
         case Map.lookup hwnd attrMap of
             Just hwndAttrs -> pure hwndAttrs
             Nothing        -> throwTEAWin32InternalError $ "AttributeMap for " <> Text.show hwnd <> " is not initialised."
 
 isManagedByTEAWin32 :: Win32.HWND -> IO Bool
 isManagedByTEAWin32 hwnd =
-    readIORef attributeMapRef >>= \attrMap ->
+    readMVar attributeMapRef >>= \attrMap ->
         pure $ hwnd `Map.member` attrMap
+
+isComponentWindow :: Win32.HWND -> IO Bool
+isComponentWindow hwnd =
+    getComponentTypeFromHWND hwnd <&> (== ComponentWindow)
 
 getComponentUniqueIdFromHWND :: HasCallStack => Win32.HWND -> IO UniqueId
 getComponentUniqueIdFromHWND hwnd =
@@ -243,6 +249,13 @@ getComponentPositionFromHWND hwnd =
         case [ position | ComponentPositionAttr position <- attrs ] of
             [ position ] -> pure position
             x            -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
+
+getComponentZIndexFromHWND :: HasCallStack => Win32.HWND -> IO Int
+getComponentZIndexFromHWND hwnd =
+    getAttributesFromHWND hwnd >>= \attrs ->
+        case [ zIndex | ComponentZIndexAttr zIndex <- attrs ] of
+            [ zIndex ] -> pure zIndex
+            x          -> throwTEAWin32InternalError $ "Illegal AttributeMap state: " <> Text.show x
 
 getWindowClassNameFromHWND :: HasCallStack => Win32.HWND -> IO Text
 getWindowClassNameFromHWND hwnd =

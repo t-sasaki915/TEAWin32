@@ -1,7 +1,7 @@
-module TEAWin32.GUI.Component.Window (Window (..), destroyChildren) where
+module TEAWin32.GUI.Component.Window (Window (..)) where
 
 import           Control.Exception                         (bracket)
-import           Control.Monad                             (unless, when)
+import           Control.Monad                             (when)
 import           Data.Bits                                 ((.|.))
 import           Data.IORef                                (atomicModifyIORef')
 import           Data.Text                                 (Text)
@@ -36,6 +36,8 @@ instance IsGUIComponent Window where
 
     doesNeedToRedraw (Window uniqueId1 className1 style1 _) (Window uniqueId2 className2 style2 _) =
         uniqueId1 /= uniqueId2 || className1 /= className2 || style1 /= style2
+
+    getComponentType _ = ComponentWindow
 
     render (Window windowUniqueId windowClassName windowStyle windowProperties) parentHWND = do
         mainInstance <- Win32.getModuleHandle Nothing
@@ -91,8 +93,8 @@ instance IsGUIComponent Window where
 defaultWindowProc :: HasCallStack => Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
 defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
-        destroyChildren hwnd
-        finaliseHWND hwnd
+        ComponentInternal.destroyChildren hwnd
+        ComponentInternal.unregisterComponent hwnd
 
         remainingWindow <- atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
@@ -146,18 +148,3 @@ defaultWindowProc hwnd wMsg wParam lParam
 
     | otherwise =
         Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
-
-destroyChildren :: Win32.HWND -> IO ()
-destroyChildren hwnd =
-    GUIInternal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
-        isWindow <- isManagedByTEAWin32 child
-
-        unless isWindow $
-            finaliseHWND child
-
-        Win32.destroyWindow child
-
-finaliseHWND :: Win32.HWND -> IO ()
-finaliseHWND hwnd = do
-    unregisterHWNDFromAttributeMap hwnd
-    ApplicationInternal.unregisterHWND hwnd

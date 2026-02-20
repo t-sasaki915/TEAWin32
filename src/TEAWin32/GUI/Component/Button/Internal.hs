@@ -20,6 +20,7 @@ restoreButtonFromHWND hwnd = do
     isComponentPositionSet <- doesHWNDHaveFlag ComponentPositionSet hwnd
     isComponentFontSet     <- doesHWNDHaveFlag ComponentFontSet     hwnd
     isComponentOnClickSet  <- doesHWNDHaveFlag ComponentOnClickSet  hwnd
+    isComponentZIndexSet   <- doesHWNDHaveFlag ComponentZIndexSet   hwnd
 
     properties <- execWriterT $ do
         when isComponentTitleSet $
@@ -41,5 +42,9 @@ restoreButtonFromHWND hwnd = do
         when isComponentOnClickSet $
             liftIO (getEventHandlerFromHWND ComponentClickEvent hwnd) >>= \msg ->
                 tell [ButtonProperty $ ComponentOnClick msg]
+
+        when isComponentZIndexSet $
+            liftIO (getComponentZIndexFromHWND hwnd) >>= \zIndex ->
+                tell [ButtonProperty $ ComponentZIndex zIndex]
 
     pure $ GUIComponent $ Button buttonUniqueId properties

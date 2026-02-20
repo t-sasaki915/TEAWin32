@@ -35,6 +35,6 @@ window_' windowUniqueId windowClass windowStyle windowProperties windowChildren 
 
 window_ :: Text -> WindowStyle -> [WindowProperty] -> GUIComponents -> GUIComponents
 window_ windowClass windowStyle windowProperties windowChildren =
-    resolveChildren WindowProperty windowProperties windowChildren >>= \properties ->
-        getNextSystemUniqueId >>= \uniqueId ->
+    getNextSystemUniqueId >>= \uniqueId ->
+        resolveChildren WindowProperty windowProperties windowChildren >>= \properties ->
             tell [GUIComponent (Window uniqueId windowClass windowStyle properties)]

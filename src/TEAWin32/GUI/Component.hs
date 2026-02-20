@@ -2,6 +2,7 @@
 
 module TEAWin32.GUI.Component
     ( GUIComponents
+    , ComponentType (..)
     , IsGUIComponent (..)
     , GUIComponent (..)
     , ZIndex (..)
@@ -17,6 +18,10 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component.Property (GUIComponentPro
 
 type GUIComponents = WriterT [GUIComponent] (State Int) ()
 
+data ComponentType = ComponentWindow
+                   | ComponentButton
+                   deriving (Eq, Show, Ord)
+
 class Eq a => IsGUIComponent a where
     render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND
 
@@ -25,6 +30,8 @@ class Eq a => IsGUIComponent a where
     getUniqueId :: a -> UniqueId
 
     doesNeedToRedraw :: a -> a -> Bool
+
+    getComponentType :: a -> ComponentType
 
 data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
 
@@ -48,6 +55,8 @@ instance IsGUIComponent GUIComponent where
         case cast b of
             Just b' -> doesNeedToRedraw a b'
             Nothing -> True
+
+    getComponentType (GUIComponent a) = getComponentType a
 
 data ZIndex = SystemCalculatedZIndex Int
             | ZIndexWithUserSpecification Int Int

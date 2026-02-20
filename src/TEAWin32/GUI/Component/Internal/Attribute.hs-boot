@@ -1,12 +1,12 @@
 module TEAWin32.GUI.Component.Internal.Attribute
-    ( ComponentType (..)
-    , EventType (..)
+    ( EventType (..)
     , ComponentFlagKey (..)
     , ComponentAttribute (..)
     , addAttributeToHWND
     , updateAttributeOfHWND
     , removeAttributeFromHWND
     , isManagedByTEAWin32
+    , isComponentWindow
     ) where
 
 import                          Data.Text                     (Text)
@@ -19,9 +19,7 @@ import                          TEAWin32.GUI                  (Cursor, Font,
                                                                ScalableValue,
                                                                UniqueId,
                                                                WindowStyle)
-
-data ComponentType = ComponentWindow
-                   | ComponentButton
+import                          TEAWin32.GUI.Component        (ComponentType)
 
 data EventType = ComponentClickEvent
 
@@ -32,6 +30,7 @@ data ComponentFlagKey = ComponentTitleSet
                       | ComponentOnClickSet
                       | ComponentChildrenSet
                       | ComponentBackgroundColourSet
+                      | ComponentZIndexSet
                       | WindowIconSet
                       | WindowCursorSet
                       | WindowBackgroundColourSet
@@ -46,6 +45,7 @@ data ComponentAttribute = ComponentUniqueIdAttr         UniqueId
                         | ComponentTitleAttr            Text
                         | ComponentSizeAttr             (ScalableValue, ScalableValue)
                         | ComponentPositionAttr         (ScalableValue, ScalableValue)
+                        | ComponentZIndexAttr           Int
                         | WindowClassNameAttr           Text
                         | WindowStyleAttr               WindowStyle
                         | WindowCursorAttr              Cursor
@@ -58,3 +58,5 @@ updateAttributeOfHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO 
 removeAttributeFromHWND :: HasCallStack => Win32.HWND -> ComponentAttribute -> IO ()
 
 isManagedByTEAWin32 :: Win32.HWND -> IO Bool
+
+isComponentWindow :: Win32.HWND -> IO Bool

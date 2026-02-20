@@ -14,6 +14,10 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
+import                          Control.Concurrent                        (MVar,
+                                                                           modifyMVar,
+                                                                           newMVar,
+                                                                           readMVar)
 import                          Control.Monad                             (forM_,
                                                                            unless,
                                                                            void)
@@ -66,8 +70,8 @@ viewFuncRef :: IORef (Model -> GUIComponents)
 viewFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
 {-# NOINLINE viewFuncRef #-}
 
-uniqueIdAndHWNDMapRef :: IORef (Map UniqueId Win32.HWND)
-uniqueIdAndHWNDMapRef = unsafePerformIO (newIORef mempty)
+uniqueIdAndHWNDMapRef :: MVar (Map UniqueId Win32.HWND)
+uniqueIdAndHWNDMapRef = unsafePerformIO (newMVar mempty)
 {-# NOINLINE uniqueIdAndHWNDMapRef #-}
 
 isUpdateProgressingRef :: IORef Bool
@@ -76,20 +80,20 @@ isUpdateProgressingRef = unsafePerformIO (newIORef False)
 
 getHWNDByUniqueId :: UniqueId -> IO (Maybe Win32.HWND)
 getHWNDByUniqueId uniqueId =
-    readIORef uniqueIdAndHWNDMapRef >>= \uniqueIdAndHWNDMap ->
+    readMVar uniqueIdAndHWNDMapRef >>= \uniqueIdAndHWNDMap ->
         pure $ Map.lookup uniqueId uniqueIdAndHWNDMap
 
 registerHWND :: UniqueId -> Win32.HWND -> IO ()
 registerHWND uniqueId hwnd =
-    atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
+    modifyMVar uniqueIdAndHWNDMapRef $ \hwndMap ->
         let newHWNDMap = Map.insert uniqueId hwnd hwndMap in
-            (newHWNDMap, ())
+            pure (newHWNDMap, ())
 
 unregisterHWND :: Win32.HWND -> IO ()
 unregisterHWND hwnd =
-    atomicModifyIORef' uniqueIdAndHWNDMapRef $ \hwndMap ->
+    modifyMVar uniqueIdAndHWNDMapRef $ \hwndMap ->
         let newHWNDMap = Map.filter (/= hwnd) hwndMap in
-            (newHWNDMap, ())
+            pure (newHWNDMap, ())
 
 isUpdateProgressing :: IO Bool
 isUpdateProgressing = readIORef isUpdateProgressingRef
@@ -118,10 +122,13 @@ issueMsg msg = do
     unless (newGUIComponents == currentGUIComponents) $
         updateComponents newGUIComponents currentGUIComponents Nothing
 
+    readMVar uniqueIdAndHWNDMapRef >>= print
+
     setUpdateProgressing False
 
 updateComponents :: HasCallStack => [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
-updateComponents newChildren oldChildren parentHWND =
+updateComponents newChildren oldChildren parentHWND = do
+    putStrLn "=================================================================================="
     ComponentInternal.sortComponentsWithZIndex newChildren parentHWND >>= \sortedNewChildren ->
         forM_ (ComponentInternal.compareGUIComponents sortedNewChildren oldChildren) $ \case
             (ComponentInternal.NoComponentChange component) ->
@@ -129,17 +136,24 @@ updateComponents newChildren oldChildren parentHWND =
                     Just hwnd -> ComponentInternal.bringComponentToTop hwnd
                     Nothing   -> throwTEAWin32InternalError "Tried to change the z-index of a component that was not in the map."
 
-            (ComponentInternal.RenderComponent addedComponent) ->
+            (ComponentInternal.RenderComponent addedComponent) -> do
+                putStrLn $ "Render " <> show (getUniqueId addedComponent)
                 void (render addedComponent parentHWND)
 
-            (ComponentInternal.DeleteComponent deletedComponent) ->
+            (ComponentInternal.DeleteComponent deletedComponent) -> do
+                putStrLn $ "Delete " <> show (getUniqueId deletedComponent)
                 getHWNDByUniqueId (getUniqueId deletedComponent) >>= \case
-                    Just hwnd -> Win32.destroyWindow hwnd
+                    Just hwnd -> ComponentInternal.destroyComponent hwnd
                     Nothing   -> throwTEAWin32InternalError "Tried to delete a component that was not in the map."
 
             (ComponentInternal.RedrawComponent modifiedComponent) ->
                 getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
-                    Just hwnd -> Win32.destroyWindow hwnd >> void (render modifiedComponent parentHWND) -- TODO
+                    Just hwnd -> ComponentInternal.destroyComponent hwnd >> void (render modifiedComponent parentHWND) -- TODO
+                    Nothing   -> throwTEAWin32InternalError "Tried to redraw a component that was not in the map."
+
+            (ComponentInternal.DifferentComponent newComponent oldComponent) ->
+                getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
+                    Just hwnd -> ComponentInternal.destroyComponent hwnd >> void (render newComponent parentHWND)
                     Nothing   -> throwTEAWin32InternalError "Tried to redraw a component that was not in the map."
 
             (ComponentInternal.UpdateProperties newComponent oldComponent) ->
@@ -162,3 +176,5 @@ updateComponents newChildren oldChildren parentHWND =
 
                     Nothing ->
                         throwTEAWin32InternalError "Tried to update the properties of a component that was not in the map."
+
+    putStrLn "=================================================================================="

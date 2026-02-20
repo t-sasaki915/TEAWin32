@@ -10,6 +10,8 @@ module TEAWin32.GUI.Component.Internal
     , setComponentSize
     , setComponentFont
     , useDefaultFont
+    , destroyChildren
+    , destroyComponent
     ) where
 
 import           Data.Text              (Text)
@@ -21,6 +23,7 @@ import           TEAWin32.GUI.Component (GUIComponent)
 data ComponentUpdateAction = RenderComponent GUIComponent
                            | UpdateProperties GUIComponent GUIComponent
                            | RedrawComponent GUIComponent
+                           | DifferentComponent GUIComponent GUIComponent
                            | DeleteComponent GUIComponent
                            | NoComponentChange GUIComponent
 
@@ -43,3 +46,7 @@ setComponentSize :: Int -> Int -> Win32.HWND -> IO ()
 setComponentFont :: HasCallStack => Font -> Win32.HWND -> IO ()
 
 useDefaultFont :: HasCallStack => Win32.HWND -> IO ()
+
+destroyChildren :: Win32.HWND -> IO ()
+
+destroyComponent :: Win32.HWND -> IO ()

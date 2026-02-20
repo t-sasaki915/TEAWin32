@@ -8,6 +8,8 @@ import                qualified Graphics.Win32                  as Win32
 import                          TEAWin32.GUI                    (UniqueId)
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Property (GUIComponentProperty)
 
+data ComponentType
+
 class Eq a => IsGUIComponent a where
     render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND
 
@@ -16,6 +18,8 @@ class Eq a => IsGUIComponent a where
     getUniqueId :: a -> UniqueId
 
     doesNeedToRedraw :: a -> a -> Bool
+
+    getComponentType :: a -> ComponentType
 
 data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
 

@@ -14,12 +14,16 @@ module TEAWin32.GUI.Component.Internal
     , setWindowIcon
     , setWindowCursor
     , requestRedraw
+    , destroyChildren
+    , destroyComponent
+    , unregisterComponent
     , restoreComponentFromHWND
     ) where
 
 import                          Control.Concurrent                        (modifyMVar)
 import                          Control.Monad                             (filterM,
                                                                            forM,
+                                                                           unless,
                                                                            when)
 import                          Data.Functor                              (void)
 import                qualified Data.List                                 as List
@@ -32,6 +36,7 @@ import                          Foreign                                   hiding
                                                                            void)
 import                          GHC.Stack                                 (HasCallStack)
 import                qualified Graphics.Win32                            as Win32
+import                qualified TEAWin32.Application.Internal             as ApplicationInternal
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component                    (GUIComponent,
                                                                            IsGUIComponent (..),
@@ -47,8 +52,10 @@ import                qualified TEAWin32.Internal.Foreign                 as Win
 data ComponentUpdateAction = RenderComponent GUIComponent
                            | UpdateProperties GUIComponent GUIComponent
                            | RedrawComponent GUIComponent
+                           | DifferentComponent GUIComponent GUIComponent
                            | DeleteComponent GUIComponent
                            | NoComponentChange GUIComponent
+                           deriving Show
 
 compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 compareGUIComponents newComponents oldComponents =
@@ -58,6 +65,9 @@ compareGUIComponents newComponents oldComponents =
         newComponentsWithAction =
             flip map newComponents $ \newComponent ->
                 case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
+                    Just oldComponent | getComponentType newComponent /= getComponentType oldComponent ->
+                        DifferentComponent newComponent oldComponent
+
                     Just oldComponent | newComponent == oldComponent ->
                         NoComponentChange newComponent
 
@@ -220,6 +230,25 @@ setWindowCursor cursor hwnd =
 requestRedraw :: Win32.HWND -> IO ()
 requestRedraw hwnd =
     Win32.invalidateRect (Just hwnd) Nothing True
+
+destroyChildren :: Win32.HWND -> IO ()
+destroyChildren hwnd =
+    GUIInternal.withImmediateChildWindows hwnd (mapM_ destroyComponent)
+
+destroyComponent :: Win32.HWND -> IO ()
+destroyComponent hwnd = do
+    isWindow <- isComponentWindow hwnd
+
+    unless isWindow $ do
+        getComponentUniqueIdFromHWND hwnd >>= print
+        unregisterComponent hwnd
+
+    Win32.destroyWindow hwnd
+
+unregisterComponent :: Win32.HWND -> IO ()
+unregisterComponent hwnd = do
+    unregisterHWNDFromAttributeMap hwnd
+    ApplicationInternal.unregisterHWND hwnd
 
 restoreComponentFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
 restoreComponentFromHWND hwnd =

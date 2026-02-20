@@ -25,6 +25,7 @@ restoreWindowFromHWND hwnd = do
     isComponentPositionSet         <- doesHWNDHaveFlag ComponentPositionSet         hwnd
     isComponentFontSet             <- doesHWNDHaveFlag ComponentFontSet             hwnd
     isComponentBackgroundColourSet <- doesHWNDHaveFlag ComponentBackgroundColourSet hwnd
+    isComponentZIndexSet           <- doesHWNDHaveFlag ComponentZIndexSet           hwnd
     isComponentChildrenSet         <- doesHWNDHaveFlag ComponentChildrenSet         hwnd
     isWindowIconSet                <- doesHWNDHaveFlag WindowIconSet                hwnd
     isWindowCursorSet              <- doesHWNDHaveFlag WindowCursorSet              hwnd
@@ -45,6 +46,10 @@ restoreWindowFromHWND hwnd = do
         when isComponentFontSet $
             liftIO (getComponentFontFromHWND hwnd) >>= \font ->
                 tell [WindowProperty $ ComponentFont font]
+
+        when isComponentZIndexSet $
+            liftIO (getComponentZIndexFromHWND hwnd) >>= \zIndex ->
+                tell [WindowProperty $ ComponentZIndex zIndex]
 
         when isComponentBackgroundColourSet $
             liftIO (getComponentBackgroundColourFromHWND hwnd) >>= \backgroundColour ->

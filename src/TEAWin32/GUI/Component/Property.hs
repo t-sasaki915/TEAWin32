@@ -30,7 +30,6 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component                    (GUICo
                                                                            IsGUIComponent (..))
 import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Window             (destroyChildren)
 import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
 
 data GUIComponentProperty =  forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
@@ -174,16 +173,20 @@ instance IsGUIComponentProperty ComponentChildren where
         ApplicationInternal.updateComponents newChildren oldChildren (Just componentHWND)
 
     unapplyProperty _ componentHWND =
-        destroyChildren componentHWND >>
+        ComponentInternal.destroyChildren componentHWND >>
             removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
 
 instance IsGUIComponentProperty ComponentZIndex where
-    -- Processes regarding ZIndex will be done inside TEAWin32.Application.Internal.
-    applyProperty _ _ = pure ()
+    applyProperty (ComponentZIndex zIndex) componentHWND =
+        addAttributeToHWND componentHWND (ComponentZIndexAttr zIndex) >>
+            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentZIndexSet)
 
-    updateProperty _ _ _ = pure ()
+    updateProperty (ComponentZIndex zIndex) _ componentHWND =
+        updateAttributeOfHWND componentHWND (ComponentZIndexAttr zIndex)
 
-    unapplyProperty _ _ = pure ()
+    unapplyProperty (ComponentZIndex zIndex) componentHWND =
+        removeAttributeFromHWND componentHWND (ComponentZIndexAttr zIndex) >>
+            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentZIndexSet)
 
 instance IsGUIComponentProperty ComponentOnClick where
     applyProperty (ComponentOnClick msg) componentHWND =

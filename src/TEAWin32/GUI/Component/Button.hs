@@ -23,6 +23,8 @@ instance IsGUIComponent Button where
 
     doesNeedToRedraw (Button uniqueId1 _) (Button uniqueId2 _) = uniqueId1 /= uniqueId2
 
+    getComponentType _ = ComponentButton
+
     render (Button buttonUniqueId buttonProperties) parentHWND = do
         parentInstance <- Win32.c_GetWindowLongPtr (fromJust parentHWND) (-6)
 
