@@ -6,6 +6,7 @@ module TEAWin32.GUI.Component.ComponentRegistry
     , registerComponentToRegistry
     , unregisterComponentFromRegistry
     , getComponentHWNDFromUniqueIdRegistry
+    , getComponentHWNDFromUniqueIdRegistryMaybe
     , isComponentManaged
     , addComponentRegistryEntry
     , removeComponentRegistryEntry
@@ -147,14 +148,23 @@ unregisterComponentFromRegistry hwnd =
 
 getComponentHWNDFromUniqueIdRegistry :: UniqueId -> IO Win32.HWND
 getComponentHWNDFromUniqueIdRegistry uniqueId =
+    getComponentHWNDFromUniqueIdRegistryMaybe uniqueId >>= \case
+        Just hwnd ->
+            pure hwnd
+
+        Nothing ->
+            throw $ InternalTEAWin32Exception $
+                "Tried to access to the HWND of UniqueId that was not in UniqueIdRegistry: " <> Text.show uniqueId
+
+getComponentHWNDFromUniqueIdRegistryMaybe :: UniqueId -> IO (Maybe Win32.HWND)
+getComponentHWNDFromUniqueIdRegistryMaybe uniqueId =
     readMVar uniqueIdRegistryRef >>= \uniqueIdRegistry ->
         case Map.lookup uniqueId uniqueIdRegistry of
             Just hwnd ->
-                pure hwnd
+                pure (Just hwnd)
 
             Nothing ->
-                throw $ InternalTEAWin32Exception $
-                    "Tried to access to the HWND of UniqueId that was not in UniqueIdRegistry: " <> Text.show uniqueId
+                pure Nothing
 
 isComponentManaged :: Win32.HWND -> IO Bool
 isComponentManaged hwnd =
@@ -216,14 +226,13 @@ withComponentRegistryEntries hwnd func =
 
 getComponentRegistryEntryValue :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO a
 getComponentRegistryEntryValue regKey hwnd =
-    withComponentRegistryEntries hwnd $ \entries ->
-        case IntMap.lookup (keyToInt regKey) entries of
-            Just entry ->
-                pure (projectEntry regKey entry)
+    getComponentRegistryEntryValueMaybe regKey hwnd >>= \case
+        Just entry ->
+            pure entry
 
-            Nothing ->
-                throw $ InternalTEAWin32Exception $
-                    "Tried to access a registry entry that was not in ComponentRegistry: " <> Text.show regKey <> " HWND: " <> Text.show hwnd
+        Nothing ->
+            throw $ InternalTEAWin32Exception $
+                "Tried to access a registry entry that was not in ComponentRegistry: " <> Text.show regKey <> " HWND: " <> Text.show hwnd
 
 getComponentRegistryEntryValueMaybe :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO (Maybe a)
 getComponentRegistryEntryValueMaybe regKey hwnd =

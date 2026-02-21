@@ -11,7 +11,8 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
-import           Control.Monad                            (filterM, forM, forM_)
+import           Control.Monad                            (filterM, forM, forM_,
+                                                           void, when)
 import           Control.Monad.State.Strict               (evalState)
 import           Control.Monad.Writer.Strict              (execWriterT)
 import           Data.Data                                (Typeable, cast)
@@ -21,6 +22,7 @@ import           Data.IORef                               (IORef,
                                                            atomicModifyIORef',
                                                            newIORef, readIORef)
 import qualified Data.Map                                 as Map
+import           Data.Maybe                               (isNothing)
 import           GHC.IO                                   (unsafePerformIO)
 import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
@@ -81,31 +83,31 @@ issueMsg msg = do
 
 updateComponents :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO ()
 updateComponents newGUIComponents maybeParent = do
-    children <- case maybeParent of
-        Just parent -> GUIInternal.withImmediateChildWindows parent pure
-        Nothing     -> GUIInternal.withTopLevelWindows pure >>= filterM isComponentManaged
+    childrenWithUniqueId <- Map.fromList <$>
+        case maybeParent of
+            Just parent ->
+                GUIInternal.withImmediateChildWindows parent $ mapM $ \child ->
+                    getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
+                        pure (uniqueId, child)
+
+            Nothing ->
+                GUIInternal.withTopLevelWindows $ mapM $ \child ->
+                    getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
+                        pure (uniqueId, child)
 
     let newGUIComponentsWithUniqueId = Map.fromList [ (getUniqueId comp, comp) | comp <- newGUIComponents ]
 
-    uniqueIdAndChildren <- Map.fromList <$>
-        forM children (\child ->
-            getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
-                pure (uniqueId, child))
+    _ <- flip Map.traverseWithKey childrenWithUniqueId $ \uniqueId child ->
+        when (isNothing (Map.lookup uniqueId newGUIComponentsWithUniqueId)) $
+            ComponentInternal.destroyComponent child
 
-    forM_ (Map.toList uniqueIdAndChildren) $ \(uniqueId, child) ->
-        case Map.lookup uniqueId newGUIComponentsWithUniqueId of
+    _ <- flip Map.traverseWithKey newGUIComponentsWithUniqueId $ \uniqueId newGUIComponent ->
+        case Map.lookup uniqueId childrenWithUniqueId of
+            Just currentHWND ->
+                putStrLn $ "UPDATE " <> show uniqueId
+
             Nothing ->
-                ComponentInternal.destroyComponent child
+                void (render newGUIComponent maybeParent)
 
-            Just _ ->
-                pure ()
-
-    forM_ newGUIComponents $ \newGUIComponent ->
-        let uniqueId = getUniqueId newGUIComponent in
-            case Map.lookup uniqueId uniqueIdAndChildren of
-                Just currentHWND ->
-                    putStrLn $ "UPDATE " <> show uniqueId
-
-                Nothing ->
-                    putStrLn $ "NEW " <> show uniqueId
+    pure ()
 
