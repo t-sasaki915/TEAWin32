@@ -5,6 +5,7 @@ module TEAWin32.GUI.Component.ComponentRegistry
     , ComponentRegistryEntry (..)
     , registerComponentToRegistry
     , unregisterComponentFromRegistry
+    , getComponentHWNDFromUniqueIdRegistry
     , isComponentManaged
     , addComponentRegistryEntry
     , removeComponentRegistryEntry
@@ -20,6 +21,8 @@ import                          Control.Concurrent            (MVar, modifyMVar,
 import                          Control.Exception             (throw)
 import                          Data.IntMap.Strict            (IntMap)
 import                qualified Data.IntMap.Strict            as IntMap
+import                          Data.Map                      (Map)
+import                qualified Data.Map                      as Map
 import                          Data.Text                     (Text)
 import                qualified Data.Text                     as Text
 import                          Foreign                       (ptrToIntPtr)
@@ -28,7 +31,7 @@ import                          GHC.Stack                     (HasCallStack)
 import                qualified Graphics.Win32                as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal as ApplicationInternal
 import                          TEAWin32.Drawing              (Colour)
-import                          TEAWin32.Exception            (InternalTEAWin32Exception (InternalTEAWin32Exception))
+import                          TEAWin32.Exception            (InternalTEAWin32Exception (..))
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component        (ComponentType)
 
@@ -118,18 +121,40 @@ componentRegistryRef :: MVar (IntMap (IntMap ComponentRegistryEntry))
 componentRegistryRef = unsafePerformIO (newMVar IntMap.empty)
 {-# NOINLINE componentRegistryRef #-}
 
+uniqueIdRegistryRef :: MVar (Map UniqueId Win32.HWND)
+uniqueIdRegistryRef = unsafePerformIO (newMVar Map.empty)
+{-# NOINLINE uniqueIdRegistryRef #-}
+
 hwndToInt :: Win32.HWND -> Int
 hwndToInt hwnd = fromIntegral (ptrToIntPtr hwnd)
 
-registerComponentToRegistry :: Win32.HWND -> IO ()
-registerComponentToRegistry hwnd =
+registerComponentToRegistry :: UniqueId -> Win32.HWND -> IO ()
+registerComponentToRegistry uniqueId hwnd = do
     modifyMVar componentRegistryRef $ \componentRegistry ->
         pure (IntMap.insert (hwndToInt hwnd) IntMap.empty componentRegistry, ())
 
+    modifyMVar uniqueIdRegistryRef $ \uniqueIdRegistry ->
+        pure (Map.insert uniqueId hwnd uniqueIdRegistry, ())
+
 unregisterComponentFromRegistry :: Win32.HWND -> IO ()
 unregisterComponentFromRegistry hwnd =
-    modifyMVar componentRegistryRef $ \componentRegistry ->
-        pure (IntMap.delete (hwndToInt hwnd) componentRegistry, ())
+    getComponentRegistryEntryValue ComponentUniqueIdRegKey hwnd >>= \uniqueId -> do
+        modifyMVar componentRegistryRef $ \componentRegistry ->
+            pure (IntMap.delete (hwndToInt hwnd) componentRegistry, ())
+
+        modifyMVar uniqueIdRegistryRef $ \uniqueIdRegistry ->
+            pure (Map.delete uniqueId uniqueIdRegistry, ())
+
+getComponentHWNDFromUniqueIdRegistry :: UniqueId -> IO Win32.HWND
+getComponentHWNDFromUniqueIdRegistry uniqueId =
+    readMVar uniqueIdRegistryRef >>= \uniqueIdRegistry ->
+        case Map.lookup uniqueId uniqueIdRegistry of
+            Just hwnd ->
+                pure hwnd
+
+            Nothing ->
+                throw $ InternalTEAWin32Exception $
+                    "Tried to access to the HWND of UniqueId that was not in UniqueIdRegistry: " <> Text.show uniqueId
 
 isComponentManaged :: Win32.HWND -> IO Bool
 isComponentManaged hwnd =

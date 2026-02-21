@@ -1,8 +1,5 @@
 module TEAWin32.GUI.Component.Internal
-    ( ComponentUpdateAction (..)
-    , restoreComponentFromHWND
-    , compareGUIComponents
-    , sortComponentsWithZIndex
+    ( sortComponentsWithZIndex
     , resolveScalableValueForHWND
     , bringComponentToTop
     , setComponentTitle
@@ -19,17 +16,6 @@ import           GHC.Stack              (HasCallStack)
 import qualified Graphics.Win32         as Win32
 import           TEAWin32.GUI           (Font, ScalableValue)
 import           TEAWin32.GUI.Component (GUIComponent)
-
-data ComponentUpdateAction = RenderComponent GUIComponent
-                           | UpdateProperties GUIComponent GUIComponent
-                           | RedrawComponent GUIComponent
-                           | DifferentComponent GUIComponent GUIComponent
-                           | DeleteComponent GUIComponent
-                           | NoComponentChange GUIComponent
-
-restoreComponentFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
-
-compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
 
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 

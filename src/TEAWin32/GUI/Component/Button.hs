@@ -43,7 +43,7 @@ instance IsGUIComponent Button where
 
         currentDPI <- GUIInternal.getDPIFromHWND button
 
-        registerComponentToRegistry button
+        registerComponentToRegistry buttonUniqueId button
         addComponentRegistryEntry ComponentUniqueIdRegKey   (ComponentUniqueIdReg buttonUniqueId) button
         addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentButton)    button
         addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   button

@@ -11,4 +11,4 @@ data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
 
 instance Show Msg
 
-updateComponents :: HasCallStack => [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
+updateComponents :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO ()

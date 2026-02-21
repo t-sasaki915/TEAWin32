@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module TEAWin32.GUI.Component.Property
     ( GUIComponentProperty (..)
@@ -161,8 +162,10 @@ instance IsGUIComponentProperty ComponentChildren where
                 render child (Just componentHWND)
 
     updateProperty (ComponentChildren newChildren) (ComponentChildren oldChildren) componentHWND =
-        ApplicationInternal.updateComponents newChildren oldChildren (Just componentHWND)
+        --ApplicationInternal.updateComponents newChildren oldChildren (Just componentHWND)
+        pure ()
 
+    unapplyProperty :: HasCallStack => ComponentChildren -> Win32.HWND -> IO ()
     unapplyProperty _ =
         ComponentInternal.destroyChildren
 

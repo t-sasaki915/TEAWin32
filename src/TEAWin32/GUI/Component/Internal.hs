@@ -1,7 +1,5 @@
 module TEAWin32.GUI.Component.Internal
-    ( ComponentUpdateAction (..)
-    , compareGUIComponents
-    , sortComponentsWithZIndex
+    ( sortComponentsWithZIndex
     , resolveScalableValueForHWND
     , updateComponentDPI
     , getRelativeRectFromHWNDUsingWin32
@@ -16,7 +14,6 @@ module TEAWin32.GUI.Component.Internal
     , requestRedraw
     , destroyChildren
     , destroyComponent
-    , restoreComponentFromHWND
     ) where
 
 import           Control.Concurrent                       (modifyMVar)
@@ -41,39 +38,6 @@ import           TEAWin32.GUI.Component.Property
 import qualified TEAWin32.GUI.Internal                    as GUIInternal
 import           TEAWin32.Internal                        (throwTEAWin32InternalError)
 import qualified TEAWin32.Internal.Foreign                as Win32
-
-data ComponentUpdateAction = RenderComponent GUIComponent
-                           | UpdateProperties GUIComponent GUIComponent
-                           | RedrawComponent GUIComponent
-                           | DifferentComponent GUIComponent GUIComponent
-                           | DeleteComponent GUIComponent
-                           | NoComponentChange GUIComponent
-                           deriving Show
-
-compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
-compareGUIComponents newComponents oldComponents =
-    let newComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- newComponents ]
-        oldComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- oldComponents ]
-        deletedComponents = [ DeleteComponent x | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
-        newComponentsWithAction =
-            flip map newComponents $ \newComponent ->
-                case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
-                    Just oldComponent | getComponentType newComponent /= getComponentType oldComponent ->
-                        DifferentComponent newComponent oldComponent
-
-                    Just oldComponent | newComponent == oldComponent ->
-                        NoComponentChange newComponent
-
-                    Just oldComponent | doesNeedToRedraw oldComponent newComponent ->
-                        RedrawComponent newComponent
-
-                    Just oldComponent ->
-                        UpdateProperties newComponent oldComponent
-
-                    Nothing ->
-                        RenderComponent newComponent
-
-    in deletedComponents ++ newComponentsWithAction
 
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
@@ -228,10 +192,3 @@ destroyComponent hwnd = do
         unregisterComponentFromRegistry hwnd
 
     Win32.destroyWindow hwnd
-
-restoreComponentFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
-restoreComponentFromHWND hwnd =
-    {-getComponentTypeFromHWND hwnd >>= \case
-        ComponentButton -> restoreButtonFromHWND hwnd
-        ComponentWindow -> restoreWindowFromHWND hwnd-}
-    error ""
