@@ -34,88 +34,87 @@ import {-# SOURCE #-} qualified TEAWin32.Application.Internal as ApplicationInte
 import                          TEAWin32.Drawing              (Colour)
 import                          TEAWin32.Exception            (InternalTEAWin32Exception (InternalTEAWin32Exception))
 import                          TEAWin32.GUI
-import                          TEAWin32.GUI.Component        (ComponentType,
-                                                               EventType)
+import                          TEAWin32.GUI.Component        (ComponentType)
 
 data ComponentRegistryKey a where
-    ComponentUniqueIdRegKey         :: ComponentRegistryKey UniqueId
-    ComponentTypeRegKey             :: ComponentRegistryKey ComponentType
-    ComponentCurrentDPIRegKey       :: ComponentRegistryKey Int
-    ComponentEventHandlerRegKey     :: ComponentRegistryKey (EventType, ApplicationInternal.Msg)
-    ComponentBackgroundColourRegKey :: ComponentRegistryKey Colour
-    ComponentFontRegKey             :: ComponentRegistryKey Font
-    ComponentTitleRegKey            :: ComponentRegistryKey Text
-    ComponentSizeRegKey             :: ComponentRegistryKey (ScalableValue, ScalableValue)
-    ComponentPositionRegKey         :: ComponentRegistryKey (ScalableValue, ScalableValue)
-    ComponentZIndexRegKey           :: ComponentRegistryKey Int
-    WindowClassNameRegKey           :: ComponentRegistryKey Text
-    WindowStyleRegKey               :: ComponentRegistryKey WindowStyle
-    WindowCursorRegKey              :: ComponentRegistryKey Cursor
-    WindowIconRegKey                :: ComponentRegistryKey Icon
+    ComponentUniqueIdRegKey          :: ComponentRegistryKey UniqueId
+    ComponentTypeRegKey              :: ComponentRegistryKey ComponentType
+    ComponentCurrentDPIRegKey        :: ComponentRegistryKey Int
+    ComponentClickEventHandlerRegKey :: ComponentRegistryKey ApplicationInternal.Msg
+    ComponentBackgroundColourRegKey  :: ComponentRegistryKey Colour
+    ComponentFontRegKey              :: ComponentRegistryKey Font
+    ComponentTitleRegKey             :: ComponentRegistryKey Text
+    ComponentSizeRegKey              :: ComponentRegistryKey (ScalableValue, ScalableValue)
+    ComponentPositionRegKey          :: ComponentRegistryKey (ScalableValue, ScalableValue)
+    ComponentZIndexRegKey            :: ComponentRegistryKey Int
+    WindowClassNameRegKey            :: ComponentRegistryKey Text
+    WindowStyleRegKey                :: ComponentRegistryKey WindowStyle
+    WindowCursorRegKey               :: ComponentRegistryKey Cursor
+    WindowIconRegKey                 :: ComponentRegistryKey Icon
 
 instance Show (ComponentRegistryKey a) where
-    show ComponentUniqueIdRegKey         = "ComponentUniqueIdRegKey"
-    show ComponentTypeRegKey             = "ComponentTypeRegKey"
-    show ComponentCurrentDPIRegKey       = "ComponentCurrentDPIRegKey"
-    show ComponentEventHandlerRegKey     = "ComponentEventHandlerRegKey"
-    show ComponentBackgroundColourRegKey = "ComponentBackgroundColourRegKey"
-    show ComponentFontRegKey             = "ComponentFontRegKey"
-    show ComponentTitleRegKey            = "ComponentTitleRegKey"
-    show ComponentSizeRegKey             = "ComponentSizeRegKey"
-    show ComponentPositionRegKey         = "ComponentPositionRegKey"
-    show ComponentZIndexRegKey           = "ComponentZIndexRegKey"
-    show WindowClassNameRegKey           = "WindowClassNameRegKey"
-    show WindowStyleRegKey               = "WindowStyleRegKey"
-    show WindowCursorRegKey              = "WindowCursorRegKey"
-    show WindowIconRegKey                = "WindowIconRegKey"
+    show ComponentUniqueIdRegKey          = "ComponentUniqueIdRegKey"
+    show ComponentTypeRegKey              = "ComponentTypeRegKey"
+    show ComponentCurrentDPIRegKey        = "ComponentCurrentDPIRegKey"
+    show ComponentClickEventHandlerRegKey = "ComponentClickEventHandlerRegKey"
+    show ComponentBackgroundColourRegKey  = "ComponentBackgroundColourRegKey"
+    show ComponentFontRegKey              = "ComponentFontRegKey"
+    show ComponentTitleRegKey             = "ComponentTitleRegKey"
+    show ComponentSizeRegKey              = "ComponentSizeRegKey"
+    show ComponentPositionRegKey          = "ComponentPositionRegKey"
+    show ComponentZIndexRegKey            = "ComponentZIndexRegKey"
+    show WindowClassNameRegKey            = "WindowClassNameRegKey"
+    show WindowStyleRegKey                = "WindowStyleRegKey"
+    show WindowCursorRegKey               = "WindowCursorRegKey"
+    show WindowIconRegKey                 = "WindowIconRegKey"
 
 keyToInt :: ComponentRegistryKey a -> Int
-keyToInt ComponentUniqueIdRegKey         = 0
-keyToInt ComponentTypeRegKey             = 1
-keyToInt ComponentCurrentDPIRegKey       = 2
-keyToInt ComponentEventHandlerRegKey     = 3
-keyToInt ComponentBackgroundColourRegKey = 4
-keyToInt ComponentFontRegKey             = 5
-keyToInt ComponentTitleRegKey            = 6
-keyToInt ComponentSizeRegKey             = 7
-keyToInt ComponentPositionRegKey         = 8
-keyToInt ComponentZIndexRegKey           = 9
-keyToInt WindowClassNameRegKey           = 10
-keyToInt WindowStyleRegKey               = 11
-keyToInt WindowCursorRegKey              = 12
-keyToInt WindowIconRegKey                = 13
+keyToInt ComponentUniqueIdRegKey          = 0
+keyToInt ComponentTypeRegKey              = 1
+keyToInt ComponentCurrentDPIRegKey        = 2
+keyToInt ComponentClickEventHandlerRegKey = 3
+keyToInt ComponentBackgroundColourRegKey  = 4
+keyToInt ComponentFontRegKey              = 5
+keyToInt ComponentTitleRegKey             = 6
+keyToInt ComponentSizeRegKey              = 7
+keyToInt ComponentPositionRegKey          = 8
+keyToInt ComponentZIndexRegKey            = 9
+keyToInt WindowClassNameRegKey            = 10
+keyToInt WindowStyleRegKey                = 11
+keyToInt WindowCursorRegKey               = 12
+keyToInt WindowIconRegKey                 = 13
 
-data ComponentRegistryEntry = ComponentUniqueIdReg         !UniqueId
-                            | ComponentTypeReg             !ComponentType
-                            | ComponentCurrentDPIReg       !Int
-                            | ComponentEventHandlerReg     !(EventType, ApplicationInternal.Msg)
-                            | ComponentBackgroundColourReg !Colour
-                            | ComponentFontReg             !Font
-                            | ComponentTitleReg            !Text
-                            | ComponentSizeReg             !(ScalableValue, ScalableValue)
-                            | ComponentPositionReg         !(ScalableValue, ScalableValue)
-                            | ComponentZIndexReg           !Int
-                            | WindowClassNameReg           !Text
-                            | WindowStyleReg               !WindowStyle
-                            | WindowCursorReg              !Cursor
-                            | WindowIconReg                !Icon
+data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
+                            | ComponentTypeReg              !ComponentType
+                            | ComponentCurrentDPIReg        !Int
+                            | ComponentClickEventHandlerReg !ApplicationInternal.Msg
+                            | ComponentBackgroundColourReg  !Colour
+                            | ComponentFontReg              !Font
+                            | ComponentTitleReg             !Text
+                            | ComponentSizeReg              !(ScalableValue, ScalableValue)
+                            | ComponentPositionReg          !(ScalableValue, ScalableValue)
+                            | ComponentZIndexReg            !Int
+                            | WindowClassNameReg            !Text
+                            | WindowStyleReg                !WindowStyle
+                            | WindowCursorReg               !Cursor
+                            | WindowIconReg                 !Icon
                             deriving Show
 
 projectEntry :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> a
-projectEntry ComponentUniqueIdRegKey         (ComponentUniqueIdReg v)         = v
-projectEntry ComponentTypeRegKey             (ComponentTypeReg v)             = v
-projectEntry ComponentCurrentDPIRegKey       (ComponentCurrentDPIReg v)       = v
-projectEntry ComponentEventHandlerRegKey     (ComponentEventHandlerReg v)     = v
-projectEntry ComponentBackgroundColourRegKey (ComponentBackgroundColourReg v) = v
-projectEntry ComponentFontRegKey             (ComponentFontReg v)             = v
-projectEntry ComponentTitleRegKey            (ComponentTitleReg v)            = v
-projectEntry ComponentSizeRegKey             (ComponentSizeReg v)             = v
-projectEntry ComponentPositionRegKey         (ComponentPositionReg v)         = v
-projectEntry ComponentZIndexRegKey           (ComponentZIndexReg v)           = v
-projectEntry WindowClassNameRegKey           (WindowClassNameReg v)           = v
-projectEntry WindowStyleRegKey               (WindowStyleReg v)               = v
-projectEntry WindowCursorRegKey              (WindowCursorReg v)              = v
-projectEntry WindowIconRegKey                (WindowIconReg v)                = v
+projectEntry ComponentUniqueIdRegKey          (ComponentUniqueIdReg v)          = v
+projectEntry ComponentTypeRegKey              (ComponentTypeReg v)              = v
+projectEntry ComponentCurrentDPIRegKey        (ComponentCurrentDPIReg v)        = v
+projectEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg v) = v
+projectEntry ComponentBackgroundColourRegKey  (ComponentBackgroundColourReg v)  = v
+projectEntry ComponentFontRegKey              (ComponentFontReg v)              = v
+projectEntry ComponentTitleRegKey             (ComponentTitleReg v)             = v
+projectEntry ComponentSizeRegKey              (ComponentSizeReg v)              = v
+projectEntry ComponentPositionRegKey          (ComponentPositionReg v)          = v
+projectEntry ComponentZIndexRegKey            (ComponentZIndexReg v)            = v
+projectEntry WindowClassNameRegKey            (WindowClassNameReg v)            = v
+projectEntry WindowStyleRegKey                (WindowStyleReg v)                = v
+projectEntry WindowCursorRegKey               (WindowCursorReg v)               = v
+projectEntry WindowIconRegKey                 (WindowIconReg v)                 = v
 projectEntry key ent =
     throw (InternalTEAWin32Exception $ "Type mismatch in registry. Key: " <> Text.show key <> " Entry: " <> Text.show ent)
 
