@@ -4,16 +4,14 @@ module TEAWin32.GUI.Component.ComponentRegistry
     ( ComponentRegistryKey (..)
     , ComponentRegistryEntry (..)
     , registerComponentToRegistry
-    , unregisterComponentFromRegistryByHWND
-    , unregisterComponentFromRegistryByUniqueId
-    , addComponentRegistryEntryByHWND
-    , addComponentRegistryEntryByUniqueId
-    , removeComponentRegistryEntryByHWND
-    , removeComponentRegistryEntryByUniqueId
-    , updateComponentRegistryEntryByHWND
-    , updateComponentRegistryEntryByUniqueId
-    , getComponentRegistryEntryValueByHWND
-    , getComponentRegistryEntryValueByUniqueId
+    , unregisterComponentFromRegistry
+    , isComponentManaged
+    , addComponentRegistryEntry
+    , removeComponentRegistryEntry
+    , updateComponentRegistryEntry
+    , getComponentRegistryEntryValue
+    , getComponentRegistryEntryValueMaybe
+    , whenComponentHasRegistryKey
     ) where
 
 import                          Control.Concurrent            (MVar, modifyMVar,
@@ -22,8 +20,6 @@ import                          Control.Concurrent            (MVar, modifyMVar,
 import                          Control.Exception             (throw)
 import                          Data.IntMap.Strict            (IntMap)
 import                qualified Data.IntMap.Strict            as IntMap
-import                          Data.Map.Strict               (Map)
-import                qualified Data.Map.Strict               as Map
 import                          Data.Text                     (Text)
 import                qualified Data.Text                     as Text
 import                          Foreign                       (ptrToIntPtr)
@@ -122,73 +118,26 @@ componentRegistryRef :: MVar (IntMap (IntMap ComponentRegistryEntry))
 componentRegistryRef = unsafePerformIO (newMVar IntMap.empty)
 {-# NOINLINE componentRegistryRef #-}
 
-uniqueIdRegistryRef :: MVar (Map UniqueId Win32.HWND)
-uniqueIdRegistryRef = unsafePerformIO (newMVar Map.empty)
-{-# NOINLINE uniqueIdRegistryRef #-}
-
 hwndToInt :: Win32.HWND -> Int
 hwndToInt hwnd = fromIntegral (ptrToIntPtr hwnd)
 
-withComponentHWND :: HasCallStack => UniqueId -> (Win32.HWND -> IO a) -> IO a
-withComponentHWND uniqueId func =
-    readMVar uniqueIdRegistryRef >>= \uniqueIdRegistry ->
-        case Map.lookup uniqueId uniqueIdRegistry of
-            Just hwnd ->
-                func hwnd
-
-            Nothing ->
-                throw $ InternalTEAWin32Exception $
-                    "Tried to access the HWND of a UniqueId that was not in UniqueIdRegistry: " <> Text.show uniqueId
-
-registerComponentToRegistry :: UniqueId -> Win32.HWND -> IO ()
-registerComponentToRegistry uniqueId hwnd = do
+registerComponentToRegistry :: Win32.HWND -> IO ()
+registerComponentToRegistry hwnd =
     modifyMVar componentRegistryRef $ \componentRegistry ->
         pure (IntMap.insert (hwndToInt hwnd) IntMap.empty componentRegistry, ())
 
-    modifyMVar uniqueIdRegistryRef $ \uniqueIdRegistry ->
-        pure (Map.insert uniqueId hwnd uniqueIdRegistry, ())
-
-unregisterComponentFromRegistryByUniqueId :: HasCallStack => UniqueId -> IO ()
-unregisterComponentFromRegistryByUniqueId uniqueId = do
-    hwnd <- modifyMVar uniqueIdRegistryRef $ \uniqueIdRegistry ->
-        case Map.lookup uniqueId uniqueIdRegistry of
-            Just hwnd ->
-                pure (Map.delete uniqueId uniqueIdRegistry, hwnd)
-
-            Nothing ->
-                throw $ InternalTEAWin32Exception $
-                    "Tried to unregister a UniqueId that was not in UniqueIdRegistry: " <> Text.show uniqueId
-
+unregisterComponentFromRegistry :: Win32.HWND -> IO ()
+unregisterComponentFromRegistry hwnd =
     modifyMVar componentRegistryRef $ \componentRegistry ->
         pure (IntMap.delete (hwndToInt hwnd) componentRegistry, ())
 
-unregisterComponentFromRegistryByHWND :: HasCallStack => Win32.HWND -> IO ()
-unregisterComponentFromRegistryByHWND hwnd = do
-    uniqueId <- modifyMVar componentRegistryRef $ \componentRegistry ->
-        case IntMap.lookup (hwndToInt hwnd) componentRegistry of
-            Just entries ->
-                case IntMap.lookup (keyToInt ComponentUniqueIdRegKey) entries of
-                    Just (ComponentUniqueIdReg uniqueId) ->
-                        pure (IntMap.delete (hwndToInt hwnd) componentRegistry, uniqueId)
+isComponentManaged :: Win32.HWND -> IO Bool
+isComponentManaged hwnd =
+    readMVar componentRegistryRef >>= \componentRegistry ->
+        pure (hwndToInt hwnd `IntMap.member` componentRegistry)
 
-                    Just x ->
-                        throw $ InternalTEAWin32Exception $
-                            "Tried to unregister a HWND that has illegal ComponentUniqueIdReg state: "
-                                <> Text.show x <> " HWND: " <> Text.show hwnd
-
-                    Nothing ->
-                        throw $ InternalTEAWin32Exception $
-                            "Tried to unregister a HWND that has no unique id registered: " <> Text.show hwnd
-
-            Nothing ->
-                throw $ InternalTEAWin32Exception $
-                    "Tried to unregister a HWND that was not in ComponentRegistry: " <> Text.show hwnd
-
-    modifyMVar uniqueIdRegistryRef $ \uniqueIdRegistry ->
-        pure (Map.delete uniqueId uniqueIdRegistry, ())
-
-addComponentRegistryEntryByHWND :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> Win32.HWND -> IO ()
-addComponentRegistryEntryByHWND regKey regEntry hwnd =
+addComponentRegistryEntry :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> Win32.HWND -> IO ()
+addComponentRegistryEntry regKey regEntry hwnd =
     modifyMVar componentRegistryRef $ \componentRegistry ->
         let hwnd' = hwndToInt hwnd in
             case IntMap.lookup hwnd' componentRegistry of
@@ -201,12 +150,8 @@ addComponentRegistryEntryByHWND regKey regEntry hwnd =
                         "Tried to add a registry entry to HWND that was not in ComponentRegistry: "
                             <> Text.show regKey <> " Entry: " <> Text.show regEntry <> " HWND: " <> Text.show hwnd
 
-addComponentRegistryEntryByUniqueId :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> UniqueId -> IO ()
-addComponentRegistryEntryByUniqueId regKey regEntry uniqueId =
-    withComponentHWND uniqueId (addComponentRegistryEntryByHWND regKey regEntry)
-
-removeComponentRegistryEntryByHWND :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO ()
-removeComponentRegistryEntryByHWND regKey hwnd =
+removeComponentRegistryEntry :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO ()
+removeComponentRegistryEntry regKey hwnd =
     modifyMVar componentRegistryRef $ \componentRegistry ->
         let hwnd' = hwndToInt hwnd in
             case IntMap.lookup hwnd' componentRegistry of
@@ -219,12 +164,8 @@ removeComponentRegistryEntryByHWND regKey hwnd =
                         "Tried to remove a registry entry from HWND that was not in ComponentRegistry: "
                             <> Text.show regKey <> " HWND: " <> Text.show hwnd
 
-removeComponentRegistryEntryByUniqueId :: HasCallStack => ComponentRegistryKey a -> UniqueId -> IO ()
-removeComponentRegistryEntryByUniqueId regKey uniqueId =
-    withComponentHWND uniqueId (removeComponentRegistryEntryByHWND regKey)
-
-updateComponentRegistryEntryByHWND :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> Win32.HWND -> IO ()
-updateComponentRegistryEntryByHWND regKey newRegEntry hwnd =
+updateComponentRegistryEntry :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> Win32.HWND -> IO ()
+updateComponentRegistryEntry regKey newRegEntry hwnd =
     modifyMVar componentRegistryRef $ \componentRegistry ->
         let hwnd' = hwndToInt hwnd in
             case IntMap.lookup hwnd' componentRegistry of
@@ -237,12 +178,8 @@ updateComponentRegistryEntryByHWND regKey newRegEntry hwnd =
                         "Tried to update a registry entry of HWND that was not in ComponentRegistry: "
                             <> Text.show regKey <> " NewEntry: " <> Text.show newRegEntry <> " HWND: " <> Text.show hwnd
 
-updateComponentRegistryEntryByUniqueId :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> UniqueId -> IO ()
-updateComponentRegistryEntryByUniqueId regKey newRegEntry uniqueId =
-    withComponentHWND uniqueId (updateComponentRegistryEntryByHWND regKey newRegEntry)
-
-withComponentRegistryEntriesByHWND :: HasCallStack => Win32.HWND -> (IntMap ComponentRegistryEntry -> IO a) -> IO a
-withComponentRegistryEntriesByHWND hwnd func =
+withComponentRegistryEntries :: HasCallStack => Win32.HWND -> (IntMap ComponentRegistryEntry -> IO a) -> IO a
+withComponentRegistryEntries hwnd func =
     readMVar componentRegistryRef >>= \componentRegistry ->
         case IntMap.lookup (hwndToInt hwnd) componentRegistry of
             Just entries ->
@@ -252,9 +189,9 @@ withComponentRegistryEntriesByHWND hwnd func =
                 throw $ InternalTEAWin32Exception $
                     "Tried to access the registry entries of HWND that was not in ComponentRegistry: " <> Text.show hwnd
 
-getComponentRegistryEntryValueByHWND :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO a
-getComponentRegistryEntryValueByHWND regKey hwnd =
-    withComponentRegistryEntriesByHWND hwnd $ \entries ->
+getComponentRegistryEntryValue :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO a
+getComponentRegistryEntryValue regKey hwnd =
+    withComponentRegistryEntries hwnd $ \entries ->
         case IntMap.lookup (keyToInt regKey) entries of
             Just entry ->
                 pure (projectEntry regKey entry)
@@ -263,6 +200,22 @@ getComponentRegistryEntryValueByHWND regKey hwnd =
                 throw $ InternalTEAWin32Exception $
                     "Tried to access a registry entry that was not in ComponentRegistry: " <> Text.show regKey <> " HWND: " <> Text.show hwnd
 
-getComponentRegistryEntryValueByUniqueId :: HasCallStack => UniqueId -> ComponentRegistryKey a -> IO a
-getComponentRegistryEntryValueByUniqueId uniqueId regKey =
-    withComponentHWND uniqueId (getComponentRegistryEntryValueByHWND regKey)
+getComponentRegistryEntryValueMaybe :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO (Maybe a)
+getComponentRegistryEntryValueMaybe regKey hwnd =
+    withComponentRegistryEntries hwnd $ \entries ->
+        case IntMap.lookup (keyToInt regKey) entries of
+            Just entry ->
+                pure $ Just (projectEntry regKey entry)
+
+            Nothing ->
+                pure Nothing
+
+whenComponentHasRegistryKey :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> (a -> IO ()) -> IO ()
+whenComponentHasRegistryKey regKey hwnd func =
+    withComponentRegistryEntries hwnd $ \entries ->
+        case IntMap.lookup (keyToInt regKey) entries of
+            Just entry ->
+                func (projectEntry regKey entry)
+
+            Nothing ->
+                pure ()

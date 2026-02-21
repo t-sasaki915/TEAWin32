@@ -97,62 +97,62 @@ instance Show ComponentOnClick where
 instance IsGUIComponentProperty ComponentTitle where
     applyProperty (ComponentTitle title) componentHWND =
         ComponentInternal.setComponentTitle title componentHWND >>
-            addComponentRegistryEntryByHWND ComponentTitleRegKey (ComponentTitleReg title) componentHWND
+            addComponentRegistryEntry ComponentTitleRegKey (ComponentTitleReg title) componentHWND
 
     updateProperty (ComponentTitle title) _ componentHWND =
         ComponentInternal.setComponentTitle title componentHWND >>
-            updateComponentRegistryEntryByHWND ComponentTitleRegKey (ComponentTitleReg title) componentHWND
+            updateComponentRegistryEntry ComponentTitleRegKey (ComponentTitleReg title) componentHWND
 
     unapplyProperty _ componentHWND =
         ComponentInternal.setComponentTitle "" componentHWND >>
-            removeComponentRegistryEntryByHWND ComponentTitleRegKey componentHWND
+            removeComponentRegistryEntry ComponentTitleRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentSize where
     applyProperty (ComponentSize (width, height)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
                 ComponentInternal.setComponentSize width' height' componentHWND >>
-                    addComponentRegistryEntryByHWND ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
+                    addComponentRegistryEntry ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
 
     updateProperty (ComponentSize (width, height)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
                 ComponentInternal.setComponentSize width' height' componentHWND >>
-                    updateComponentRegistryEntryByHWND ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
+                    updateComponentRegistryEntry ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
 
     unapplyProperty _ componentHWND =
         ComponentInternal.setComponentSize 0 0 componentHWND >>
-            removeComponentRegistryEntryByHWND ComponentSizeRegKey componentHWND
+            removeComponentRegistryEntry ComponentSizeRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentPosition where
     applyProperty (ComponentPosition (x, y)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
                 ComponentInternal.setComponentPosition x' y' componentHWND >>
-                    addComponentRegistryEntryByHWND ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
+                    addComponentRegistryEntry ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
 
     updateProperty (ComponentPosition (x, y)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
                 ComponentInternal.setComponentPosition x' y' componentHWND >>
-                    updateComponentRegistryEntryByHWND ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
+                    updateComponentRegistryEntry ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
 
     unapplyProperty _ componentHWND =
         ComponentInternal.setComponentPosition 0 0 componentHWND >>
-            removeComponentRegistryEntryByHWND ComponentPositionRegKey componentHWND
+            removeComponentRegistryEntry ComponentPositionRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentFont where
     applyProperty (ComponentFont font) componentHWND =
         ComponentInternal.setComponentFont font componentHWND >>
-            addComponentRegistryEntryByHWND ComponentFontRegKey (ComponentFontReg font) componentHWND
+            addComponentRegistryEntry ComponentFontRegKey (ComponentFontReg font) componentHWND
 
     updateProperty (ComponentFont font) _ componentHWND =
         ComponentInternal.setComponentFont font componentHWND >>
-            updateComponentRegistryEntryByHWND ComponentFontRegKey (ComponentFontReg font) componentHWND
+            updateComponentRegistryEntry ComponentFontRegKey (ComponentFontReg font) componentHWND
 
     unapplyProperty _ componentHWND =
         ComponentInternal.useDefaultFont componentHWND >>
-            removeComponentRegistryEntryByHWND ComponentFontRegKey componentHWND
+            removeComponentRegistryEntry ComponentFontRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentChildren where
     applyProperty (ComponentChildren children) componentHWND =
@@ -168,20 +168,20 @@ instance IsGUIComponentProperty ComponentChildren where
 
 instance IsGUIComponentProperty ComponentZIndex where
     applyProperty (ComponentZIndex zIndex) =
-        addComponentRegistryEntryByHWND ComponentZIndexRegKey (ComponentZIndexReg zIndex)
+        addComponentRegistryEntry ComponentZIndexRegKey (ComponentZIndexReg zIndex)
 
     updateProperty (ComponentZIndex zIndex) _ =
-        updateComponentRegistryEntryByHWND ComponentZIndexRegKey (ComponentZIndexReg zIndex)
+        updateComponentRegistryEntry ComponentZIndexRegKey (ComponentZIndexReg zIndex)
 
     unapplyProperty _ =
-        removeComponentRegistryEntryByHWND ComponentZIndexRegKey
+        removeComponentRegistryEntry ComponentZIndexRegKey
 
 instance IsGUIComponentProperty ComponentOnClick where
     applyProperty (ComponentOnClick msg) =
-        addComponentRegistryEntryByHWND ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg (ApplicationInternal.Msg msg))
+        addComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg (ApplicationInternal.Msg msg))
 
     updateProperty (ComponentOnClick msg) _ =
-        updateComponentRegistryEntryByHWND ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg (ApplicationInternal.Msg msg))
+        updateComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg (ApplicationInternal.Msg msg))
 
     unapplyProperty _ =
-        removeComponentRegistryEntryByHWND ComponentClickEventHandlerRegKey
+        removeComponentRegistryEntry ComponentClickEventHandlerRegKey

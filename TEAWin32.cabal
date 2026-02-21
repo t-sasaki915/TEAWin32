@@ -42,12 +42,9 @@ library
       TEAWin32.Application.Internal
       TEAWin32.Effect.MessageBox
       TEAWin32.GUI.Component.Button.DSL
-      TEAWin32.GUI.Component.Button.Internal
       TEAWin32.GUI.Component.Button.Property
-      TEAWin32.GUI.Component.Internal.Attribute
       TEAWin32.GUI.Component.Property.Internal
       TEAWin32.GUI.Component.Window.DSL
-      TEAWin32.GUI.Component.Window.Internal
       TEAWin32.GUI.Component.Window.Property
       TEAWin32.GUI.Component.Button
       TEAWin32.GUI.Component.ComponentRegistry

@@ -14,37 +14,37 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
-import                          Control.Concurrent                        (MVar,
-                                                                           modifyMVar,
-                                                                           newMVar,
-                                                                           readMVar)
-import                          Control.Monad                             (forM_,
-                                                                           unless,
-                                                                           void)
-import                          Control.Monad.State.Strict                (evalState)
-import                          Control.Monad.Writer.Strict               (execWriterT)
-import                          Data.Data                                 (Typeable,
-                                                                           cast)
-import                          Data.IORef                                (IORef,
-                                                                           atomicModifyIORef',
-                                                                           newIORef,
-                                                                           readIORef)
-import                          Data.Map                                  (Map)
-import                qualified Data.Map                                  as Map
-import                          Data.Maybe                                (catMaybes)
-import                          GHC.IO                                    (unsafePerformIO)
-import                          GHC.Stack                                 (HasCallStack)
-import                qualified Graphics.Win32                            as Win32
-import                          TEAWin32.GUI                              (UniqueId)
-import                          TEAWin32.GUI.Component                    (GUIComponent,
-                                                                           GUIComponents,
-                                                                           IsGUIComponent (..))
-import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute (isManagedByTEAWin32)
-import                          TEAWin32.GUI.Component.Property           (IsGUIComponentProperty (..))
-import                          TEAWin32.GUI.Component.Property.Internal  as PropertyInternal
-import                qualified TEAWin32.GUI.Internal                     as GUIInternal
-import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
+import                          Control.Concurrent                       (MVar,
+                                                                          modifyMVar,
+                                                                          newMVar,
+                                                                          readMVar)
+import                          Control.Monad                            (forM_,
+                                                                          unless,
+                                                                          void)
+import                          Control.Monad.State.Strict               (evalState)
+import                          Control.Monad.Writer.Strict              (execWriterT)
+import                          Data.Data                                (Typeable,
+                                                                          cast)
+import                          Data.IORef                               (IORef,
+                                                                          atomicModifyIORef',
+                                                                          newIORef,
+                                                                          readIORef)
+import                          Data.Map                                 (Map)
+import                qualified Data.Map                                 as Map
+import                          Data.Maybe                               (catMaybes)
+import                          GHC.IO                                   (unsafePerformIO)
+import                          GHC.Stack                                (HasCallStack)
+import                qualified Graphics.Win32                           as Win32
+import                          TEAWin32.GUI                             (UniqueId)
+import                          TEAWin32.GUI.Component                   (GUIComponent,
+                                                                          GUIComponents,
+                                                                          IsGUIComponent (..))
+import                          TEAWin32.GUI.Component.ComponentRegistry (isComponentManaged)
+import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
+import                          TEAWin32.GUI.Component.Property          (IsGUIComponentProperty (..))
+import                          TEAWin32.GUI.Component.Property.Internal as PropertyInternal
+import                qualified TEAWin32.GUI.Internal                    as GUIInternal
+import                          TEAWin32.Internal                        (throwTEAWin32InternalError)
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -112,7 +112,7 @@ issueMsg msg = do
     atomicModifyIORef' modelRef (const (newModel, ()))
 
     currentGUIComponents <- fmap catMaybes $ GUIInternal.withTopLevelWindows $ mapM $ \topLevelWindow ->
-        isManagedByTEAWin32 topLevelWindow >>= \case
+        isComponentManaged topLevelWindow >>= \case
             True  -> Just <$> ComponentInternal.restoreComponentFromHWND topLevelWindow
             False -> pure Nothing
 

@@ -10,14 +10,14 @@ module TEAWin32.GUI.Component.Window.Property
     , WindowBackgroundColour (..)
     ) where
 
-import           Data.Data                                 (Typeable, cast,
-                                                            typeOf)
-import           TEAWin32.Drawing                          (Colour)
+import           Data.Data                                (Typeable, cast,
+                                                           typeOf)
+import           TEAWin32.Drawing                         (Colour)
 import           TEAWin32.GUI
-import qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
-import           TEAWin32.GUI.Component.Internal.Attribute
+import           TEAWin32.GUI.Component.ComponentRegistry
+import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 import           TEAWin32.GUI.Component.Property
-import           TEAWin32.Internal                         (throwTEAWin32InternalError)
+import           TEAWin32.Internal                        (throwTEAWin32InternalError)
 
 data WindowProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
@@ -74,45 +74,39 @@ instance IsWindowProperty ComponentChildren
 instance IsGUIComponentProperty WindowIcon where
     applyProperty (WindowIcon icon) windowHWND =
         ComponentInternal.setWindowIcon icon windowHWND >>
-            addAttributeToHWND windowHWND (WindowIconAttr icon) >>
-                addAttributeToHWND windowHWND (ComponentFlagAttr WindowIconSet)
+            addComponentRegistryEntry WindowIconRegKey (WindowIconReg icon) windowHWND
 
     updateProperty (WindowIcon icon) _ windowHWND =
         ComponentInternal.setWindowIcon icon windowHWND >>
-            updateAttributeOfHWND windowHWND (WindowIconAttr icon)
+            updateComponentRegistryEntry WindowIconRegKey (WindowIconReg icon) windowHWND
 
-    unapplyProperty (WindowIcon icon) windowHWND =
+    unapplyProperty _ windowHWND =
         ComponentInternal.setWindowIcon IconApplication windowHWND >>
-            removeAttributeFromHWND windowHWND (WindowIconAttr icon) >>
-                removeAttributeFromHWND windowHWND (ComponentFlagAttr WindowIconSet)
+            removeComponentRegistryEntry WindowIconRegKey windowHWND
 
 instance IsGUIComponentProperty WindowCursor where
     applyProperty (WindowCursor cursor) windowHWND =
         ComponentInternal.setWindowCursor cursor windowHWND >>
-            addAttributeToHWND windowHWND (WindowCursorAttr cursor) >>
-                addAttributeToHWND windowHWND (ComponentFlagAttr WindowCursorSet)
+            addComponentRegistryEntry WindowCursorRegKey (WindowCursorReg cursor) windowHWND
 
     updateProperty (WindowCursor cursor) _ windowHWND =
         ComponentInternal.setWindowCursor cursor windowHWND >>
-            updateAttributeOfHWND windowHWND (WindowCursorAttr cursor)
+            updateComponentRegistryEntry WindowCursorRegKey (WindowCursorReg cursor) windowHWND
 
-    unapplyProperty (WindowCursor cursor) windowHWND =
+    unapplyProperty _ windowHWND =
         ComponentInternal.setWindowCursor CursorArrow windowHWND >>
-            removeAttributeFromHWND windowHWND (WindowCursorAttr cursor) >>
-                removeAttributeFromHWND windowHWND (ComponentFlagAttr WindowCursorSet)
+            removeComponentRegistryEntry WindowCursorRegKey windowHWND
 
 
 instance IsGUIComponentProperty WindowBackgroundColour where
     applyProperty (WindowBackgroundColour colour) windowHWND =
-        addAttributeToHWND windowHWND (ComponentBackgroundColourAttr colour) >>
-            addAttributeToHWND windowHWND (ComponentFlagAttr ComponentBackgroundColourSet) >>
-                ComponentInternal.requestRedraw windowHWND
-
-    updateProperty (WindowBackgroundColour colour) _ windowHWND =
-        updateAttributeOfHWND windowHWND (ComponentBackgroundColourAttr colour) >>
+        addComponentRegistryEntry ComponentBackgroundColourRegKey (ComponentBackgroundColourReg colour) windowHWND >>
             ComponentInternal.requestRedraw windowHWND
 
-    unapplyProperty (WindowBackgroundColour colour) windowHWND =
-        removeAttributeFromHWND windowHWND (ComponentBackgroundColourAttr colour) >>
-            removeAttributeFromHWND windowHWND (ComponentBackgroundColourAttr colour) >>
-                ComponentInternal.requestRedraw windowHWND
+    updateProperty (WindowBackgroundColour colour) _ windowHWND =
+        updateComponentRegistryEntry ComponentBackgroundColourRegKey (ComponentBackgroundColourReg colour) windowHWND >>
+            ComponentInternal.requestRedraw windowHWND
+
+    unapplyProperty _ windowHWND =
+        removeComponentRegistryEntry ComponentBackgroundColourRegKey windowHWND >>
+            ComponentInternal.requestRedraw windowHWND

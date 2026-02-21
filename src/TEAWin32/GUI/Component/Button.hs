@@ -1,18 +1,18 @@
 module TEAWin32.GUI.Component.Button (Button (..)) where
 
-import           Data.Bits                                 ((.|.))
-import           Data.Maybe                                (fromJust)
-import           Foreign                                   (intPtrToPtr)
-import qualified Graphics.Win32                            as Win32
-import qualified TEAWin32.Application.Internal             as ApplicationInternal
-import           TEAWin32.GUI                              (UniqueId)
-import           TEAWin32.GUI.Component                    (IsGUIComponent (..))
-import           TEAWin32.GUI.Component.Button.Property    (ButtonProperty)
-import qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
-import           TEAWin32.GUI.Component.Internal.Attribute
-import           TEAWin32.GUI.Component.Property           (GUIComponentProperty (..),
-                                                            IsGUIComponentProperty (applyProperty))
-import qualified TEAWin32.GUI.Internal                     as GUIInternal
+import           Data.Bits                                ((.|.))
+import           Data.Maybe                               (fromJust)
+import           Foreign                                  (intPtrToPtr)
+import qualified Graphics.Win32                           as Win32
+import           TEAWin32.GUI                             (UniqueId)
+import           TEAWin32.GUI.Component                   (ComponentType (ComponentButton),
+                                                           IsGUIComponent (..))
+import           TEAWin32.GUI.Component.Button.Property   (ButtonProperty)
+import           TEAWin32.GUI.Component.ComponentRegistry
+import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
+import           TEAWin32.GUI.Component.Property          (GUIComponentProperty (..),
+                                                           IsGUIComponentProperty (applyProperty))
+import qualified TEAWin32.GUI.Internal                    as GUIInternal
 
 data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
@@ -43,12 +43,10 @@ instance IsGUIComponent Button where
 
         currentDPI <- GUIInternal.getDPIFromHWND button
 
-        ApplicationInternal.registerHWND buttonUniqueId button
-
-        registerHWNDToAttributeMap button
-        addAttributeToHWND button (ComponentUniqueIdAttr buttonUniqueId)
-        addAttributeToHWND button (ComponentTypeAttr ComponentButton)
-        addAttributeToHWND button (ComponentCurrentDPIAttr currentDPI)
+        registerComponentToRegistry button
+        addComponentRegistryEntry ComponentUniqueIdRegKey   (ComponentUniqueIdReg buttonUniqueId) button
+        addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentButton)    button
+        addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   button
 
         ComponentInternal.useDefaultFont button
         ComponentInternal.bringComponentToTop button
