@@ -4,6 +4,7 @@ import           Data.Bits                                ((.|.))
 import           Data.Maybe                               (fromJust)
 import           Foreign                                  (intPtrToPtr)
 import qualified Graphics.Win32                           as Win32
+import qualified TEAWin32.Application.Internal            as ApplicationInternal
 import           TEAWin32.GUI                             (UniqueId)
 import           TEAWin32.GUI.Component                   (ComponentType (ComponentButton),
                                                            IsGUIComponent (..))
@@ -42,14 +43,15 @@ instance IsGUIComponent Button where
             (const $ const $ const $ const $ pure 0)
 
         currentDPI <- GUIInternal.getDPIFromHWND button
+        ApplicationInternal.flushWindowPosScheduleList
 
         registerComponentToRegistry buttonUniqueId button
         addComponentRegistryEntry ComponentUniqueIdRegKey   (ComponentUniqueIdReg buttonUniqueId) button
         addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentButton)    button
         addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   button
 
+        ApplicationInternal.scheduleSetWindowPos ApplicationInternal.BringWindowToFront button
         ComponentInternal.useDefaultFont button
-        ComponentInternal.bringComponentToTop button
 
         mapM_ (`applyProperty` button) buttonProperties
 

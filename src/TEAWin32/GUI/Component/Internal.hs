@@ -3,10 +3,7 @@ module TEAWin32.GUI.Component.Internal
     , resolveScalableValueForHWND
     , updateComponentDPI
     , getRelativeRectFromHWNDUsingWin32
-    , bringComponentToTop
     , setComponentTitle
-    , setComponentPosition
-    , setComponentSize
     , setComponentFont
     , useDefaultFont
     , setWindowIcon
@@ -109,33 +106,8 @@ getRelativeRectFromHWNDUsingWin32 hwnd = do
 
             pure (fromIntegral x, fromIntegral y, r - l, b - t)
 
-bringComponentToTop :: Win32.HWND -> IO ()
-bringComponentToTop hwnd =
-    void $ Win32.c_SetWindowPos hwnd Win32.nullPtr 0 0 0 0
-        (Win32.sWP_NOMOVE .|. Win32.sWP_NOSIZE .|. Win32.sWP_SHOWWINDOW)
-
 setComponentTitle :: Text -> Win32.HWND -> IO ()
 setComponentTitle title hwnd = Win32.setWindowText hwnd (Text.unpack title)
-
-setComponentPosition :: Int -> Int -> Win32.HWND -> IO ()
-setComponentPosition x y hwnd = void $ Win32.c_SetWindowPos
-    hwnd
-    Win32.nullPtr
-    (fromIntegral x)
-    (fromIntegral y)
-    0
-    0
-    (Win32.sWP_NOSIZE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
-
-setComponentSize :: Int -> Int -> Win32.HWND -> IO ()
-setComponentSize width height hwnd = void $ Win32.c_SetWindowPos
-    hwnd
-    Win32.nullPtr
-    0
-    0
-    (fromIntegral width)
-    (fromIntegral height)
-    (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
 setComponentFont :: HasCallStack => Font -> Win32.HWND -> IO ()
 setComponentFont DefaultGUIFont hwnd =
