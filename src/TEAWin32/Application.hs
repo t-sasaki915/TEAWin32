@@ -84,8 +84,6 @@ runTEA' init update view = do
     forM_ sortedInitGUIComponents $ \guiComponent ->
         render guiComponent Nothing
 
-    flushWindowPosScheduleList
-
     messagePump
 
 messagePump :: IO ()

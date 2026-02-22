@@ -112,34 +112,34 @@ instance IsGUIComponentProperty ComponentSize where
     applyProperty (ComponentSize (width, height)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
-                ApplicationInternal.scheduleSetWindowPos (ApplicationInternal.SetWindowSize width' height') componentHWND >>
+                ComponentInternal.setComponentSize width' height' componentHWND >>
                     addComponentRegistryEntry ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
 
     updateProperty (ComponentSize (width, height)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
-                ApplicationInternal.scheduleSetWindowPos (ApplicationInternal.SetWindowSize width' height') componentHWND >>
+                ComponentInternal.setComponentSize width' height' componentHWND >>
                     updateComponentRegistryEntry ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
 
     unapplyProperty _ componentHWND =
-        ApplicationInternal.scheduleSetWindowPos (ApplicationInternal.SetWindowSize 0 0) componentHWND >>
+        ComponentInternal.setComponentSize 0 0 componentHWND >>
             removeComponentRegistryEntry ComponentSizeRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentPosition where
     applyProperty (ComponentPosition (x, y)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
-                ApplicationInternal.scheduleSetWindowPos (ApplicationInternal.SetWindowLocation x' y') componentHWND >>
+                ComponentInternal.setComponentPosition x' y' componentHWND >>
                     addComponentRegistryEntry ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
 
     updateProperty (ComponentPosition (x, y)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
-                ApplicationInternal.scheduleSetWindowPos (ApplicationInternal.SetWindowLocation x' y') componentHWND >>
+                ComponentInternal.setComponentPosition x' y' componentHWND >>
                     updateComponentRegistryEntry ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
 
     unapplyProperty _ componentHWND =
-        ApplicationInternal.scheduleSetWindowPos (ApplicationInternal.SetWindowLocation 0 0) componentHWND >>
+        ComponentInternal.setComponentPosition 0 0 componentHWND >>
             removeComponentRegistryEntry ComponentPositionRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentFont where

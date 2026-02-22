@@ -77,12 +77,11 @@ instance IsGUIComponent Window where
         addComponentRegistryEntry WindowStyleRegKey         (WindowStyleReg windowStyle)          window
 
         mapM_ (`applyProperty` window) windowProperties
-        ApplicationInternal.flushWindowPosScheduleList
 
         _ <- Win32.showWindow window Win32.sW_SHOW
         Win32.updateWindow window
 
-        ApplicationInternal.scheduleSetWindowPos ApplicationInternal.BringWindowToFront window
+        ComponentInternal.bringComponentToTop window
         ComponentInternal.useDefaultFont window
 
         atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n + 1, ())
