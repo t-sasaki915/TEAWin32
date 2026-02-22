@@ -69,7 +69,7 @@ instance IsGUIComponent Window where
 
         currentDPI <- GUIInternal.getDPIFromHWND window
 
-        --registerComponentToRegistry windowUniqueId window
+        registerComponentToRegistry windowUniqueId window
         addComponentRegistryEntry ComponentUniqueIdRegKey   (ComponentUniqueIdReg windowUniqueId) window
         addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentWindow)    window
         addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   window
