@@ -120,7 +120,7 @@ defaultWindowProc hwnd wMsg wParam lParam
         let hdc = intPtrToPtr $ fromIntegral wParam
         rect <- Win32.getClientRect hwnd
 
-        getComponentRegistryEntryValueMaybe ComponentBackgroundColourRegKey hwnd >>= \case
+        getComponentRegistryEntryValueMaybe WindowBackgroundColourRegKey hwnd >>= \case
             Just backgroundColour -> do
                 bracket (Win32.createSolidBrush (toWin32Colour backgroundColour)) Win32.c_DeleteObject $
                     Win32.fillRect hdc rect

@@ -57,6 +57,8 @@ instance IsGUIComponentProperty WindowProperty where
 
     unapplyProperty (WindowProperty x) = unapplyProperty x
 
+    isPropertyChanged (WindowProperty x) = isPropertyChanged x
+
 newtype WindowIcon             = WindowIcon             Icon           deriving (Show, Eq)
 newtype WindowCursor           = WindowCursor           Cursor         deriving (Show, Eq)
 newtype WindowBackgroundColour = WindowBackgroundColour Colour         deriving (Show, Eq)
@@ -73,6 +75,8 @@ instance IsWindowProperty ComponentZIndex
 instance IsWindowProperty ComponentChildren
 
 instance IsGUIComponentProperty WindowIcon where
+    isPropertyChanged (WindowIcon icon) = isRegistryValueChangedMaybe WindowIconRegKey icon
+
     applyProperty (WindowIcon icon) windowHWND =
         ComponentInternal.setWindowIcon icon windowHWND >>
             addComponentRegistryEntry WindowIconRegKey (WindowIconReg icon) windowHWND
@@ -86,6 +90,8 @@ instance IsGUIComponentProperty WindowIcon where
             removeComponentRegistryEntry WindowIconRegKey windowHWND
 
 instance IsGUIComponentProperty WindowCursor where
+    isPropertyChanged (WindowCursor cursor) = isRegistryValueChangedMaybe WindowCursorRegKey cursor
+
     applyProperty (WindowCursor cursor) windowHWND =
         ComponentInternal.setWindowCursor cursor windowHWND >>
             addComponentRegistryEntry WindowCursorRegKey (WindowCursorReg cursor) windowHWND
@@ -100,14 +106,16 @@ instance IsGUIComponentProperty WindowCursor where
 
 
 instance IsGUIComponentProperty WindowBackgroundColour where
+    isPropertyChanged (WindowBackgroundColour colour) = isRegistryValueChangedMaybe WindowBackgroundColourRegKey colour
+
     applyProperty (WindowBackgroundColour colour) windowHWND =
-        addComponentRegistryEntry ComponentBackgroundColourRegKey (ComponentBackgroundColourReg colour) windowHWND >>
+        addComponentRegistryEntry WindowBackgroundColourRegKey (WindowBackgroundColourReg colour) windowHWND >>
             ComponentInternal.requestRedraw windowHWND
 
     updateProperty (WindowBackgroundColour colour) _ windowHWND =
-        updateComponentRegistryEntry ComponentBackgroundColourRegKey (ComponentBackgroundColourReg colour) windowHWND >>
+        updateComponentRegistryEntry WindowBackgroundColourRegKey (WindowBackgroundColourReg colour) windowHWND >>
             ComponentInternal.requestRedraw windowHWND
 
     unapplyProperty _ windowHWND =
-        removeComponentRegistryEntry ComponentBackgroundColourRegKey windowHWND >>
+        removeComponentRegistryEntry WindowBackgroundColourRegKey windowHWND >>
             ComponentInternal.requestRedraw windowHWND

@@ -40,6 +40,8 @@ class Eq a => IsButtonProperty a
 instance IsButtonProperty ButtonProperty
 
 instance IsGUIComponentProperty ButtonProperty where
+    isPropertyChanged (ButtonProperty x) = isPropertyChanged x
+
     applyProperty (ButtonProperty x) = applyProperty x
 
     updateProperty (ButtonProperty new) (ButtonProperty old) =

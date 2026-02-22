@@ -10,5 +10,6 @@ import           TEAWin32.GUI.Component (GUIComponent)
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
 
 instance Show Msg
+instance Eq Msg
 
 updateComponents :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO ()

@@ -20,6 +20,7 @@ import                          Control.Monad                            (forM_)
 import                          Data.Data                                (TypeRep,
                                                                           Typeable,
                                                                           cast)
+import                          Data.Functor                             ((<&>))
 import                          Data.Text                                (Text)
 import                          GHC.Stack                                (HasCallStack)
 import                qualified Graphics.Win32                           as Win32
@@ -33,7 +34,8 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component                   (GUICom
 import                          TEAWin32.GUI.Component.ComponentRegistry
 import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 
-data GUIComponentProperty =  forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
+data GUIComponentProperty = forall a.
+                          (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
                           => GUIComponentProperty a
 
 instance Eq GUIComponentProperty where
@@ -52,6 +54,8 @@ class Eq a => IsGUIComponentProperty a where
 
     unapplyProperty :: HasCallStack => a -> Win32.HWND -> IO ()
 
+    isPropertyChanged :: HasCallStack => a -> Win32.HWND -> IO (Maybe Bool)
+
 instance IsGUIComponentProperty GUIComponentProperty where
     applyProperty (GUIComponentProperty x) = applyProperty x
 
@@ -61,6 +65,8 @@ instance IsGUIComponentProperty GUIComponentProperty where
             Nothing   -> errorTEAWin32 (InternalTEAWin32Error "Failed to cast GUIComponentProperty")
 
     unapplyProperty (GUIComponentProperty x) = unapplyProperty x
+
+    isPropertyChanged (GUIComponentProperty x) = isPropertyChanged x
 
 
 class IsPropertyWrapper a b where
@@ -84,18 +90,11 @@ newtype ComponentPosition = ComponentPosition (ScalableValue, ScalableValue) der
 newtype ComponentFont     = ComponentFont     Font                           deriving (Show, Eq)
 newtype ComponentChildren = ComponentChildren [GUIComponent]                 deriving (Show, Eq)
 newtype ComponentZIndex   = ComponentZIndex   Int                            deriving (Show, Eq)
-data    ComponentOnClick  = forall a. (Typeable a, Show a, Eq a) => ComponentOnClick a
-
-instance Eq ComponentOnClick where
-    (ComponentOnClick a) == (ComponentOnClick b) =
-        case cast b of
-            Just b' -> a == b'
-            Nothing -> False
-
-instance Show ComponentOnClick where
-    show (ComponentOnClick x) = "ComponentOnClick " <> show x
+newtype ComponentOnClick  = ComponentOnClick  ApplicationInternal.Msg        deriving (Show, Eq)
 
 instance IsGUIComponentProperty ComponentTitle where
+    isPropertyChanged (ComponentTitle title) = isRegistryValueChangedMaybe ComponentTitleRegKey title
+
     applyProperty (ComponentTitle title) componentHWND =
         ComponentInternal.setComponentTitle title componentHWND >>
             addComponentRegistryEntry ComponentTitleRegKey (ComponentTitleReg title) componentHWND
@@ -109,6 +108,8 @@ instance IsGUIComponentProperty ComponentTitle where
             removeComponentRegistryEntry ComponentTitleRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentSize where
+    isPropertyChanged (ComponentSize size) = isRegistryValueChangedMaybe ComponentSizeRegKey size
+
     applyProperty (ComponentSize (width, height)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
@@ -126,6 +127,8 @@ instance IsGUIComponentProperty ComponentSize where
             removeComponentRegistryEntry ComponentSizeRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentPosition where
+    isPropertyChanged (ComponentPosition pos) = isRegistryValueChangedMaybe ComponentPositionRegKey pos
+
     applyProperty (ComponentPosition (x, y)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
@@ -143,6 +146,8 @@ instance IsGUIComponentProperty ComponentPosition where
             removeComponentRegistryEntry ComponentPositionRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentFont where
+    isPropertyChanged (ComponentFont font) = isRegistryValueChangedMaybe ComponentFontRegKey font
+
     applyProperty (ComponentFont font) componentHWND =
         ComponentInternal.setComponentFont font componentHWND >>
             addComponentRegistryEntry ComponentFontRegKey (ComponentFontReg font) componentHWND
@@ -168,6 +173,8 @@ instance IsGUIComponentProperty ComponentChildren where
         ComponentInternal.destroyChildren
 
 instance IsGUIComponentProperty ComponentZIndex where
+    isPropertyChanged _ _ = pure (Just False)
+
     applyProperty (ComponentZIndex zIndex) =
         addComponentRegistryEntry ComponentZIndexRegKey (ComponentZIndexReg zIndex)
 
@@ -178,11 +185,13 @@ instance IsGUIComponentProperty ComponentZIndex where
         removeComponentRegistryEntry ComponentZIndexRegKey
 
 instance IsGUIComponentProperty ComponentOnClick where
+    isPropertyChanged (ComponentOnClick msg) = isRegistryValueChangedMaybe ComponentClickEventHandlerRegKey msg
+
     applyProperty (ComponentOnClick msg) =
-        addComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg (ApplicationInternal.Msg msg))
+        addComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg msg)
 
     updateProperty (ComponentOnClick msg) _ =
-        updateComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg (ApplicationInternal.Msg msg))
+        updateComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg msg)
 
     unapplyProperty _ =
         removeComponentRegistryEntry ComponentClickEventHandlerRegKey

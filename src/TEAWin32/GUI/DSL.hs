@@ -17,6 +17,7 @@ module TEAWin32.GUI.DSL
 
 import           Data.Data                         (Typeable)
 import           Data.Text                         (Text)
+import qualified TEAWin32.Application.Internal     as ApplicationInternal
 import           TEAWin32.Drawing                  (Colour (..))
 import           TEAWin32.GUI                      (Cursor (..), Font (..),
                                                     Icon (..), ScalableValue,
@@ -45,4 +46,4 @@ zIndex_ :: (IsPropertyWrapper a ComponentZIndex) => Int -> a
 zIndex_ = wrapComponentProperty . ComponentZIndex
 
 onClick_ :: (IsPropertyWrapper a ComponentOnClick, Typeable b, Show b, Eq b) => b -> a
-onClick_ = wrapComponentProperty . ComponentOnClick
+onClick_ = wrapComponentProperty . ComponentOnClick . ApplicationInternal.Msg

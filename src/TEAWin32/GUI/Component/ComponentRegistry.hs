@@ -14,11 +14,13 @@ module TEAWin32.GUI.Component.ComponentRegistry
     , getComponentRegistryEntryValue
     , getComponentRegistryEntryValueMaybe
     , whenComponentHasRegistryKey
+    , isRegistryValueChangedMaybe
     ) where
 
 import                          Control.Concurrent            (MVar, modifyMVar,
                                                                newMVar,
                                                                readMVar)
+import                          Data.Functor                  ((<&>))
 import                          Data.IntMap.Strict            (IntMap)
 import                qualified Data.IntMap.Strict            as IntMap
 import                          Data.Map                      (Map)
@@ -41,7 +43,6 @@ data ComponentRegistryKey a where
     ComponentTypeRegKey              :: ComponentRegistryKey ComponentType
     ComponentCurrentDPIRegKey        :: ComponentRegistryKey Int
     ComponentClickEventHandlerRegKey :: ComponentRegistryKey ApplicationInternal.Msg
-    ComponentBackgroundColourRegKey  :: ComponentRegistryKey Colour
     ComponentFontRegKey              :: ComponentRegistryKey Font
     ComponentTitleRegKey             :: ComponentRegistryKey Text
     ComponentSizeRegKey              :: ComponentRegistryKey (ScalableValue, ScalableValue)
@@ -51,13 +52,13 @@ data ComponentRegistryKey a where
     WindowStyleRegKey                :: ComponentRegistryKey WindowStyle
     WindowCursorRegKey               :: ComponentRegistryKey Cursor
     WindowIconRegKey                 :: ComponentRegistryKey Icon
+    WindowBackgroundColourRegKey     :: ComponentRegistryKey Colour
 
 instance Show (ComponentRegistryKey a) where
     show ComponentUniqueIdRegKey          = "ComponentUniqueIdRegKey"
     show ComponentTypeRegKey              = "ComponentTypeRegKey"
     show ComponentCurrentDPIRegKey        = "ComponentCurrentDPIRegKey"
     show ComponentClickEventHandlerRegKey = "ComponentClickEventHandlerRegKey"
-    show ComponentBackgroundColourRegKey  = "ComponentBackgroundColourRegKey"
     show ComponentFontRegKey              = "ComponentFontRegKey"
     show ComponentTitleRegKey             = "ComponentTitleRegKey"
     show ComponentSizeRegKey              = "ComponentSizeRegKey"
@@ -67,28 +68,28 @@ instance Show (ComponentRegistryKey a) where
     show WindowStyleRegKey                = "WindowStyleRegKey"
     show WindowCursorRegKey               = "WindowCursorRegKey"
     show WindowIconRegKey                 = "WindowIconRegKey"
+    show WindowBackgroundColourRegKey     = "WindowBackgroundColourRegKey"
 
 keyToInt :: ComponentRegistryKey a -> Int
 keyToInt ComponentUniqueIdRegKey          = 0
 keyToInt ComponentTypeRegKey              = 1
 keyToInt ComponentCurrentDPIRegKey        = 2
 keyToInt ComponentClickEventHandlerRegKey = 3
-keyToInt ComponentBackgroundColourRegKey  = 4
-keyToInt ComponentFontRegKey              = 5
-keyToInt ComponentTitleRegKey             = 6
-keyToInt ComponentSizeRegKey              = 7
-keyToInt ComponentPositionRegKey          = 8
-keyToInt ComponentZIndexRegKey            = 9
-keyToInt WindowClassNameRegKey            = 10
-keyToInt WindowStyleRegKey                = 11
-keyToInt WindowCursorRegKey               = 12
-keyToInt WindowIconRegKey                 = 13
+keyToInt ComponentFontRegKey              = 4
+keyToInt ComponentTitleRegKey             = 5
+keyToInt ComponentSizeRegKey              = 6
+keyToInt ComponentPositionRegKey          = 7
+keyToInt ComponentZIndexRegKey            = 8
+keyToInt WindowClassNameRegKey            = 9
+keyToInt WindowStyleRegKey                = 10
+keyToInt WindowCursorRegKey               = 11
+keyToInt WindowIconRegKey                 = 12
+keyToInt WindowBackgroundColourRegKey     = 13
 
 data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
                             | ComponentTypeReg              !ComponentType
                             | ComponentCurrentDPIReg        !Int
                             | ComponentClickEventHandlerReg !ApplicationInternal.Msg
-                            | ComponentBackgroundColourReg  !Colour
                             | ComponentFontReg              !Font
                             | ComponentTitleReg             !Text
                             | ComponentSizeReg              !(ScalableValue, ScalableValue)
@@ -98,6 +99,7 @@ data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
                             | WindowStyleReg                !WindowStyle
                             | WindowCursorReg               !Cursor
                             | WindowIconReg                 !Icon
+                            | WindowBackgroundColourReg     !Colour
                             deriving Show
 
 projectEntry :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> a
@@ -105,7 +107,6 @@ projectEntry ComponentUniqueIdRegKey          (ComponentUniqueIdReg v)          
 projectEntry ComponentTypeRegKey              (ComponentTypeReg v)              = v
 projectEntry ComponentCurrentDPIRegKey        (ComponentCurrentDPIReg v)        = v
 projectEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg v) = v
-projectEntry ComponentBackgroundColourRegKey  (ComponentBackgroundColourReg v)  = v
 projectEntry ComponentFontRegKey              (ComponentFontReg v)              = v
 projectEntry ComponentTitleRegKey             (ComponentTitleReg v)             = v
 projectEntry ComponentSizeRegKey              (ComponentSizeReg v)              = v
@@ -115,6 +116,7 @@ projectEntry WindowClassNameRegKey            (WindowClassNameReg v)            
 projectEntry WindowStyleRegKey                (WindowStyleReg v)                = v
 projectEntry WindowCursorRegKey               (WindowCursorReg v)               = v
 projectEntry WindowIconRegKey                 (WindowIconReg v)                 = v
+projectEntry WindowBackgroundColourRegKey     (WindowBackgroundColourReg v)     = v
 projectEntry key ent =
     errorTEAWin32 (InternalTEAWin32Error $ "Type mismatch in registry. Key: " <> Text.show key <> " Entry: " <> Text.show ent)
 
@@ -253,3 +255,7 @@ whenComponentHasRegistryKey regKey hwnd func =
 
             Nothing ->
                 pure ()
+
+isRegistryValueChangedMaybe :: (Eq a, HasCallStack) => ComponentRegistryKey a -> a -> Win32.HWND -> IO (Maybe Bool)
+isRegistryValueChangedMaybe regKey newValue hwnd =
+    getComponentRegistryEntryValueMaybe regKey hwnd <&> ((/= newValue) <$>)
