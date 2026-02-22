@@ -48,9 +48,9 @@ instance IsGUIComponent Button where
         addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentButton)    button
         addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   button
 
+        mapM_ (`applyProperty` button) buttonProperties
+
         ComponentInternal.useDefaultFont button
         ComponentInternal.bringComponentToTop button
-
-        mapM_ (`applyProperty` button) buttonProperties
 
         pure button
