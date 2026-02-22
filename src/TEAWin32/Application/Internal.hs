@@ -15,6 +15,7 @@ import           Control.Monad                            (void, when)
 import           Control.Monad.State.Strict               (evalState)
 import           Control.Monad.Writer.Strict              (execWriterT)
 import           Data.Data                                (Typeable, cast)
+import           Data.Functor                             ((<&>))
 import           Data.IORef                               (IORef,
                                                            atomicModifyIORef',
                                                            newIORef, readIORef)
@@ -25,7 +26,8 @@ import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
 import           TEAWin32.Exception                       (TEAWin32Error (..),
                                                            errorTEAWin32)
-import           TEAWin32.GUI.Component                   (GUIComponent,
+import           TEAWin32.GUI.Component                   (DSLState (..),
+                                                           GUIComponent,
                                                            GUIComponents,
                                                            IsGUIComponent (..))
 import           TEAWin32.GUI.Component.ComponentRegistry
@@ -73,7 +75,7 @@ issueMsg msg = do
     atomicModifyIORef' modelRef (const (newModel, ()))
 
     viewFunc <- readIORef viewFuncRef
-    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) 0
+    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) (DSLState 0 [])
 
     updateComponents newGUIComponents Nothing
 
@@ -96,15 +98,24 @@ updateComponents newGUIComponents maybeParent = do
     let newGUIComponentsWithUniqueId = Map.fromList [ (getUniqueId comp, comp) | comp <- newGUIComponents ]
 
     _ <- flip Map.traverseWithKey childrenWithUniqueId $ \uniqueId child ->
-        when (isNothing (Map.lookup uniqueId newGUIComponentsWithUniqueId)) $
+        when (isNothing (Map.lookup uniqueId newGUIComponentsWithUniqueId)) $ do
+            putStrLn $ "DELETE " <> show uniqueId
             ComponentInternal.destroyComponent child
 
     _ <- flip Map.traverseWithKey newGUIComponentsWithUniqueId $ \uniqueId newGUIComponent ->
         case Map.lookup uniqueId childrenWithUniqueId of
             Just currentHWND ->
-                putStrLn $ "UPDATE " <> show uniqueId
+                getComponentRegistryEntryValue ComponentTypeRegKey currentHWND <&> (== getComponentType newGUIComponent) >>= \case
+                    True ->
+                        putStrLn $ "UPDATE " <> show uniqueId
 
-            Nothing ->
+                    False -> do
+                        putStrLn $ "RERENDER " <> show uniqueId
+                        ComponentInternal.destroyComponent currentHWND >>
+                            void (render newGUIComponent maybeParent)
+
+            Nothing -> do
+                putStrLn $ "RENDER " <> show uniqueId
                 void (render newGUIComponent maybeParent)
 
     pure ()

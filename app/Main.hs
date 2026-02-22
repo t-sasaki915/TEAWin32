@@ -56,12 +56,12 @@ view model = do
     let isCountEven = even (model ^. clickedCount)
 
     when isCountEven $
-        window_' "BBBBB" "TEAWin32-SubSubSub" WindowStyleNormal
+        window_ "TEAWin32-SubSubSub" WindowStyleNormal
             [title_ "Count is even!", icon_ IconExclamation, size_ (400, 10), pos_ (0, 0), bgColour_ (RGB 0 0 255)] noChildren
 
     window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
         [title_ "!?", icon_ IconExclamation, size_ (400, 200), pos_ (200, 0)] $
-            button_' "AAAAA" [title_ "!?!?", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
+            button_ [title_ "!?!?", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))

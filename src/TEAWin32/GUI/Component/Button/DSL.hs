@@ -7,10 +7,13 @@ import           TEAWin32.GUI.Component                 (GUIComponent (..),
                                                          GUIComponents)
 import           TEAWin32.GUI.Component.Button          (Button (Button))
 import           TEAWin32.GUI.Component.Button.Property
-import           TEAWin32.GUI.DSL.Internal              (getNextSystemUniqueId)
+import           TEAWin32.GUI.DSL.Internal              (getNextSystemUniqueId,
+                                                         recordUserUniqueId)
 
 button_' :: Text -> [ButtonProperty] -> GUIComponents
-button_' uniqueId = tell . pure . GUIComponent . Button (UserUniqueId uniqueId)
+button_' uniqueId properties =
+    recordUserUniqueId uniqueId >>
+        tell [GUIComponent (Button (UserUniqueId uniqueId) properties)]
 
 button_ :: [ButtonProperty] -> GUIComponents
 button_ properties =

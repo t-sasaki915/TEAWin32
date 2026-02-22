@@ -43,7 +43,6 @@ library
       TEAWin32.Effect.MessageBox
       TEAWin32.GUI.Component.Button.DSL
       TEAWin32.GUI.Component.Button.Property
-      TEAWin32.GUI.Component.Property.Internal
       TEAWin32.GUI.Component.Window.DSL
       TEAWin32.GUI.Component.Window.Property
       TEAWin32.GUI.Component.Button

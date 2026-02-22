@@ -24,6 +24,7 @@ import qualified TEAWin32.Internal.Foreign as Win32
 
 data ErrorLocation = Init
                    | Update
+                   | View
                    deriving Show
 
 data TEAWin32Error = InternalTEAWin32Error Text

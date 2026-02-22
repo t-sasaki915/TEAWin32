@@ -19,7 +19,7 @@ import           TEAWin32.Exception              (ErrorLocation (..),
                                                   TEAWin32Error (..),
                                                   errorTEAWin32, try_)
 import           TEAWin32.GUI                    (withVisualStyles)
-import           TEAWin32.GUI.Component          (GUIComponents,
+import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
 import           TEAWin32.GUI.Internal           (finaliseFontCache,
@@ -78,7 +78,7 @@ runTEA' init update view = do
     atomicModifyIORef' updateFuncRef (const (update', ()))
     atomicModifyIORef' viewFuncRef (const (view', ()))
 
-    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) 0
+    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) (DSLState 0 [])
 
     sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
     forM_ sortedInitGUIComponents $ \guiComponent ->
