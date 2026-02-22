@@ -3,48 +3,49 @@
 module TEAWin32.Application.Internal
     ( Model (..)
     , Msg (..)
+    , SetWindowPosSchedule (..)
     , modelRef
     , updateFuncRef
     , viewFuncRef
-    , registerHWND
-    , getHWNDByUniqueId
-    , unregisterHWND
     , isUpdateProgressing
+    , scheduleSetWindowPos
+    , flushWindowPosScheduleList
     , issueMsg
     , updateComponents
     ) where
 
-import                          Control.Concurrent                        (MVar,
-                                                                           modifyMVar,
-                                                                           newMVar,
-                                                                           readMVar)
-import                          Control.Monad                             (forM_,
-                                                                           unless,
-                                                                           void)
-import                          Control.Monad.State.Strict                (evalState)
-import                          Control.Monad.Writer.Strict               (execWriterT)
-import                          Data.Data                                 (Typeable,
-                                                                           cast)
-import                          Data.IORef                                (IORef,
-                                                                           atomicModifyIORef',
-                                                                           newIORef,
-                                                                           readIORef)
-import                          Data.Map                                  (Map)
-import                qualified Data.Map                                  as Map
-import                          Data.Maybe                                (catMaybes)
-import                          GHC.IO                                    (unsafePerformIO)
-import                          GHC.Stack                                 (HasCallStack)
-import                qualified Graphics.Win32                            as Win32
-import                          TEAWin32.GUI                              (UniqueId)
-import                          TEAWin32.GUI.Component                    (GUIComponent,
-                                                                           GUIComponents,
-                                                                           IsGUIComponent (..))
-import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute (isManagedByTEAWin32)
-import                          TEAWin32.GUI.Component.Property           (IsGUIComponentProperty (..))
-import                          TEAWin32.GUI.Component.Property.Internal  as PropertyInternal
-import                qualified TEAWin32.GUI.Internal                     as GUIInternal
-import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
+import           Control.Applicative                      ((<|>))
+import           Control.Concurrent                       (MVar, modifyMVar,
+                                                           newMVar)
+import           Control.Monad                            (foldM, unless, void,
+                                                           when)
+import           Control.Monad.State.Strict               (evalState)
+import           Control.Monad.Writer.Strict              (execWriterT)
+import           Data.Bits                                ((.|.))
+import           Data.Data                                (Typeable, cast)
+import           Data.Functor                             ((<&>))
+import           Data.IntMap.Strict                       (IntMap)
+import qualified Data.IntMap.Strict                       as IntMap
+import           Data.IORef                               (IORef,
+                                                           atomicModifyIORef',
+                                                           newIORef, readIORef)
+import qualified Data.Map                                 as Map
+import           Data.Maybe                               (fromMaybe, isJust,
+                                                           isNothing)
+import           GHC.IO                                   (bracket,
+                                                           unsafePerformIO)
+import           GHC.Stack                                (HasCallStack)
+import qualified Graphics.Win32                           as Win32
+import           TEAWin32.Exception                       (TEAWin32Error (..),
+                                                           errorTEAWin32)
+import           TEAWin32.GUI.Component                   (DSLState (..),
+                                                           GUIComponent,
+                                                           GUIComponents,
+                                                           IsGUIComponent (..))
+import           TEAWin32.GUI.Component.ComponentRegistry
+import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
+import qualified TEAWin32.GUI.Internal                    as GUIInternal
+import           TEAWin32.Util                            (hwndToInt, intToHWND)
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -59,122 +60,144 @@ instance Eq Msg where
             Nothing -> False
 
 modelRef :: IORef Model
-modelRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
+modelRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE modelRef #-}
 
 updateFuncRef :: IORef (Msg -> Model -> IO Model)
-updateFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
+updateFuncRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE updateFuncRef #-}
 
 viewFuncRef :: IORef (Model -> GUIComponents)
-viewFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
+viewFuncRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE viewFuncRef #-}
-
-uniqueIdAndHWNDMapRef :: MVar (Map UniqueId Win32.HWND)
-uniqueIdAndHWNDMapRef = unsafePerformIO (newMVar mempty)
-{-# NOINLINE uniqueIdAndHWNDMapRef #-}
 
 isUpdateProgressingRef :: IORef Bool
 isUpdateProgressingRef = unsafePerformIO (newIORef False)
 {-# NOINLINE isUpdateProgressingRef #-}
 
-getHWNDByUniqueId :: UniqueId -> IO (Maybe Win32.HWND)
-getHWNDByUniqueId uniqueId =
-    readMVar uniqueIdAndHWNDMapRef >>= \uniqueIdAndHWNDMap ->
-        pure $ Map.lookup uniqueId uniqueIdAndHWNDMap
-
-registerHWND :: UniqueId -> Win32.HWND -> IO ()
-registerHWND uniqueId hwnd =
-    modifyMVar uniqueIdAndHWNDMapRef $ \hwndMap ->
-        let newHWNDMap = Map.insert uniqueId hwnd hwndMap in
-            pure (newHWNDMap, ())
-
-unregisterHWND :: Win32.HWND -> IO ()
-unregisterHWND hwnd =
-    modifyMVar uniqueIdAndHWNDMapRef $ \hwndMap ->
-        let newHWNDMap = Map.filter (/= hwnd) hwndMap in
-            pure (newHWNDMap, ())
-
 isUpdateProgressing :: IO Bool
 isUpdateProgressing = readIORef isUpdateProgressingRef
 
-setUpdateProgressing :: Bool -> IO ()
-setUpdateProgressing prog = atomicModifyIORef' isUpdateProgressingRef (const (prog, ()))
+setWindowPosActionMapRef :: MVar (IntMap SetWindowPosAction)
+setWindowPosActionMapRef = unsafePerformIO (newMVar IntMap.empty)
+{-# NOINLINE setWindowPosActionMapRef #-}
+
+data SetWindowPosAction = SetWindowPosAction
+    { setWindowLoc       :: Maybe (Int, Int)
+    , setWindowSize      :: Maybe (Int, Int)
+    , bringWindowToFront :: Bool
+    }
+    deriving Show
+
+data SetWindowPosSchedule = SetWindowLocation Int Int
+                          | SetWindowSize Int Int
+                          | BringWindowToFront
+
+fromSetWindowPosSchedule :: SetWindowPosSchedule -> SetWindowPosAction
+fromSetWindowPosSchedule (SetWindowLocation x y) =
+    SetWindowPosAction { setWindowLoc = Just (x, y), setWindowSize = Nothing, bringWindowToFront = False }
+fromSetWindowPosSchedule (SetWindowSize width height) =
+    SetWindowPosAction { setWindowLoc = Nothing, setWindowSize = Just (width, height), bringWindowToFront = False }
+fromSetWindowPosSchedule BringWindowToFront =
+    SetWindowPosAction { setWindowLoc = Nothing, setWindowSize = Nothing, bringWindowToFront = True }
+
+combineSetWindowPosAction :: SetWindowPosAction -> SetWindowPosAction -> SetWindowPosAction
+combineSetWindowPosAction newAction oldAction = SetWindowPosAction
+    { setWindowLoc       = setWindowLoc newAction <|> setWindowLoc oldAction
+    , setWindowSize      = setWindowSize newAction <|> setWindowSize oldAction
+    , bringWindowToFront = bringWindowToFront newAction || bringWindowToFront oldAction
+    }
+
+scheduleSetWindowPos :: SetWindowPosSchedule -> Win32.HWND -> IO ()
+scheduleSetWindowPos newAct hwnd =
+    let hwnd' = hwndToInt hwnd in
+        modifyMVar setWindowPosActionMapRef $ \actionMap ->
+            case IntMap.lookup hwnd' actionMap of
+                Just currentAct ->
+                    pure (IntMap.insert hwnd' (combineSetWindowPosAction (fromSetWindowPosSchedule newAct) currentAct) actionMap, ())
+
+                Nothing ->
+                    pure (IntMap.insert hwnd' (fromSetWindowPosSchedule newAct) actionMap, ())
+
+applySetWindowPosSchedule :: Win32.HDWP -> (Int, SetWindowPosAction) -> IO Win32.HDWP
+applySetWindowPosSchedule hdwp (hwnd, action) = do
+    let flags = (if isJust (setWindowLoc action)  then 0                    else Win32.sWP_NOMOVE)
+            .|. (if isJust (setWindowSize action) then 0                    else Win32.sWP_NOSIZE)
+            .|. (if bringWindowToFront action     then Win32.sWP_SHOWWINDOW else Win32.sWP_NOZORDER)
+            .|. Win32.sWP_NOACTIVATE
+
+        (x, y)          = fromMaybe (0, 0) (setWindowLoc action)
+        (width, height) = fromMaybe (0, 0) (setWindowSize action)
+
+    Win32.c_DeferWindowPos hdwp (intToHWND hwnd) Win32.nullPtr x y width height flags
+
+flushWindowPosScheduleList :: IO ()
+flushWindowPosScheduleList = do
+    setWindowPosActionMap <- modifyMVar setWindowPosActionMapRef $ \scheduleList ->
+        pure (IntMap.empty, reverse $ IntMap.toList scheduleList)
+
+    print setWindowPosActionMap
+
+    unless (null setWindowPosActionMap) $
+        void $ bracket
+            (Win32.beginDeferWindowPos (length setWindowPosActionMap))
+            (\hdwp -> unless (hdwp == Win32.nullPtr) $ Win32.endDeferWindowPos hdwp)
+            (\hdwp -> foldM applySetWindowPosSchedule hdwp setWindowPosActionMap)
 
 issueMsg :: HasCallStack => Msg -> IO ()
 issueMsg msg = do
-    setUpdateProgressing True
+    atomicModifyIORef' isUpdateProgressingRef (const (True, ()))
 
     updateFunc   <- readIORef updateFuncRef
     currentModel <- readIORef modelRef
-
-    newModel <- updateFunc msg currentModel
+    newModel     <- updateFunc msg currentModel
     atomicModifyIORef' modelRef (const (newModel, ()))
 
-    currentGUIComponents <- fmap catMaybes $ GUIInternal.withTopLevelWindows $ mapM $ \topLevelWindow ->
-        isManagedByTEAWin32 topLevelWindow >>= \case
-            True  -> Just <$> ComponentInternal.restoreComponentFromHWND topLevelWindow
-            False -> pure Nothing
-
     viewFunc <- readIORef viewFuncRef
-    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) 0
+    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) (DSLState 0 [])
 
-    unless (newGUIComponents == currentGUIComponents) $
-        updateComponents newGUIComponents currentGUIComponents Nothing
+    updateComponents newGUIComponents Nothing
 
-    readMVar uniqueIdAndHWNDMapRef >>= print
+    flushWindowPosScheduleList
 
-    setUpdateProgressing False
+    atomicModifyIORef' isUpdateProgressingRef (const (False, ()))
 
-updateComponents :: HasCallStack => [GUIComponent] -> [GUIComponent] -> Maybe Win32.HWND -> IO ()
-updateComponents newChildren oldChildren parentHWND = do
-    putStrLn "=================================================================================="
-    ComponentInternal.sortComponentsWithZIndex newChildren parentHWND >>= \sortedNewChildren ->
-        forM_ (ComponentInternal.compareGUIComponents sortedNewChildren oldChildren) $ \case
-            (ComponentInternal.NoComponentChange component) ->
-                getHWNDByUniqueId (getUniqueId component) >>= \case
-                    Just hwnd -> ComponentInternal.bringComponentToTop hwnd
-                    Nothing   -> throwTEAWin32InternalError "Tried to change the z-index of a component that was not in the map."
+updateComponents :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO ()
+updateComponents newGUIComponents maybeParent = do
+    childrenWithUniqueId <- Map.fromList <$>
+        case maybeParent of
+            Just parent ->
+                GUIInternal.withImmediateChildWindows parent $ mapM $ \child ->
+                    getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
+                        pure (uniqueId, child)
 
-            (ComponentInternal.RenderComponent addedComponent) -> do
-                putStrLn $ "Render " <> show (getUniqueId addedComponent)
-                void (render addedComponent parentHWND)
+            Nothing ->
+                GUIInternal.withTopLevelWindows $ mapM $ \child ->
+                    getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
+                        pure (uniqueId, child)
 
-            (ComponentInternal.DeleteComponent deletedComponent) -> do
-                putStrLn $ "Delete " <> show (getUniqueId deletedComponent)
-                getHWNDByUniqueId (getUniqueId deletedComponent) >>= \case
-                    Just hwnd -> ComponentInternal.destroyComponent hwnd
-                    Nothing   -> throwTEAWin32InternalError "Tried to delete a component that was not in the map."
+    let newGUIComponentsWithUniqueId = Map.fromList [ (getUniqueId comp, comp) | comp <- newGUIComponents ]
 
-            (ComponentInternal.RedrawComponent modifiedComponent) ->
-                getHWNDByUniqueId (getUniqueId modifiedComponent) >>= \case
-                    Just hwnd -> ComponentInternal.destroyComponent hwnd >> void (render modifiedComponent parentHWND) -- TODO
-                    Nothing   -> throwTEAWin32InternalError "Tried to redraw a component that was not in the map."
+    _ <- flip Map.traverseWithKey childrenWithUniqueId $ \uniqueId child ->
+        when (isNothing (Map.lookup uniqueId newGUIComponentsWithUniqueId)) $ do
+            putStrLn $ "DELETE " <> show uniqueId
+            ComponentInternal.destroyComponent child
 
-            (ComponentInternal.DifferentComponent newComponent oldComponent) ->
-                getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
-                    Just hwnd -> ComponentInternal.destroyComponent hwnd >> void (render newComponent parentHWND)
-                    Nothing   -> throwTEAWin32InternalError "Tried to redraw a component that was not in the map."
+    _ <- flip Map.traverseWithKey newGUIComponentsWithUniqueId $ \uniqueId newGUIComponent ->
+        case Map.lookup uniqueId childrenWithUniqueId of
+            Just currentHWND ->
+                getComponentRegistryEntryValue ComponentTypeRegKey currentHWND <&> (== getComponentType newGUIComponent) >>= \case
+                    True ->
+                        putStrLn $ "UPDATE " <> show uniqueId
 
-            (ComponentInternal.UpdateProperties newComponent oldComponent) ->
-                getHWNDByUniqueId (getUniqueId oldComponent) >>= \case
-                    Just hwnd -> do
-                        forM_ (PropertyInternal.compareProperties (getProperties newComponent) (getProperties oldComponent)) $ \case
-                            PropertyInternal.NoPropertyChange ->
-                                pure ()
+                    False -> do
+                        putStrLn $ "RERENDER " <> show uniqueId
+                        ComponentInternal.destroyComponent currentHWND >>
+                            void (render newGUIComponent maybeParent)
 
-                            (PropertyInternal.AddProperty addedProperty) ->
-                                applyProperty addedProperty hwnd
+            Nothing -> do
+                putStrLn $ "RENDER " <> show uniqueId
+                void (render newGUIComponent maybeParent)
 
-                            (PropertyInternal.DeleteProperty deletedProperty) ->
-                                unapplyProperty deletedProperty hwnd
+    pure ()
 
-                            (PropertyInternal.UpdateProperty newProperty oldProperty) ->
-                                updateProperty newProperty oldProperty hwnd
-
-                        ComponentInternal.bringComponentToTop hwnd
-
-                    Nothing ->
-                        throwTEAWin32InternalError "Tried to update the properties of a component that was not in the map."
-
-    putStrLn "=================================================================================="

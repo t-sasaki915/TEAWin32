@@ -5,5 +5,6 @@
 
 - ignore: {name: Use camelCase}
 - ignore: {name: Use >=>}
+- ignore: {name: Redundant <&>}
 
 - warn: {name: Redundant do}

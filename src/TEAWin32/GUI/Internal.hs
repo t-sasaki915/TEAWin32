@@ -32,10 +32,10 @@ import                          Foreign                   (castPtrToFunPtr,
 import                qualified Graphics.Win32            as Win32
 import                          System.IO.Unsafe          (unsafePerformIO)
 import                qualified System.Win32              as Win32
+import                          TEAWin32.Exception        (TEAWin32Error (..),
+                                                           errorTEAWin32, try_)
 import {-# SOURCE #-}           TEAWin32.GUI              (Cursor (..), Font,
                                                            Icon (..))
-import                          TEAWin32.Internal         (throwTEAWin32InternalError,
-                                                           try_)
 import                qualified TEAWin32.Internal.Foreign as Win32
 
 activeWindowCountRef :: IORef Int
@@ -55,7 +55,7 @@ fontCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE fontCacheRef #-}
 
 dpiStrategyRef :: IORef DPIStrategy
-dpiStrategyRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "DPIStrategy is not initialised."))
+dpiStrategyRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "DPIStrategy is not initialised.")))
 {-# NOINLINE dpiStrategyRef #-}
 
 data DPIStrategy = ModernDPIStrategy Win32.GetDpiForWindow

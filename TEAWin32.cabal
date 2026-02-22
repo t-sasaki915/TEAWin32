@@ -42,14 +42,11 @@ library
       TEAWin32.Application.Internal
       TEAWin32.Effect.MessageBox
       TEAWin32.GUI.Component.Button.DSL
-      TEAWin32.GUI.Component.Button.Internal
       TEAWin32.GUI.Component.Button.Property
-      TEAWin32.GUI.Component.Internal.Attribute
-      TEAWin32.GUI.Component.Property.Internal
       TEAWin32.GUI.Component.Window.DSL
-      TEAWin32.GUI.Component.Window.Internal
       TEAWin32.GUI.Component.Window.Property
       TEAWin32.GUI.Component.Button
+      TEAWin32.GUI.Component.ComponentRegistry
       TEAWin32.GUI.Component.Internal
       TEAWin32.GUI.Component.Property
       TEAWin32.GUI.Component.Window
@@ -60,8 +57,9 @@ library
       TEAWin32.Internal.Foreign
       TEAWin32.Application
       TEAWin32.Drawing
+      TEAWin32.Exception
       TEAWin32.GUI
-      TEAWin32.Internal
+      TEAWin32.Util
   other-modules:
       Paths_TEAWin32
   autogen-modules:
