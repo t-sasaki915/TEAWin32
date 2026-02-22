@@ -1,6 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
-{-# LANGUAGE InstanceSigs #-}
 
 module TEAWin32.GUI.Component.Property
     ( GUIComponentProperty (..)
@@ -25,13 +24,14 @@ import                          Data.Text                                (Text)
 import                          GHC.Stack                                (HasCallStack)
 import                qualified Graphics.Win32                           as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal            as ApplicationInternal
+import                          TEAWin32.Exception                       (TEAWin32Error (..),
+                                                                          errorTEAWin32)
 import                          TEAWin32.GUI                             (Font,
                                                                           ScalableValue)
 import {-# SOURCE #-}           TEAWin32.GUI.Component                   (GUIComponent (..),
                                                                           IsGUIComponent (..))
 import                          TEAWin32.GUI.Component.ComponentRegistry
 import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
-import                          TEAWin32.Internal                        (throwTEAWin32InternalError)
 
 data GUIComponentProperty =  forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
                           => GUIComponentProperty a
@@ -58,7 +58,7 @@ instance IsGUIComponentProperty GUIComponentProperty where
     updateProperty (GUIComponentProperty new) (GUIComponentProperty old) =
         case cast old of
             Just old' -> updateProperty new old'
-            Nothing   -> throwTEAWin32InternalError "Failed to cast GUIComponentProperty"
+            Nothing   -> errorTEAWin32 (InternalTEAWin32Error "Failed to cast GUIComponentProperty")
 
     unapplyProperty (GUIComponentProperty x) = unapplyProperty x
 
@@ -161,11 +161,9 @@ instance IsGUIComponentProperty ComponentChildren where
             forM_ sortedChildren $ \(GUIComponent child) ->
                 render child (Just componentHWND)
 
-    updateProperty (ComponentChildren newChildren) (ComponentChildren oldChildren) componentHWND =
-        --ApplicationInternal.updateComponents newChildren oldChildren (Just componentHWND)
-        pure ()
+    updateProperty (ComponentChildren newChildren) _ componentHWND =
+        ApplicationInternal.updateComponents newChildren (Just componentHWND)
 
-    unapplyProperty :: HasCallStack => ComponentChildren -> Win32.HWND -> IO ()
     unapplyProperty _ =
         ComponentInternal.destroyChildren
 

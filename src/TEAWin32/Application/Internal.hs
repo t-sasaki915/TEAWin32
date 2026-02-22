@@ -11,13 +11,10 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
-import           Control.Monad                            (filterM, forM, forM_,
-                                                           void, when)
+import           Control.Monad                            (void, when)
 import           Control.Monad.State.Strict               (evalState)
 import           Control.Monad.Writer.Strict              (execWriterT)
 import           Data.Data                                (Typeable, cast)
-import           Data.IntMap                              ((!))
-import qualified Data.IntMap                              as IntMap
 import           Data.IORef                               (IORef,
                                                            atomicModifyIORef',
                                                            newIORef, readIORef)
@@ -26,13 +23,14 @@ import           Data.Maybe                               (isNothing)
 import           GHC.IO                                   (unsafePerformIO)
 import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
+import           TEAWin32.Exception                       (TEAWin32Error (..),
+                                                           errorTEAWin32)
 import           TEAWin32.GUI.Component                   (GUIComponent,
                                                            GUIComponents,
                                                            IsGUIComponent (..))
 import           TEAWin32.GUI.Component.ComponentRegistry
 import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 import qualified TEAWin32.GUI.Internal                    as GUIInternal
-import           TEAWin32.Internal                        (throwTEAWin32InternalError)
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -47,15 +45,15 @@ instance Eq Msg where
             Nothing -> False
 
 modelRef :: IORef Model
-modelRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
+modelRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE modelRef #-}
 
 updateFuncRef :: IORef (Msg -> Model -> IO Model)
-updateFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
+updateFuncRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE updateFuncRef #-}
 
 viewFuncRef :: IORef (Model -> GUIComponents)
-viewFuncRef = unsafePerformIO (newIORef (throwTEAWin32InternalError "TEA is not initialised."))
+viewFuncRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE viewFuncRef #-}
 
 isUpdateProgressingRef :: IORef Bool

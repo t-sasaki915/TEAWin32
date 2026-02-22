@@ -28,6 +28,8 @@ import qualified Data.Text                                as Text
 import           Foreign                                  hiding (new, void)
 import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
+import           TEAWin32.Exception                       (TEAWin32Error (..),
+                                                           errorTEAWin32)
 import           TEAWin32.GUI
 import           TEAWin32.GUI.Component                   (ComponentType (..),
                                                            GUIComponent,
@@ -36,7 +38,6 @@ import           TEAWin32.GUI.Component                   (ComponentType (..),
 import           TEAWin32.GUI.Component.ComponentRegistry
 import           TEAWin32.GUI.Component.Property
 import qualified TEAWin32.GUI.Internal                    as GUIInternal
-import           TEAWin32.Internal                        (throwTEAWin32InternalError)
 import qualified TEAWin32.Internal.Foreign                as Win32
 
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
@@ -57,7 +58,7 @@ sortComponentsWithZIndex guiComponents maybeParent = do
             maybeUsrIndex = case [ usrIndex | Just (ComponentZIndex usrIndex) <- map getZIndexProperty (getProperties guiComponent) ] of
                 [ usrIndex ] -> Just usrIndex
                 []           -> Nothing
-                x            -> throwTEAWin32InternalError $ "Illegal ComponentZIndex state: " <> Text.show x
+                x            -> errorTEAWin32 $ InternalTEAWin32Error $ "Illegal ComponentZIndex state: " <> Text.show x
 
         case (maybeUsrIndex, maybeSysIndex) of
             (Just usrIndex, Just sysIndex) -> pure (ZIndexWithUserSpecification usrIndex sysIndex, uniqueId)

@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module TEAWin32.Internal.Foreign
@@ -16,6 +17,9 @@ module TEAWin32.Internal.Foreign
     , c_GetSysColorBrush
     , c_SetProcessDPIAware
     , c_GetDeviceCaps
+    , c_SelectObject
+    , c_DrawIconEx
+    , c_SHGetStockIconInfo
     , makeGetDpiForWindow
     , makeSetProcessDpiAwareness
     , gCLP_HICON
@@ -30,13 +34,16 @@ module TEAWin32.Internal.Foreign
     , iDCONTINUE
     , iDTRYAGAIN
     , makeIntResource
+    , getHighDPIIcon
     ) where
 
-import           Data.Int       (Int32)
-import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
-                                 fillBytes, intPtrToPtr)
-import           Foreign.C      (CIntPtr (..))
-import qualified Graphics.Win32 as Win32
+import           Control.Exception (SomeException, try)
+import           Data.Int          (Int32)
+import           Foreign           (FunPtr, Ptr, Storable (..), Word16, Word32,
+                                    allocaBytes, castPtr, fillBytes,
+                                    intPtrToPtr)
+import           Foreign.C         (CIntPtr (..), CUInt)
+import qualified Graphics.Win32    as Win32
 
 data ACTCTX = ACTCTX
     { cbSize        :: Word32
@@ -119,6 +126,15 @@ type SetProcessDpiAwareness = Int -> IO Bool
 foreign import ccall "dynamic"
     makeSetProcessDpiAwareness :: FunPtr SetProcessDpiAwareness -> SetProcessDpiAwareness
 
+foreign import ccall "SelectObject"
+    c_SelectObject :: Win32.HDC -> Win32.HANDLE -> IO Win32.HANDLE
+
+foreign import ccall "DrawIconEx"
+    c_DrawIconEx :: Win32.HDC -> Int -> Int -> Win32.HICON -> Int -> Int -> Win32.UINT -> Win32.HBRUSH -> Win32.UINT -> IO Win32.BOOL
+
+foreign import ccall "SHGetStockIconInfo"
+    c_SHGetStockIconInfo :: Int -> Int -> Ptr () -> IO Int
+
 gCLP_HICON :: Int32
 gCLP_HICON = -14
 
@@ -169,7 +185,21 @@ instance Storable Win32.RECT where
         pure (left, top, right, bottom)
 
     poke ptr (left, top, right, bottom) = do
+        fillBytes ptr 0 (sizeOf (0 :: Win32.LONG) * 4)
+
         pokeByteOff ptr 0 left
         pokeByteOff ptr (sizeOf (0 :: Win32.LONG)) top
         pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 2) right
         pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 3) bottom
+
+getHighDPIIcon :: Int -> IO Win32.HICON
+getHighDPIIcon siid =
+    let structSize = 544 in
+        allocaBytes structSize $ \ptr -> do
+            poke (castPtr ptr) (fromIntegral structSize :: CUInt)
+
+            try (c_SHGetStockIconInfo siid 256 ptr) >>= \case
+                Right 0                   -> peekByteOff ptr 8
+                Right _                   -> pure Win32.nullPtr
+                Left (_ :: SomeException) -> pure Win32.nullPtr
+

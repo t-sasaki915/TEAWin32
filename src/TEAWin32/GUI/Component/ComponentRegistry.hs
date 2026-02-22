@@ -19,7 +19,6 @@ module TEAWin32.GUI.Component.ComponentRegistry
 import                          Control.Concurrent            (MVar, modifyMVar,
                                                                newMVar,
                                                                readMVar)
-import                          Control.Exception             (throw)
 import                          Data.IntMap.Strict            (IntMap)
 import                qualified Data.IntMap.Strict            as IntMap
 import                          Data.Map                      (Map)
@@ -32,7 +31,8 @@ import                          GHC.Stack                     (HasCallStack)
 import                qualified Graphics.Win32                as Win32
 import {-# SOURCE #-} qualified TEAWin32.Application.Internal as ApplicationInternal
 import                          TEAWin32.Drawing              (Colour)
-import                          TEAWin32.Exception            (InternalTEAWin32Exception (..))
+import                          TEAWin32.Exception            (TEAWin32Error (..),
+                                                               errorTEAWin32)
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component        (ComponentType)
 
@@ -116,7 +116,7 @@ projectEntry WindowStyleRegKey                (WindowStyleReg v)                
 projectEntry WindowCursorRegKey               (WindowCursorReg v)               = v
 projectEntry WindowIconRegKey                 (WindowIconReg v)                 = v
 projectEntry key ent =
-    throw (InternalTEAWin32Exception $ "Type mismatch in registry. Key: " <> Text.show key <> " Entry: " <> Text.show ent)
+    errorTEAWin32 (InternalTEAWin32Error $ "Type mismatch in registry. Key: " <> Text.show key <> " Entry: " <> Text.show ent)
 
 componentRegistryRef :: MVar (IntMap (IntMap ComponentRegistryEntry))
 componentRegistryRef = unsafePerformIO (newMVar IntMap.empty)
@@ -153,7 +153,7 @@ getComponentHWNDFromUniqueIdRegistry uniqueId =
             pure hwnd
 
         Nothing ->
-            throw $ InternalTEAWin32Exception $
+            errorTEAWin32 $ InternalTEAWin32Error $
                 "Tried to access to the HWND of UniqueId that was not in UniqueIdRegistry: " <> Text.show uniqueId
 
 getComponentHWNDFromUniqueIdRegistryMaybe :: UniqueId -> IO (Maybe Win32.HWND)
@@ -181,7 +181,7 @@ addComponentRegistryEntry regKey regEntry hwnd =
                         pure (IntMap.insert hwnd' newEntries componentRegistry, ())
 
                 Nothing ->
-                    throw $ InternalTEAWin32Exception $
+                    errorTEAWin32 $ InternalTEAWin32Error $
                         "Tried to add a registry entry to HWND that was not in ComponentRegistry: "
                             <> Text.show regKey <> " Entry: " <> Text.show regEntry <> " HWND: " <> Text.show hwnd
 
@@ -195,7 +195,7 @@ removeComponentRegistryEntry regKey hwnd =
                         pure (IntMap.insert hwnd' newEntries componentRegistry, ())
 
                 Nothing ->
-                    throw $ InternalTEAWin32Exception $
+                    errorTEAWin32 $ InternalTEAWin32Error $
                         "Tried to remove a registry entry from HWND that was not in ComponentRegistry: "
                             <> Text.show regKey <> " HWND: " <> Text.show hwnd
 
@@ -209,7 +209,7 @@ updateComponentRegistryEntry regKey newRegEntry hwnd =
                         pure (IntMap.insert hwnd' newEntries componentRegistry, ())
 
                 Nothing ->
-                    throw $ InternalTEAWin32Exception $
+                    errorTEAWin32 $ InternalTEAWin32Error $
                         "Tried to update a registry entry of HWND that was not in ComponentRegistry: "
                             <> Text.show regKey <> " NewEntry: " <> Text.show newRegEntry <> " HWND: " <> Text.show hwnd
 
@@ -221,7 +221,7 @@ withComponentRegistryEntries hwnd func =
                 func entries
 
             Nothing ->
-                throw $ InternalTEAWin32Exception $
+                errorTEAWin32 $ InternalTEAWin32Error $
                     "Tried to access the registry entries of HWND that was not in ComponentRegistry: " <> Text.show hwnd
 
 getComponentRegistryEntryValue :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO a
@@ -231,7 +231,7 @@ getComponentRegistryEntryValue regKey hwnd =
             pure entry
 
         Nothing ->
-            throw $ InternalTEAWin32Exception $
+            errorTEAWin32 $ InternalTEAWin32Error $
                 "Tried to access a registry entry that was not in ComponentRegistry: " <> Text.show regKey <> " HWND: " <> Text.show hwnd
 
 getComponentRegistryEntryValueMaybe :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO (Maybe a)
