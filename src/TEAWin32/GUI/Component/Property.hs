@@ -20,7 +20,6 @@ import                          Control.Monad                            (forM_)
 import                          Data.Data                                (TypeRep,
                                                                           Typeable,
                                                                           cast)
-import                          Data.Functor                             ((<&>))
 import                          Data.Text                                (Text)
 import                          GHC.Stack                                (HasCallStack)
 import                qualified Graphics.Win32                           as Win32
@@ -161,6 +160,14 @@ instance IsGUIComponentProperty ComponentFont where
             removeComponentRegistryEntry ComponentFontRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentChildren where
+    isPropertyChanged _ componentHWND =
+        doesComponentHaveRegistryKey ComponentHasChildrenRegKey componentHWND >>= \case
+            True ->
+                pure (Just True)
+
+            False ->
+                pure Nothing
+
     applyProperty (ComponentChildren children) componentHWND =
         ComponentInternal.sortComponentsWithZIndex children (Just componentHWND) >>= \sortedChildren ->
             forM_ sortedChildren $ \(GUIComponent child) ->
@@ -173,7 +180,7 @@ instance IsGUIComponentProperty ComponentChildren where
         ComponentInternal.destroyChildren
 
 instance IsGUIComponentProperty ComponentZIndex where
-    isPropertyChanged _ _ = pure (Just False)
+    isPropertyChanged (ComponentZIndex zIndex) = isRegistryValueChangedMaybe ComponentZIndexRegKey zIndex
 
     applyProperty (ComponentZIndex zIndex) =
         addComponentRegistryEntry ComponentZIndexRegKey (ComponentZIndexReg zIndex)

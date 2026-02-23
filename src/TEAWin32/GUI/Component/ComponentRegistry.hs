@@ -15,6 +15,7 @@ module TEAWin32.GUI.Component.ComponentRegistry
     , getComponentRegistryEntryValueMaybe
     , whenComponentHasRegistryKey
     , isRegistryValueChangedMaybe
+    , doesComponentHaveRegistryKey
     ) where
 
 import                          Control.Concurrent            (MVar, modifyMVar,
@@ -48,6 +49,7 @@ data ComponentRegistryKey a where
     ComponentSizeRegKey              :: ComponentRegistryKey (ScalableValue, ScalableValue)
     ComponentPositionRegKey          :: ComponentRegistryKey (ScalableValue, ScalableValue)
     ComponentZIndexRegKey            :: ComponentRegistryKey Int
+    ComponentHasChildrenRegKey       :: ComponentRegistryKey ()
     WindowClassNameRegKey            :: ComponentRegistryKey Text
     WindowStyleRegKey                :: ComponentRegistryKey WindowStyle
     WindowCursorRegKey               :: ComponentRegistryKey Cursor
@@ -64,6 +66,7 @@ instance Show (ComponentRegistryKey a) where
     show ComponentSizeRegKey              = "ComponentSizeRegKey"
     show ComponentPositionRegKey          = "ComponentPositionRegKey"
     show ComponentZIndexRegKey            = "ComponentZIndexRegKey"
+    show ComponentHasChildrenRegKey       = "ComponentHasChildrenRegKey"
     show WindowClassNameRegKey            = "WindowClassNameRegKey"
     show WindowStyleRegKey                = "WindowStyleRegKey"
     show WindowCursorRegKey               = "WindowCursorRegKey"
@@ -80,11 +83,12 @@ keyToInt ComponentTitleRegKey             = 5
 keyToInt ComponentSizeRegKey              = 6
 keyToInt ComponentPositionRegKey          = 7
 keyToInt ComponentZIndexRegKey            = 8
-keyToInt WindowClassNameRegKey            = 9
-keyToInt WindowStyleRegKey                = 10
-keyToInt WindowCursorRegKey               = 11
-keyToInt WindowIconRegKey                 = 12
-keyToInt WindowBackgroundColourRegKey     = 13
+keyToInt ComponentHasChildrenRegKey       = 9
+keyToInt WindowClassNameRegKey            = 10
+keyToInt WindowStyleRegKey                = 11
+keyToInt WindowCursorRegKey               = 12
+keyToInt WindowIconRegKey                 = 13
+keyToInt WindowBackgroundColourRegKey     = 14
 
 data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
                             | ComponentTypeReg              !ComponentType
@@ -95,6 +99,7 @@ data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
                             | ComponentSizeReg              !(ScalableValue, ScalableValue)
                             | ComponentPositionReg          !(ScalableValue, ScalableValue)
                             | ComponentZIndexReg            !Int
+                            | ComponentHasChildrenReg
                             | WindowClassNameReg            !Text
                             | WindowStyleReg                !WindowStyle
                             | WindowCursorReg               !Cursor
@@ -112,6 +117,7 @@ projectEntry ComponentTitleRegKey             (ComponentTitleReg v)             
 projectEntry ComponentSizeRegKey              (ComponentSizeReg v)              = v
 projectEntry ComponentPositionRegKey          (ComponentPositionReg v)          = v
 projectEntry ComponentZIndexRegKey            (ComponentZIndexReg v)            = v
+projectEntry ComponentHasChildrenRegKey       ComponentHasChildrenReg           = ()
 projectEntry WindowClassNameRegKey            (WindowClassNameReg v)            = v
 projectEntry WindowStyleRegKey                (WindowStyleReg v)                = v
 projectEntry WindowCursorRegKey               (WindowCursorReg v)               = v
@@ -259,3 +265,8 @@ whenComponentHasRegistryKey regKey hwnd func =
 isRegistryValueChangedMaybe :: (Eq a, HasCallStack) => ComponentRegistryKey a -> a -> Win32.HWND -> IO (Maybe Bool)
 isRegistryValueChangedMaybe regKey newValue hwnd =
     getComponentRegistryEntryValueMaybe regKey hwnd <&> ((/= newValue) <$>)
+
+doesComponentHaveRegistryKey :: HasCallStack => ComponentRegistryKey a -> Win32.HWND -> IO Bool
+doesComponentHaveRegistryKey regKey hwnd =
+    withComponentRegistryEntries hwnd $ \entries ->
+        pure (keyToInt regKey `elem` IntMap.keys entries)
