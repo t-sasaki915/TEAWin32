@@ -49,8 +49,9 @@ instance IsGUIComponent Button where
         addComponentRegistryEntry ComponentScaleFactorRegKey (ComponentScaleFactorReg scaleFactor) button
 
         ComponentInternal.useDefaultFont button
-        ComponentInternal.bringComponentToTop button
 
         mapM_ (`applyProperty` button) buttonProperties
+
+        ComponentInternal.bringComponentToTop button
 
         pure button

@@ -73,13 +73,13 @@ instance IsGUIComponent Window where
         addComponentRegistryEntry WindowClassNameRegKey      (WindowClassNameReg windowClassName)  window
         addComponentRegistryEntry WindowStyleRegKey          (WindowStyleReg windowStyle)          window
 
-        ComponentInternal.bringComponentToTop window
         ComponentInternal.useDefaultFont window
 
         mapM_ (`applyProperty` window) windowProperties
 
         _ <- Win32.showWindow window Win32.sW_SHOW
         Win32.updateWindow window
+        ComponentInternal.bringComponentToTop window
 
         atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n + 1, ())
 
