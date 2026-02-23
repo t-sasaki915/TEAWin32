@@ -1,7 +1,7 @@
 module TEAWin32.GUI.Component.Internal
     ( sortComponentsWithZIndex
     , resolveScalableValueForHWND
-    , updateComponentDPI
+    --, updateComponentDPI
     , getRelativeRectFromHWNDUsingWin32
     , bringComponentToTop
     , setComponentTitle
@@ -18,7 +18,7 @@ module TEAWin32.GUI.Component.Internal
 
 import           Control.Concurrent                       (modifyMVar)
 import           Control.Monad                            (filterM, forM,
-                                                           unless, when)
+                                                           unless)
 import           Data.Functor                             (void, (<&>))
 import qualified Data.List                                as List
 import           Data.Map.Strict                          ((!))
@@ -71,10 +71,10 @@ sortComponentsWithZIndex guiComponents maybeParent = do
 resolveScalableValueForHWND :: HasCallStack => Win32.HWND -> ScalableValue -> IO Int
 resolveScalableValueForHWND _ (RawValue x) = pure (round x)
 resolveScalableValueForHWND hwnd (ScalableValue x) =
-    getComponentRegistryEntryValue ComponentCurrentDPIRegKey hwnd >>= \currentDpi ->
-        pure (round (x * fromIntegral currentDpi / 96.0))
+    getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd >>= \scaleFactor ->
+        pure (round (x * scaleFactor))
 
-updateComponentDPI :: HasCallStack => Win32.HWND -> Int -> IO ()
+{-updateComponentDPI :: HasCallStack => Win32.HWND -> Int -> IO ()
 updateComponentDPI hwnd newDPI = do
     updateComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg newDPI) hwnd
 
@@ -94,7 +94,7 @@ updateComponentDPI hwnd newDPI = do
                         updateProperty (ComponentSize size) (ComponentSize size) child
 
                     whenComponentHasRegistryKey ComponentPositionRegKey child $ \position ->
-                        updateProperty (ComponentPosition position) (ComponentPosition position) child
+                        updateProperty (ComponentPosition position) (ComponentPosition position) child-}
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do
@@ -154,11 +154,9 @@ setComponentFont font@(Font fontName fontSize) hwnd =
                     pure (fontCache, ())
             Nothing ->
                 resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
-                    Win32.createFont (fromIntegral fontSize') 0 0 0 Win32.fW_NORMAL False False False Win32.dEFAULT_CHARSET
-                        Win32.oUT_DEFAULT_PRECIS Win32.cLIP_DEFAULT_PRECIS Win32.dEFAULT_QUALITY
-                            (Win32.fIXED_PITCH .|. Win32.fF_DONTCARE) (Text.unpack fontName) >>= \fontHandle ->
-                                setComponentFont' fontHandle hwnd >>
-                                    pure (Map.insert font fontHandle fontCache, ())
+                    Win32.createFont (fromIntegral (- fontSize')) 0 0 0 400 False False False 1 0 0 0 0 (Text.unpack fontName) >>= \fontHandle ->
+                        setComponentFont' fontHandle hwnd >>
+                            pure (Map.insert font fontHandle fontCache, ())
 
 setComponentFont' :: Win32.HANDLE -> Win32.HWND -> IO ()
 setComponentFont' font hwnd =

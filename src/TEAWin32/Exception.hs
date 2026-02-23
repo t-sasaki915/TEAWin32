@@ -1,11 +1,9 @@
 module TEAWin32.Exception
     ( ErrorLocation (..)
     , TEAWin32Error (..)
-    , try_
     , errorTEAWin32
     ) where
 
-import           Control.Exception         (SomeException, try)
 import           Control.Monad             (unless, void, when)
 import           Data.Bits                 ((.|.))
 import           Data.IORef                (atomicModifyIORef', newIORef,
@@ -21,6 +19,7 @@ import           GHC.Stack                 (HasCallStack, callStack,
 import qualified Graphics.Win32            as Win32
 import qualified System.Win32              as Win32
 import qualified TEAWin32.Internal.Foreign as Win32
+import           TEAWin32.Util             (try_)
 
 data ErrorLocation = Init
                    | Update
@@ -29,9 +28,6 @@ data ErrorLocation = Init
 
 data TEAWin32Error = InternalTEAWin32Error Text
                    | TEAWin32ApplicationError ErrorLocation Text
-
-try_ :: IO a -> IO (Either SomeException a)
-try_ = try
 
 errorTEAWin32 :: HasCallStack => TEAWin32Error -> a
 errorTEAWin32 (InternalTEAWin32Error errorMsg) = reportTEAWin32Error
@@ -42,7 +38,8 @@ errorTEAWin32 (TEAWin32ApplicationError errLoc errorMsg) = reportTEAWin32Error
 
 reportTEAWin32Error :: HasCallStack => Text -> Text -> Text -> a
 reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO $ do
-    let details = Text.replace "\n" "\r\n" (specificErrorMsg <> "\n\n" <> Text.pack (prettyCallStack callStack))
+    let details       = Text.replace "\n" "\r\n" (specificErrorMsg <> "\n\n" <> Text.pack (prettyCallStack callStack))
+        detailsToCopy = shortErrorMsg <> "\r\n\r\n" <> details
 
     Win32.messageBeep (Just Win32.mB_ICONHAND)
 
@@ -93,17 +90,14 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
 
                 pure 0
 
-            | wMsg == Win32.wM_COMMAND = do
-                let wmId = Win32.lOWORD (fromIntegral wParam)
-
-                case wmId of
+            | wMsg == Win32.wM_COMMAND =
+                case Win32.lOWORD (fromIntegral wParam) of
                     100 ->
                         Win32.sendMessage hwnd Win32.wM_CLOSE 0 0 >>
                             pure 0
 
-                    101 -> do
-                        let content = shortErrorMsg <> "\r\n\r\n" <> details
-                        withCWStringLen (Text.unpack content) $ \(pSrc, len) -> do
+                    101 ->
+                        withCWStringLen (Text.unpack detailsToCopy) $ \(pSrc, len) -> do
                             let size = (len + 1) * 2
 
                             hndl <- Win32.globalAlloc Win32.gMEM_FIXED (fromIntegral size)
@@ -122,7 +116,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
                                     False ->
                                         void (Win32.globalFree hndl)
 
-                        pure 0
+                            pure 0
 
                     102 -> do
                         detailButton <- readIORef detailButtonRef
@@ -176,7 +170,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
         wndProc
 
     scaleRatio <- do
-        hdc <- Win32.getDC (Just errorReporterWindow)
+        hdc  <- Win32.getDC (Just errorReporterWindow)
         dpiY <- Win32.c_GetDeviceCaps hdc 90
         Win32.releaseDC (Just errorReporterWindow) hdc
 

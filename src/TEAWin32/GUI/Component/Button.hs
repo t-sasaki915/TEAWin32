@@ -41,12 +41,12 @@ instance IsGUIComponent Button where
             (intPtrToPtr $ fromIntegral parentInstance)
             (const $ const $ const $ const $ pure 0)
 
-        currentDPI <- GUIInternal.getDPIFromHWND button
+        scaleFactor <- GUIInternal.getScaleFactorForHWND button
 
         registerComponentToRegistry buttonUniqueId button
-        addComponentRegistryEntry ComponentUniqueIdRegKey   (ComponentUniqueIdReg buttonUniqueId) button
-        addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentButton)    button
-        addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   button
+        addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg buttonUniqueId) button
+        addComponentRegistryEntry ComponentTypeRegKey        (ComponentTypeReg ComponentButton)    button
+        addComponentRegistryEntry ComponentScaleFactorRegKey (ComponentScaleFactorReg scaleFactor) button
 
         mapM_ (`applyProperty` button) buttonProperties
 

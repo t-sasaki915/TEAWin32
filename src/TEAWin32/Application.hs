@@ -17,16 +17,13 @@ import           Prelude                         hiding (init)
 import           TEAWin32.Application.Internal
 import           TEAWin32.Exception              (ErrorLocation (..),
                                                   TEAWin32Error (..),
-                                                  errorTEAWin32, try_)
+                                                  errorTEAWin32)
 import           TEAWin32.GUI                    (withVisualStyles)
 import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
-import           TEAWin32.GUI.Internal           (finaliseFontCache,
-                                                  initialiseCursorCache,
-                                                  initialiseDPIStrategy,
-                                                  initialiseIconCache,
-                                                  setProcessDPIAware)
+import qualified TEAWin32.GUI.Internal           as GUIInternal
+import           TEAWin32.Util                   (try_)
 
 newtype Settings = Settings
     { useVisualStyles :: Bool
@@ -39,17 +36,16 @@ defaultSettings = Settings
 
 runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA settings init update view = do
-    setProcessDPIAware
+    GUIInternal.setProcessDPIAware
 
-    initialiseDPIStrategy
-    initialiseCursorCache
-    initialiseIconCache
+    GUIInternal.initialiseCursorCache
+    GUIInternal.initialiseIconCache
 
     let preFunc = if useVisualStyles settings then withVisualStyles else id
 
     preFunc (runTEA' init update view)
 
-    finaliseFontCache
+    GUIInternal.finaliseFontCache
 
 runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA' init update view = do

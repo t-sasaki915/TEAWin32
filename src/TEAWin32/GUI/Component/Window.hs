@@ -2,13 +2,10 @@ module TEAWin32.GUI.Component.Window (Window (..)) where
 
 import           Control.Exception                        (bracket)
 import           Control.Monad                            (when)
-import           Data.Bits                                ((.|.))
 import           Data.IORef                               (atomicModifyIORef')
 import           Data.Text                                (Text)
 import qualified Data.Text                                as Text
-import           Foreign                                  (Storable (peek),
-                                                           castPtr, intPtrToPtr,
-                                                           wordPtrToPtr)
+import           Foreign                                  (intPtrToPtr)
 import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
 import qualified System.Win32                             as Win32
@@ -67,14 +64,14 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
-        currentDPI <- GUIInternal.getDPIFromHWND window
+        scaleFactor <- GUIInternal.getScaleFactorForHWND window
 
         registerComponentToRegistry windowUniqueId window
-        addComponentRegistryEntry ComponentUniqueIdRegKey   (ComponentUniqueIdReg windowUniqueId) window
-        addComponentRegistryEntry ComponentTypeRegKey       (ComponentTypeReg ComponentWindow)    window
-        addComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg currentDPI)   window
-        addComponentRegistryEntry WindowClassNameRegKey     (WindowClassNameReg windowClassName)  window
-        addComponentRegistryEntry WindowStyleRegKey         (WindowStyleReg windowStyle)          window
+        addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg windowUniqueId) window
+        addComponentRegistryEntry ComponentTypeRegKey        (ComponentTypeReg ComponentWindow)    window
+        addComponentRegistryEntry ComponentScaleFactorRegKey (ComponentScaleFactorReg scaleFactor) window
+        addComponentRegistryEntry WindowClassNameRegKey      (WindowClassNameReg windowClassName)  window
+        addComponentRegistryEntry WindowStyleRegKey          (WindowStyleReg windowStyle)          window
 
         mapM_ (`applyProperty` window) windowProperties
 
@@ -133,7 +130,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 
                 pure 1
 
-    | wMsg == Win32.wM_DPICHANGED = do
+    | wMsg == Win32.wM_DPICHANGED = {-do
         putStrLn "!?"
         let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam
         (l, t, r, b) <- peek rectPtr :: IO Win32.RECT
@@ -141,7 +138,7 @@ defaultWindowProc hwnd wMsg wParam lParam
         Win32.c_SetWindowPos hwnd Win32.nullPtr l t (r - l) (b - t) (Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE .|. Win32.sWP_FRAMECHANGED) >>= print
 
         let newDPI = Win32.lOWORD (fromIntegral wParam)
-        ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)
+        ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)-}
 
         pure 0
 

@@ -28,7 +28,6 @@ import                          Data.Map                      (Map)
 import                qualified Data.Map                      as Map
 import                          Data.Text                     (Text)
 import                qualified Data.Text                     as Text
-import                          Foreign                       (ptrToIntPtr)
 import                          GHC.IO                        (unsafePerformIO)
 import                          GHC.Stack                     (HasCallStack)
 import                qualified Graphics.Win32                as Win32
@@ -38,11 +37,12 @@ import                          TEAWin32.Exception            (TEAWin32Error (..
                                                                errorTEAWin32)
 import                          TEAWin32.GUI
 import                          TEAWin32.GUI.Component        (ComponentType)
+import                          TEAWin32.Util                 (hwndToInt)
 
 data ComponentRegistryKey a where
     ComponentUniqueIdRegKey          :: ComponentRegistryKey UniqueId
     ComponentTypeRegKey              :: ComponentRegistryKey ComponentType
-    ComponentCurrentDPIRegKey        :: ComponentRegistryKey Int
+    ComponentScaleFactorRegKey       :: ComponentRegistryKey Double
     ComponentClickEventHandlerRegKey :: ComponentRegistryKey ApplicationInternal.Msg
     ComponentFontRegKey              :: ComponentRegistryKey Font
     ComponentTitleRegKey             :: ComponentRegistryKey Text
@@ -59,7 +59,7 @@ data ComponentRegistryKey a where
 instance Show (ComponentRegistryKey a) where
     show ComponentUniqueIdRegKey          = "ComponentUniqueIdRegKey"
     show ComponentTypeRegKey              = "ComponentTypeRegKey"
-    show ComponentCurrentDPIRegKey        = "ComponentCurrentDPIRegKey"
+    show ComponentScaleFactorRegKey       = "ComponentScaleFactorRegKey"
     show ComponentClickEventHandlerRegKey = "ComponentClickEventHandlerRegKey"
     show ComponentFontRegKey              = "ComponentFontRegKey"
     show ComponentTitleRegKey             = "ComponentTitleRegKey"
@@ -76,7 +76,7 @@ instance Show (ComponentRegistryKey a) where
 keyToInt :: ComponentRegistryKey a -> Int
 keyToInt ComponentUniqueIdRegKey          = 0
 keyToInt ComponentTypeRegKey              = 1
-keyToInt ComponentCurrentDPIRegKey        = 2
+keyToInt ComponentScaleFactorRegKey       = 2
 keyToInt ComponentClickEventHandlerRegKey = 3
 keyToInt ComponentFontRegKey              = 4
 keyToInt ComponentTitleRegKey             = 5
@@ -92,7 +92,7 @@ keyToInt WindowBackgroundColourRegKey     = 14
 
 data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
                             | ComponentTypeReg              !ComponentType
-                            | ComponentCurrentDPIReg        !Int
+                            | ComponentScaleFactorReg       !Double
                             | ComponentClickEventHandlerReg !ApplicationInternal.Msg
                             | ComponentFontReg              !Font
                             | ComponentTitleReg             !Text
@@ -110,7 +110,7 @@ data ComponentRegistryEntry = ComponentUniqueIdReg          !UniqueId
 projectEntry :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> a
 projectEntry ComponentUniqueIdRegKey          (ComponentUniqueIdReg v)          = v
 projectEntry ComponentTypeRegKey              (ComponentTypeReg v)              = v
-projectEntry ComponentCurrentDPIRegKey        (ComponentCurrentDPIReg v)        = v
+projectEntry ComponentScaleFactorRegKey       (ComponentScaleFactorReg v)       = v
 projectEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg v) = v
 projectEntry ComponentFontRegKey              (ComponentFontReg v)              = v
 projectEntry ComponentTitleRegKey             (ComponentTitleReg v)             = v
@@ -133,9 +133,6 @@ componentRegistryRef = unsafePerformIO (newMVar IntMap.empty)
 uniqueIdRegistryRef :: MVar (Map UniqueId Win32.HWND)
 uniqueIdRegistryRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE uniqueIdRegistryRef #-}
-
-hwndToInt :: Win32.HWND -> Int
-hwndToInt hwnd = fromIntegral (ptrToIntPtr hwnd)
 
 registerComponentToRegistry :: UniqueId -> Win32.HWND -> IO ()
 registerComponentToRegistry uniqueId hwnd = do
