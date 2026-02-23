@@ -17,6 +17,7 @@ import           GHC.IO                    (unsafePerformIO)
 import           GHC.Stack                 (HasCallStack, callStack,
                                             prettyCallStack)
 import qualified Graphics.Win32            as Win32
+import           System.Exit               (exitFailure)
 import qualified System.Win32              as Win32
 import qualified TEAWin32.Internal.Foreign as Win32
 import           TEAWin32.Util             (try_)
@@ -38,8 +39,10 @@ errorTEAWin32 (TEAWin32ApplicationError errLoc errorMsg) = reportTEAWin32Error
 
 reportTEAWin32Error :: HasCallStack => Text -> Text -> Text -> a
 reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO $ do
-    let details       = Text.replace "\n" "\r\n" (specificErrorMsg <> "\n\n" <> Text.pack (prettyCallStack callStack))
-        detailsToCopy = shortErrorMsg <> "\r\n\r\n" <> details
+    let details     = Text.replace "\n" "\r\n" (specificErrorMsg <> "\n\n" <> Text.pack (prettyCallStack callStack))
+        fullDetails = shortErrorMsg <> "\r\n\r\n" <> details
+
+    putStrLn (Text.unpack fullDetails)
 
     Win32.messageBeep (Just Win32.mB_ICONHAND)
 
@@ -97,7 +100,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
                             pure 0
 
                     101 ->
-                        withCWStringLen (Text.unpack detailsToCopy) $ \(pSrc, len) -> do
+                        withCWStringLen (Text.unpack fullDetails) $ \(pSrc, len) -> do
                             let size = (len + 1) * 2
 
                             hndl <- Win32.globalAlloc Win32.gMEM_FIXED (fromIntegral size)
@@ -269,7 +272,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
     _ <- Win32.c_DeleteObject uiFont
     _ <- Win32.c_DeleteObject editorFont
 
-    error $ Text.unpack (shortErrorMsg <> "\n\n" <> specificErrorMsg)
+    exitFailure
 
     where
         scale :: Num a => Double -> Int -> a
