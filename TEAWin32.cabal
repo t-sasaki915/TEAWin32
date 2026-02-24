@@ -66,6 +66,7 @@ library
       cbits/GUI.c
   install-includes:
       DPIAware.h
+      GUI.h
   include-dirs:
       cbits
   other-modules:

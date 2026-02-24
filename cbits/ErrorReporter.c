@@ -1,4 +1,5 @@
 #include "DPIAware.h"
+#include "GUI.h"
 
 #include <windows.h>
 
@@ -58,6 +59,7 @@ HICON ERROR_ICON;
 HFONT UI_FONT;
 HFONT EDITOR_FONT;
 
+HWND ERROR_REPORTER_WINDOW;
 HWND CLOSE_BUTTON;
 HWND COPY_BUTTON;
 HWND DETAIL_BUTTON;
@@ -67,6 +69,65 @@ BOOL IS_DETAIL_VISIBLE = FALSE;
 
 LPCWSTR SHORT_ERROR_MESSAGE;
 LPCWSTR FULL_ERROR_MSG;
+
+void DesignErrorReporter(BOOL redesign)
+{
+    InitialiseDPIAwareFunctions();
+    SCALE_FACTOR = GetScaleFactorForHWND(ERROR_REPORTER_WINDOW);
+
+    UI_FONT = CreateFontSimple(SCALE(UI_FONT_SIZE), UI_FONT_NAME);
+    EDITOR_FONT = CreateFontSimple(SCALE(EDITOR_FONT_SIZE), EDITOR_FONT_NAME);
+
+    SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
+
+    if (!redesign)
+    {
+        SetWindowPos(
+            ERROR_REPORTER_WINDOW,
+            NULL,
+            0,
+            0,
+            SCALE(ERROR_REPORTER_WINDOW_WIDTH),
+            SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
+            SWP_NOMOVE);
+    }
+
+    SetWindowPos(
+        CLOSE_BUTTON,
+        NULL,
+        SCALE(CLOSE_BUTTON_X),
+        SCALE(CLOSE_BUTTON_Y),
+        SCALE(CLOSE_BUTTON_WIDTH),
+        SCALE(CLOSE_BUTTON_HEIGHT),
+        SWP_NOZORDER);
+    SetWindowPos(
+        COPY_BUTTON,
+        NULL,
+        SCALE(COPY_BUTTON_X),
+        SCALE(COPY_BUTTON_Y),
+        SCALE(COPY_BUTTON_WIDTH),
+        SCALE(COPY_BUTTON_HEIGHT),
+        SWP_NOZORDER);
+    SetWindowPos(
+        DETAIL_BUTTON,
+        NULL,
+        SCALE(DETAIL_BUTTON_X),
+        SCALE(DETAIL_BUTTON_Y),
+        SCALE(DETAIL_BUTTON_WIDTH),
+        SCALE(DETAIL_BUTTON_HEIGHT),
+        SWP_NOZORDER);
+    SetWindowPos(
+        DETAIL_BOX,
+        NULL,
+        SCALE(DETAIL_BOX_X),
+        SCALE(DETAIL_BOX_Y),
+        SCALE(DETAIL_BOX_WIDTH),
+        SCALE(DETAIL_BOX_HEIGHT),
+        SWP_NOZORDER);
+}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -205,88 +266,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_DPICHANGED: {
-        RECT *rect = (RECT *)lParam;
+        SCALE_FACTOR = GetScaleFactorForHWND(hwnd);
 
+        RECT *rect = (RECT *)lParam;
         LONG l = rect->left;
         LONG t = rect->top;
         LONG r = rect->right;
         LONG b = rect->bottom;
-
         SetWindowPos(hwnd, NULL, l, t, r - l, b - t, SWP_NOZORDER | SWP_NOACTIVATE);
-
-        SCALE_FACTOR = GetScaleFactorForHWND(hwnd);
-
-        SetWindowPos(
-            CLOSE_BUTTON,
-            NULL,
-            SCALE(CLOSE_BUTTON_X),
-            SCALE(CLOSE_BUTTON_Y),
-            SCALE(CLOSE_BUTTON_WIDTH),
-            SCALE(CLOSE_BUTTON_HEIGHT),
-            SWP_NOZORDER);
-        SetWindowPos(
-            COPY_BUTTON,
-            NULL,
-            SCALE(COPY_BUTTON_X),
-            SCALE(COPY_BUTTON_Y),
-            SCALE(COPY_BUTTON_WIDTH),
-            SCALE(COPY_BUTTON_HEIGHT),
-            SWP_NOZORDER);
-        SetWindowPos(
-            DETAIL_BUTTON,
-            NULL,
-            SCALE(DETAIL_BUTTON_X),
-            SCALE(DETAIL_BUTTON_Y),
-            SCALE(DETAIL_BUTTON_WIDTH),
-            SCALE(DETAIL_BUTTON_HEIGHT),
-            SWP_NOZORDER);
-        SetWindowPos(
-            DETAIL_BOX,
-            NULL,
-            SCALE(DETAIL_BOX_X),
-            SCALE(DETAIL_BOX_Y),
-            SCALE(DETAIL_BOX_WIDTH),
-            SCALE(DETAIL_BOX_HEIGHT),
-            SWP_NOZORDER);
 
         DeleteObject(UI_FONT);
         DeleteObject(EDITOR_FONT);
 
-        UI_FONT = CreateFontW(
-            -SCALE(UI_FONT_SIZE),
-            0,
-            0,
-            0,
-            FW_NORMAL,
-            FALSE,
-            FALSE,
-            FALSE,
-            DEFAULT_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
-            DEFAULT_PITCH | FF_DONTCARE,
-            UI_FONT_NAME);
-        EDITOR_FONT = CreateFontW(
-            -SCALE(EDITOR_FONT_SIZE),
-            0,
-            0,
-            0,
-            FW_NORMAL,
-            FALSE,
-            FALSE,
-            FALSE,
-            DEFAULT_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
-            DEFAULT_PITCH | FF_DONTCARE,
-            EDITOR_FONT_NAME);
-
-        SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
-        SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
-        SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
-        SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
+        DesignErrorReporter(TRUE);
 
         InvalidateRect(hwnd, NULL, TRUE);
 
@@ -319,7 +311,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
 
     RegisterClassExW(&wndClass);
 
-    HWND errorReporterWindow = CreateWindowExW(
+    ERROR_REPORTER_WINDOW = CreateWindowExW(
         WS_EX_TOPMOST | WS_EX_APPWINDOW,
         ERROR_REPORTER_CLASS_NAME,
         dialogTitle,
@@ -333,113 +325,64 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         ERROR_REPORTER_INSTANCE,
         0);
 
-    InitialiseDPIAwareFunctions();
-    SCALE_FACTOR = GetScaleFactorForHWND(errorReporterWindow);
-
-    SetWindowPos(
-        errorReporterWindow,
-        NULL,
-        0,
-        0,
-        SCALE(ERROR_REPORTER_WINDOW_WIDTH),
-        SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
-        SWP_NOMOVE);
-
-    UI_FONT = CreateFontW(
-        -SCALE(UI_FONT_SIZE),
-        0,
-        0,
-        0,
-        FW_NORMAL,
-        FALSE,
-        FALSE,
-        FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        UI_FONT_NAME);
-    EDITOR_FONT = CreateFontW(
-        -SCALE(EDITOR_FONT_SIZE),
-        0,
-        0,
-        0,
-        FW_NORMAL,
-        FALSE,
-        FALSE,
-        FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        EDITOR_FONT_NAME);
-
     CLOSE_BUTTON = CreateWindowW(
         L"BUTTON",
         CLOSE_BUTTON_LABEL,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-        SCALE(CLOSE_BUTTON_X),
-        SCALE(CLOSE_BUTTON_Y),
-        SCALE(CLOSE_BUTTON_WIDTH),
-        SCALE(CLOSE_BUTTON_HEIGHT),
-        errorReporterWindow,
+        0,
+        0,
+        0,
+        0,
+        ERROR_REPORTER_WINDOW,
         (HMENU)CLOSE_BUTTON_ID,
         ERROR_REPORTER_INSTANCE,
         NULL);
-
-    SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     COPY_BUTTON = CreateWindowW(
         L"BUTTON",
         COPY_BUTTON_LABEL,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-        SCALE(COPY_BUTTON_X),
-        SCALE(COPY_BUTTON_Y),
-        SCALE(COPY_BUTTON_WIDTH),
-        SCALE(COPY_BUTTON_HEIGHT),
-        errorReporterWindow,
+        0,
+        0,
+        0,
+        0,
+        ERROR_REPORTER_WINDOW,
         (HMENU)COPY_BUTTON_ID,
         ERROR_REPORTER_INSTANCE,
         NULL);
-
-    SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     DETAIL_BUTTON = CreateWindowW(
         L"BUTTON",
         DETAIL_BUTTON_LABEL_EXPAND,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-        SCALE(DETAIL_BUTTON_X),
-        SCALE(DETAIL_BUTTON_Y),
-        SCALE(DETAIL_BUTTON_WIDTH),
-        SCALE(DETAIL_BUTTON_HEIGHT),
-        errorReporterWindow,
+        0,
+        0,
+        0,
+        0,
+        ERROR_REPORTER_WINDOW,
         (HMENU)DETAIL_BUTTON_ID,
         ERROR_REPORTER_INSTANCE,
         NULL);
-
-    SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     DETAIL_BOX = CreateWindowW(
         L"EDIT",
         specificMsgWithStacktrace,
         WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE | ES_READONLY,
-        SCALE(DETAIL_BOX_X),
-        SCALE(DETAIL_BOX_Y),
-        SCALE(DETAIL_BOX_WIDTH),
-        SCALE(DETAIL_BOX_HEIGHT),
-        errorReporterWindow,
+        0,
+        0,
+        0,
+        0,
+        ERROR_REPORTER_WINDOW,
         NULL,
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
-
     MessageBeep(MB_ICONHAND);
 
-    ShowWindow(errorReporterWindow, SW_SHOWNORMAL);
-    UpdateWindow(errorReporterWindow);
+    DesignErrorReporter(FALSE);
+
+    ShowWindow(ERROR_REPORTER_WINDOW, SW_SHOWNORMAL);
+    UpdateWindow(ERROR_REPORTER_WINDOW);
 
     MSG msg;
     BOOL bRet;

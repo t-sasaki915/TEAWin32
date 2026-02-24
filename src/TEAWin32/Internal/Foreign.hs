@@ -18,6 +18,7 @@ module TEAWin32.Internal.Foreign
     , c_GetHighDPIIcon
     , c_EnableDPIAware
     , c_ShowErrorReporter
+    , c_CreateFontSimple
     , gCLP_HICON
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
@@ -85,6 +86,9 @@ foreign import ccall unsafe "EnableDPIAware"
 
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
+
+foreign import ccall "CreateFontSimple"
+    c_CreateFontSimple :: Int -> CWString -> IO Win32.HFONT
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

@@ -96,3 +96,22 @@ HANDLE EnableVisualStyles(void)
 
     return hActCtx;
 }
+
+HFONT CreateFontSimple(int fontSize, LPCWSTR fontName)
+{
+    return CreateFontW(
+        -fontSize,
+        0,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        fontName);
+}

@@ -26,6 +26,7 @@ import qualified Data.Map.Strict                          as Map
 import           Data.Text                                (Text)
 import qualified Data.Text                                as Text
 import           Foreign                                  hiding (new, void)
+import           Foreign.C                                (withCWString)
 import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
 import           TEAWin32.Exception                       (TEAWin32Error (..),
@@ -72,7 +73,7 @@ resolveScalableValueForHWND :: HasCallStack => Win32.HWND -> ScalableValue -> IO
 resolveScalableValueForHWND _ (RawValue x) = pure (round x)
 resolveScalableValueForHWND hwnd (ScalableValue x) =
     getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd >>= \scaleFactor ->
-        pure (round (x * scaleFactor))
+        pure (truncate ((x * scaleFactor) + 0.5))
 
 {-updateComponentDPI :: HasCallStack => Win32.HWND -> Int -> IO ()
 updateComponentDPI hwnd newDPI = do
@@ -154,9 +155,10 @@ setComponentFont font@(Font fontName fontSize) hwnd =
                     pure (fontCache, ())
             Nothing ->
                 resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
-                    Win32.createFont (fromIntegral (- fontSize')) 0 0 0 400 False False False 1 0 0 0 0 (Text.unpack fontName) >>= \fontHandle ->
-                        setComponentFont' fontHandle hwnd >>
-                            pure (Map.insert font fontHandle fontCache, ())
+                    withCWString (Text.unpack fontName) $ \fontName' ->
+                        Win32.c_CreateFontSimple fontSize' fontName' >>= \fontHandle ->
+                            setComponentFont' fontHandle hwnd >>
+                                pure (Map.insert font fontHandle fontCache, ())
 
 setComponentFont' :: Win32.HANDLE -> Win32.HWND -> IO ()
 setComponentFont' font hwnd =
