@@ -172,12 +172,8 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
         mainInstance
         wndProc
 
-    scaleRatio <- do
-        hdc  <- Win32.getDC (Just errorReporterWindow)
-        dpiY <- Win32.c_GetDeviceCaps hdc 90
-        Win32.releaseDC (Just errorReporterWindow) hdc
-
-        pure (fromIntegral dpiY / 96.0)
+    Win32.c_GetGetDpiForWindowFunctionIfExists
+    scaleRatio <- Win32.c_GetScaleFactorForHWND errorReporterWindow
 
     uiFont <- Win32.createFont (-scale scaleRatio 14)
         0 0 0 400 False False False 1 0 0 0 0 "Meiryo UI"

@@ -1,11 +1,7 @@
 module TEAWin32.GUI.Internal
-    ( DPIStrategy (..)
-    , activeWindowCountRef
-    , withChildWindows
-    , whoseParentIs
-    , isTopLevelWindow
-    , withTopLevelWindows
-    , withImmediateChildWindows
+    ( activeWindowCountRef
+    , getImmediateChildWindows
+    , getTopLevelWindows
     , cursorCacheRef
     , iconCacheRef
     , fontCacheRef
@@ -19,16 +15,14 @@ module TEAWin32.GUI.Internal
 import                          Control.Concurrent        (MVar, modifyMVar_,
                                                            newMVar, takeMVar)
 import                          Control.Exception         (bracket)
-import                          Control.Monad             (filterM, void)
+import                          Control.Monad             (void)
 import                          Data.Either               (fromRight)
-import                          Data.IORef                (IORef,
-                                                           atomicModifyIORef',
-                                                           modifyIORef,
-                                                           newIORef, readIORef)
+import                          Data.IORef                (IORef, newIORef)
 import                          Data.Map                  (Map)
 import                qualified Data.Map                  as Map
-import                          Foreign                   (castPtrToFunPtr,
-                                                           freeHaskellFunPtr)
+import                          Foreign                   (allocaArray,
+                                                           castPtrToFunPtr,
+                                                           peekArray)
 import                qualified Graphics.Win32            as Win32
 import                          System.IO.Unsafe          (unsafePerformIO)
 import                qualified System.Win32              as Win32
@@ -52,9 +46,6 @@ iconCacheRef = unsafePerformIO (newMVar Map.empty)
 fontCacheRef :: MVar (Map Font Win32.HANDLE)
 fontCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE fontCacheRef #-}
-
-data DPIStrategy = ModernDPIStrategy Win32.GetDpiForWindow
-                 | LegacyDPIStrategy
 
 initialiseCursorCache :: IO ()
 initialiseCursorCache = do
@@ -102,58 +93,19 @@ finaliseFontCache =
     takeMVar fontCacheRef >>=
         mapM_ Win32.c_DeleteObject . Map.elems
 
-withChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
-withChildWindows targetHWND func = do
-    childrenRef <- newIORef []
+getImmediateChildWindows :: Win32.HWND -> IO [Win32.HWND]
+getImmediateChildWindows parent =
+    let maxWindows = 1024 in
+        allocaArray maxWindows $ \arrayPtr ->
+            Win32.c_GetImmediateChildWindows parent arrayPtr maxWindows >>= \hwndCount ->
+                peekArray hwndCount arrayPtr
 
-    let callback hwnd _ =
-            atomicModifyIORef' childrenRef (\x -> (hwnd : x, ())) >>
-                pure True
-
-    enumPtr <- Win32.makeEnumWindowProc callback
-    _       <- Win32.c_EnumChildWindows targetHWND enumPtr 0
-
-    children <- readIORef childrenRef
-    x        <- func children
-
-    freeHaskellFunPtr enumPtr
-
-    pure x
-
-withImmediateChildWindows :: Win32.HWND -> ([Win32.HWND] -> IO a) -> IO a
-withImmediateChildWindows targetHWND func =
-    withChildWindows targetHWND $ \children ->
-        filterM (`whoseParentIs` targetHWND) children >>=
-            func
-
-isTopLevelWindow :: Win32.HWND -> IO Bool
-isTopLevelWindow = (`whoseParentIs` Win32.nullPtr)
-
-whoseParentIs :: Win32.HWND -> Win32.HWND -> IO Bool
-whoseParentIs hwnd parent =
-    try_ (Win32.getParent hwnd) >>= \case
-        Left _        -> pure (parent == Win32.nullPtr)
-        Right parent' -> pure (parent == parent')
-
-withTopLevelWindows :: ([Win32.HWND] -> IO a) -> IO a
-withTopLevelWindows func = do
-    threadId <- Win32.getCurrentThreadId
-    hwndsRef <- newIORef []
-
-    let callback hwnd _ =
-            modifyIORef hwndsRef (hwnd :) >>
-                pure True
-
-    enumPtr <- Win32.makeEnumWindowProc callback
-    _       <- Win32.c_EnumThreadWindows threadId enumPtr 0
-
-    windows       <- readIORef hwndsRef
-    parentWindows <- filterM isTopLevelWindow windows
-    x             <- func parentWindows
-
-    freeHaskellFunPtr enumPtr
-
-    pure x
+getTopLevelWindows :: IO [Win32.HWND]
+getTopLevelWindows =
+    let maxWindows = 1024 in
+        allocaArray maxWindows $ \arrayPtr ->
+            Win32.c_GetTopLevelWindows arrayPtr maxWindows >>= \hwndCount ->
+                peekArray hwndCount arrayPtr
 
 withVisualStyles :: IO a -> IO a
 withVisualStyles action =

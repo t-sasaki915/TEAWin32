@@ -11,7 +11,7 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
-import           Control.Monad                            (void, when)
+import           Control.Monad                            (forM, void, when)
 import           Control.Monad.State.Strict               (evalState)
 import           Control.Monad.Writer.Strict              (execWriterT)
 import           Data.Data                                (Typeable, cast)
@@ -85,13 +85,15 @@ updateComponents :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO ()
 updateComponents newGUIComponents maybeParent = do
     childrenWithUniqueId <- Map.fromList <$>
         case maybeParent of
-            Just parent ->
-                GUIInternal.withImmediateChildWindows parent $ mapM $ \child ->
+            Just parent -> do
+                children <- GUIInternal.getImmediateChildWindows parent
+                forM children $ \child ->
                     getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
                         pure (uniqueId, child)
 
-            Nothing ->
-                GUIInternal.withTopLevelWindows $ mapM $ \child ->
+            Nothing -> do
+                windows <- GUIInternal.getTopLevelWindows
+                forM windows $ \child ->
                     getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
                         pure (uniqueId, child)
 

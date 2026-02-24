@@ -3,27 +3,21 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module TEAWin32.Internal.Foreign
-    ( ACTCTX (..)
-    , GetDpiForWindow
-    , c_SetClassLongPtr
+    ( c_SetClassLongPtr
     , c_SetWindowPos
     , c_DeleteObject
-    , c_EnumChildWindows
-    , c_EnumThreadWindows
-    , makeEnumWindowProc
-    , c_CreateActCtx
-    , c_ActivateActCtx
     , c_ReleaseActCtx
     , c_GetSysColorBrush
     , c_SetProcessDPIAware
-    , c_GetDeviceCaps
     , c_SelectObject
     , c_DrawIconEx
     , c_SHGetStockIconInfo
     , c_GetScaleFactorForHWND
     , c_GetGetDpiForWindowFunctionIfExists
     , c_EnableVisualStyles
-    , makeGetDpiForWindow
+    , c_GetImmediateChildWindows
+    , c_GetTopLevelWindows
+    , c_IsWindowTopLevel
     , makeSetProcessDpiAwareness
     , gCLP_HICON
     , gCLP_HCURSOR
@@ -45,41 +39,8 @@ import           Data.Int          (Int32)
 import           Foreign           (FunPtr, Ptr, Storable (..), Word16, Word32,
                                     allocaBytes, castPtr, fillBytes,
                                     intPtrToPtr)
-import           Foreign.C         (CIntPtr (..), CUInt)
+import           Foreign.C         (CUInt)
 import qualified Graphics.Win32    as Win32
-
-data ACTCTX = ACTCTX
-    { cbSize        :: Word32
-    , actctxDWFlags :: Word32
-    , lpSource      :: Win32.LPCWSTR
-    , lpResName     :: Win32.LPCWSTR
-    }
-
-instance Storable ACTCTX where
-    sizeOf _ = 56
-
-    alignment _ = 8
-
-    poke ptr act = do
-        fillBytes ptr 0 (sizeOf act)
-
-        (`pokeByteOff` 0)  ptr (cbSize act)
-        (`pokeByteOff` 4)  ptr (actctxDWFlags act)
-        (`pokeByteOff` 8)  ptr (lpSource act)
-        (`pokeByteOff` 32) ptr (lpResName act)
-
-    peek ptr = do
-        cbSize'        <- peekByteOff ptr 0
-        actctxDWFlags' <- peekByteOff ptr 4
-        lpSource'      <- peekByteOff ptr 8
-        lpResName'     <- peekByteOff ptr 32
-
-        pure $ ACTCTX
-            { cbSize        = cbSize'
-            , actctxDWFlags = actctxDWFlags'
-            , lpSource      =  lpSource'
-            , lpResName     = lpResName'
-            }
 
 foreign import ccall "SetClassLongPtrW"
     c_SetClassLongPtr :: Win32.HWND -> Int32 -> Ptr () -> IO (Ptr ())
@@ -90,23 +51,6 @@ foreign import ccall "SetWindowPos"
 foreign import ccall "DeleteObject"
     c_DeleteObject :: Ptr () -> IO Win32.BOOL
 
-type WindowEnumProc = Win32.HWND -> Win32.LPARAM -> IO Win32.BOOL
-
-foreign import ccall "wrapper"
-    makeEnumWindowProc :: WindowEnumProc -> IO (FunPtr WindowEnumProc)
-
-foreign import ccall "EnumChildWindows"
-    c_EnumChildWindows :: Win32.HWND -> FunPtr WindowEnumProc -> Win32.LPARAM -> IO Win32.BOOL
-
-foreign import ccall "EnumThreadWindows"
-    c_EnumThreadWindows :: Win32.DWORD -> FunPtr WindowEnumProc -> Win32.LPARAM -> IO Win32.BOOL
-
-foreign import ccall "CreateActCtxW"
-    c_CreateActCtx :: Ptr ACTCTX -> IO Win32.HANDLE
-
-foreign import ccall "ActivateActCtx"
-    c_ActivateActCtx :: Win32.HANDLE -> Ptr Win32.ULONG_PTR -> IO Bool
-
 foreign import ccall "ReleaseActCtx"
     c_ReleaseActCtx :: Win32.HANDLE -> IO ()
 
@@ -115,14 +59,6 @@ foreign import ccall "GetSysColorBrush"
 
 foreign import ccall "SetProcessDPIAware"
     c_SetProcessDPIAware :: IO Bool
-
-foreign import ccall "GetDeviceCaps"
-    c_GetDeviceCaps :: Win32.HDC -> Int -> IO Int
-
-type GetDpiForWindow = Win32.HWND -> IO Word32
-
-foreign import ccall "dynamic"
-    makeGetDpiForWindow :: FunPtr GetDpiForWindow -> GetDpiForWindow
 
 type SetProcessDpiAwareness = Int -> IO Bool
 
@@ -146,6 +82,15 @@ foreign import ccall unsafe "GetScaleFactorForHWND"
 
 foreign import ccall unsafe "EnableVisualStyles"
     c_EnableVisualStyles :: IO Win32.HANDLE
+
+foreign import ccall unsafe "GetImmediateChildWindows"
+    c_GetImmediateChildWindows :: Win32.HWND -> Ptr Win32.HWND -> Int -> IO Int
+
+foreign import ccall unsafe "GetTopLevelWindows"
+    c_GetTopLevelWindows :: Ptr Win32.HWND -> Int -> IO Int
+
+foreign import ccall unsafe "IsWindowTopLevel"
+    c_IsWindowTopLevel :: Win32.HWND -> IO Bool
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

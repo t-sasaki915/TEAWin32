@@ -43,8 +43,8 @@ import qualified TEAWin32.Internal.Foreign                as Win32
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
     children <- case maybeParent of
-        Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
-        Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isComponentManaged
+        Just parent' -> GUIInternal.getImmediateChildWindows parent'
+        Nothing      -> GUIInternal.getTopLevelWindows >>= filterM isComponentManaged
 
     uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] children) (\(i, hwnd) ->
         getComponentRegistryEntryValue ComponentUniqueIdRegKey hwnd >>= \uniqueId ->
@@ -101,7 +101,7 @@ getRelativeRectFromHWNDUsingWin32 hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
     let (l, t, r, b) = (fromIntegral l', fromIntegral t', fromIntegral r', fromIntegral b')
 
-    GUIInternal.isTopLevelWindow hwnd >>= \case
+    Win32.c_IsWindowTopLevel hwnd >>= \case
         True  -> pure (l, t, r - l, b - t)
         False -> do
             parentHWND <- Win32.getParent hwnd
@@ -181,7 +181,8 @@ requestRedraw hwnd =
 
 destroyChildren :: Win32.HWND -> IO ()
 destroyChildren hwnd =
-    GUIInternal.withImmediateChildWindows hwnd (mapM_ destroyComponent)
+    GUIInternal.getImmediateChildWindows hwnd >>=
+        mapM_ destroyComponent
 
 destroyComponent :: Win32.HWND -> IO ()
 destroyComponent hwnd = do
