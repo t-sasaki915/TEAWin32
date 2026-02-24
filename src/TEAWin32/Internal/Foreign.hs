@@ -11,13 +11,13 @@ module TEAWin32.Internal.Foreign
     , c_SetProcessDPIAware
     , c_SelectObject
     , c_DrawIconEx
-    , c_SHGetStockIconInfo
     , c_GetScaleFactorForHWND
     , c_GetGetDpiForWindowFunctionIfExists
     , c_EnableVisualStyles
     , c_GetImmediateChildWindows
     , c_GetTopLevelWindows
     , c_IsWindowTopLevel
+    , c_GetHighDPIIcon
     , makeSetProcessDpiAwareness
     , gCLP_HICON
     , gCLP_HCURSOR
@@ -31,16 +31,12 @@ module TEAWin32.Internal.Foreign
     , iDCONTINUE
     , iDTRYAGAIN
     , makeIntResource
-    , getHighDPIIcon
     ) where
 
-import           Control.Exception (SomeException, try)
-import           Data.Int          (Int32)
-import           Foreign           (FunPtr, Ptr, Storable (..), Word16, Word32,
-                                    allocaBytes, castPtr, fillBytes,
-                                    intPtrToPtr)
-import           Foreign.C         (CUInt)
-import qualified Graphics.Win32    as Win32
+import           Data.Int       (Int32)
+import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
+                                 fillBytes, intPtrToPtr)
+import qualified Graphics.Win32 as Win32
 
 foreign import ccall "SetClassLongPtrW"
     c_SetClassLongPtr :: Win32.HWND -> Int32 -> Ptr () -> IO (Ptr ())
@@ -60,19 +56,11 @@ foreign import ccall "GetSysColorBrush"
 foreign import ccall "SetProcessDPIAware"
     c_SetProcessDPIAware :: IO Bool
 
-type SetProcessDpiAwareness = Int -> IO Bool
-
-foreign import ccall "dynamic"
-    makeSetProcessDpiAwareness :: FunPtr SetProcessDpiAwareness -> SetProcessDpiAwareness
-
 foreign import ccall "SelectObject"
     c_SelectObject :: Win32.HDC -> Win32.HANDLE -> IO Win32.HANDLE
 
 foreign import ccall "DrawIconEx"
     c_DrawIconEx :: Win32.HDC -> Int -> Int -> Win32.HICON -> Int -> Int -> Win32.UINT -> Win32.HBRUSH -> Win32.UINT -> IO Win32.BOOL
-
-foreign import ccall "SHGetStockIconInfo"
-    c_SHGetStockIconInfo :: Int -> Int -> Ptr () -> IO Int
 
 foreign import ccall unsafe "GetGetDpiForWindowFunctionIfExists"
     c_GetGetDpiForWindowFunctionIfExists :: IO ()
@@ -91,6 +79,14 @@ foreign import ccall unsafe "GetTopLevelWindows"
 
 foreign import ccall unsafe "IsWindowTopLevel"
     c_IsWindowTopLevel :: Win32.HWND -> IO Bool
+
+foreign import ccall unsafe "GetHighDPIIcon"
+    c_GetHighDPIIcon :: Int -> IO Win32.HICON
+
+type SetProcessDpiAwareness = Int -> IO Bool
+
+foreign import ccall "dynamic"
+    makeSetProcessDpiAwareness :: FunPtr SetProcessDpiAwareness -> SetProcessDpiAwareness
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14
@@ -148,15 +144,3 @@ instance Storable Win32.RECT where
         pokeByteOff ptr (sizeOf (0 :: Win32.LONG)) top
         pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 2) right
         pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 3) bottom
-
-getHighDPIIcon :: Int -> IO Win32.HICON
-getHighDPIIcon siid =
-    let structSize = 544 in
-        allocaBytes structSize $ \ptr -> do
-            poke (castPtr ptr) (fromIntegral structSize :: CUInt)
-
-            try (c_SHGetStockIconInfo siid 256 ptr) >>= \case
-                Right 0                   -> peekByteOff ptr 8
-                Right _                   -> pure Win32.nullPtr
-                Left (_ :: SomeException) -> pure Win32.nullPtr
-

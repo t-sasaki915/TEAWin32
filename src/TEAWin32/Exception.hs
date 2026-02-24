@@ -48,7 +48,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
 
     let windowClass = Win32.mkClassName "TEAWin32-ErrorReporter"
     mainInstance    <- Win32.getModuleHandle Nothing
-    icon            <- Win32.getHighDPIIcon 80
+    errorIcon       <- Win32.c_GetHighDPIIcon 80
     backgroundBrush <- Win32.createSolidBrush (Win32.rgb 255 255 255)
 
     scaleRatioRef <- newIORef 0.0
@@ -61,7 +61,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
     _ <- Win32.registerClass
         ( Win32.cS_VREDRAW + Win32.cS_HREDRAW
         , mainInstance
-        , Just icon
+        , Just errorIcon
         , Nothing
         , Just backgroundBrush
         , Nothing
@@ -74,8 +74,6 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
                     hdc    <- Win32.beginPaint hwnd paintStructPtr
                     ratio  <- readIORef scaleRatioRef
                     uiFont <- readIORef uiFontRef
-
-                    errorIcon <- Win32.getHighDPIIcon 80
 
                     _ <- Win32.c_DrawIconEx hdc (scale ratio 10) (scale ratio 10) errorIcon
                         (scale ratio 32) (scale ratio 32) 0 Win32.nullPtr 3
@@ -267,6 +265,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
 
     _ <- Win32.c_DeleteObject uiFont
     _ <- Win32.c_DeleteObject editorFont
+    _ <- Win32.c_DestroyIcon errorIcon
 
     exitFailure
 

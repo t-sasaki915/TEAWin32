@@ -134,3 +134,15 @@ HANDLE EnableVisualStyles(void)
 
     return hActCtx;
 }
+
+HICON GetHighDPIIcon(SHSTOCKICONID siid)
+{
+    DWORD structSize = 544;
+
+    SHSTOCKICONINFO iconInfo;
+    iconInfo.cbSize = structSize;
+
+    SHGetStockIconInfo(siid, SHGSI_ICON, &iconInfo);
+
+    return iconInfo.hIcon;
+}
