@@ -15,19 +15,15 @@ import           GHC.Stack                       (HasCallStack)
 import qualified Graphics.Win32                  as Win32
 import           Prelude                         hiding (init)
 import           TEAWin32.Application.Internal
+import           TEAWin32.Exception              (ErrorLocation (..),
+                                                  TEAWin32Error (..),
+                                                  errorTEAWin32)
 import           TEAWin32.GUI                    (withVisualStyles)
-import           TEAWin32.GUI.Component          (GUIComponents,
+import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
-import           TEAWin32.GUI.Internal           (finaliseFontCache,
-                                                  initialiseCursorCache,
-                                                  initialiseDPIStrategy,
-                                                  initialiseIconCache,
-                                                  setProcessDPIAware)
-import           TEAWin32.Internal               (ApplicationErrorLocation (..),
-                                                  throwTEAWin32ApplicationError,
-                                                  throwTEAWin32InternalError,
-                                                  try_)
+import qualified TEAWin32.GUI.Internal           as GUIInternal
+import           TEAWin32.Util                   (try_)
 
 newtype Settings = Settings
     { useVisualStyles :: Bool
@@ -39,23 +35,24 @@ defaultSettings = Settings
     }
 
 runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
-runTEA settings init update view =
-    if useVisualStyles settings
-        then withVisualStyles (runTEA' init update view)
-        else runTEA' init update view
+runTEA settings init update view = do
+    GUIInternal.setProcessDPIAware
+
+    GUIInternal.initialiseCursorCache
+    GUIInternal.initialiseIconCache
+
+    let preFunc = if useVisualStyles settings then withVisualStyles else id
+
+    preFunc (runTEA' init update view)
+
+    GUIInternal.finaliseFontCache
 
 runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA' init update view = do
-    setProcessDPIAware
-
-    initialiseDPIStrategy
-    initialiseCursorCache
-    initialiseIconCache
-
     initModel <- try_ init >>= \case
         Right x -> pure x
         Left err ->
-            throwTEAWin32ApplicationError Init (Text.pack $ displayException err)
+            errorTEAWin32 (TEAWin32ApplicationError Init (Text.pack $ displayException err))
 
     atomicModifyIORef' modelRef (const (Model initModel, ()))
 
@@ -65,27 +62,25 @@ runTEA' init update view = do
                 (Just msg', Just model') ->
                     try_ (update msg' model') >>= \case
                         Right x  -> pure (Model x)
-                        Left err -> throwTEAWin32ApplicationError Update (Text.pack $ displayException err)
+                        Left err -> errorTEAWin32 (TEAWin32ApplicationError Update (Text.pack $ displayException err))
                 _ ->
-                    throwTEAWin32InternalError "Failed to cast Msg and Model."
+                    errorTEAWin32 (InternalTEAWin32Error "Failed to cast Msg and Model.")
 
         view' (Model model) =
             case cast model of
                 Just model' -> view model'
-                _           -> throwTEAWin32InternalError "Failed to cast Model."
+                _           -> errorTEAWin32 (InternalTEAWin32Error "Failed to cast Model.")
 
     atomicModifyIORef' updateFuncRef (const (update', ()))
     atomicModifyIORef' viewFuncRef (const (view', ()))
 
-    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) 0
+    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) (DSLState 0 [])
 
     sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
     forM_ sortedInitGUIComponents $ \guiComponent ->
         render guiComponent Nothing
 
     messagePump
-
-    finaliseFontCache
 
 messagePump :: IO ()
 messagePump = Win32.allocaMessage messagePump'

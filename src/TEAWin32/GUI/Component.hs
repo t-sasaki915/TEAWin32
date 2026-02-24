@@ -6,21 +6,32 @@ module TEAWin32.GUI.Component
     , IsGUIComponent (..)
     , GUIComponent (..)
     , ZIndex (..)
+    , EventType (..)
+    , DSLState (..)
     ) where
 
 import                          Control.Monad.State.Strict      (State)
 import                          Control.Monad.Writer.Strict     (WriterT)
 import                          Data.Data                       (Typeable, cast)
+import                          Data.Text                       (Text)
 import                          GHC.Stack                       (HasCallStack)
 import                qualified Graphics.Win32                  as Win32
 import                          TEAWin32.GUI                    (UniqueId)
 import {-# SOURCE #-}           TEAWin32.GUI.Component.Property (GUIComponentProperty)
 
-type GUIComponents = WriterT [GUIComponent] (State Int) ()
+data DSLState = DSLState
+    { nextSystemUniqueIdNum :: Int
+    , userUniqueIds         :: [Text]
+    }
+
+type GUIComponents = WriterT [GUIComponent] (State DSLState) ()
 
 data ComponentType = ComponentWindow
                    | ComponentButton
                    deriving (Eq, Show, Ord)
+
+data EventType = ComponentClickEvent
+               deriving (Eq, Show)
 
 class Eq a => IsGUIComponent a where
     render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND

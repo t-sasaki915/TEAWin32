@@ -8,8 +8,9 @@ module TEAWin32.GUI.Component.Button.Property
     ) where
 
 import           Data.Data                       (Typeable, cast, typeOf)
+import           TEAWin32.Exception              (TEAWin32Error (..),
+                                                  errorTEAWin32)
 import           TEAWin32.GUI.Component.Property
-import           TEAWin32.Internal               (throwTEAWin32InternalError)
 
 data ButtonProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
 
@@ -39,12 +40,14 @@ class Eq a => IsButtonProperty a
 instance IsButtonProperty ButtonProperty
 
 instance IsGUIComponentProperty ButtonProperty where
+    isPropertyChanged (ButtonProperty x) = isPropertyChanged x
+
     applyProperty (ButtonProperty x) = applyProperty x
 
     updateProperty (ButtonProperty new) (ButtonProperty old) =
         case cast old of
             Just old' -> updateProperty new old'
-            Nothing   -> throwTEAWin32InternalError "Failed to cast ButtonProperty"
+            Nothing   -> errorTEAWin32 (InternalTEAWin32Error "Failed to cast ButtonProperty")
 
     unapplyProperty (ButtonProperty x) = unapplyProperty x
 

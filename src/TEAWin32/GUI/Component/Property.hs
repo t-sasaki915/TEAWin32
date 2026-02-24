@@ -16,23 +16,25 @@ module TEAWin32.GUI.Component.Property
     , ComponentOnClick (..)
     ) where
 
-import                          Control.Monad                             (forM_)
-import                          Data.Data                                 (TypeRep,
-                                                                           Typeable,
-                                                                           cast)
-import                          Data.Text                                 (Text)
-import                          GHC.Stack                                 (HasCallStack)
-import                qualified Graphics.Win32                            as Win32
-import {-# SOURCE #-} qualified TEAWin32.Application.Internal             as ApplicationInternal
-import                          TEAWin32.GUI                              (Font,
-                                                                           ScalableValue)
-import {-# SOURCE #-}           TEAWin32.GUI.Component                    (GUIComponent (..),
-                                                                           IsGUIComponent (..))
-import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Internal.Attribute
-import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
+import                          Control.Monad                            (forM_)
+import                          Data.Data                                (TypeRep,
+                                                                          Typeable,
+                                                                          cast)
+import                          Data.Text                                (Text)
+import                          GHC.Stack                                (HasCallStack)
+import                qualified Graphics.Win32                           as Win32
+import {-# SOURCE #-} qualified TEAWin32.Application.Internal            as ApplicationInternal
+import                          TEAWin32.Exception                       (TEAWin32Error (..),
+                                                                          errorTEAWin32)
+import                          TEAWin32.GUI                             (Font,
+                                                                          ScalableValue)
+import {-# SOURCE #-}           TEAWin32.GUI.Component                   (GUIComponent (..),
+                                                                          IsGUIComponent (..))
+import                          TEAWin32.GUI.Component.ComponentRegistry
+import {-# SOURCE #-} qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 
-data GUIComponentProperty =  forall a. (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
+data GUIComponentProperty = forall a.
+                          (Typeable a, Show a, HasPropertyName a, IsGUIComponentProperty a, MayHaveZIndexProperty a)
                           => GUIComponentProperty a
 
 instance Eq GUIComponentProperty where
@@ -51,15 +53,19 @@ class Eq a => IsGUIComponentProperty a where
 
     unapplyProperty :: HasCallStack => a -> Win32.HWND -> IO ()
 
+    isPropertyChanged :: HasCallStack => a -> Win32.HWND -> IO (Maybe Bool)
+
 instance IsGUIComponentProperty GUIComponentProperty where
     applyProperty (GUIComponentProperty x) = applyProperty x
 
     updateProperty (GUIComponentProperty new) (GUIComponentProperty old) =
         case cast old of
             Just old' -> updateProperty new old'
-            Nothing   -> throwTEAWin32InternalError "Failed to cast GUIComponentProperty"
+            Nothing   -> errorTEAWin32 (InternalTEAWin32Error "Failed to cast GUIComponentProperty")
 
     unapplyProperty (GUIComponentProperty x) = unapplyProperty x
+
+    isPropertyChanged (GUIComponentProperty x) = isPropertyChanged x
 
 
 class IsPropertyWrapper a b where
@@ -83,119 +89,116 @@ newtype ComponentPosition = ComponentPosition (ScalableValue, ScalableValue) der
 newtype ComponentFont     = ComponentFont     Font                           deriving (Show, Eq)
 newtype ComponentChildren = ComponentChildren [GUIComponent]                 deriving (Show, Eq)
 newtype ComponentZIndex   = ComponentZIndex   Int                            deriving (Show, Eq)
-data    ComponentOnClick  = forall a. (Typeable a, Show a, Eq a) => ComponentOnClick a
-
-instance Eq ComponentOnClick where
-    (ComponentOnClick a) == (ComponentOnClick b) =
-        case cast b of
-            Just b' -> a == b'
-            Nothing -> False
-
-instance Show ComponentOnClick where
-    show (ComponentOnClick x) = "ComponentOnClick " <> show x
+newtype ComponentOnClick  = ComponentOnClick  ApplicationInternal.Msg        deriving (Show, Eq)
 
 instance IsGUIComponentProperty ComponentTitle where
+    isPropertyChanged (ComponentTitle title) = isRegistryValueChangedMaybe ComponentTitleRegKey title
+
     applyProperty (ComponentTitle title) componentHWND =
         ComponentInternal.setComponentTitle title componentHWND >>
-            addAttributeToHWND componentHWND (ComponentTitleAttr title) >>
-                addAttributeToHWND componentHWND (ComponentFlagAttr ComponentTitleSet)
+            addComponentRegistryEntry ComponentTitleRegKey (ComponentTitleReg title) componentHWND
 
     updateProperty (ComponentTitle title) _ componentHWND =
         ComponentInternal.setComponentTitle title componentHWND >>
-            updateAttributeOfHWND componentHWND (ComponentTitleAttr title)
+            updateComponentRegistryEntry ComponentTitleRegKey (ComponentTitleReg title) componentHWND
 
-    unapplyProperty (ComponentTitle title) componentHWND =
+    unapplyProperty _ componentHWND =
         ComponentInternal.setComponentTitle "" componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentTitleAttr title) >>
-                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentTitleSet)
+            removeComponentRegistryEntry ComponentTitleRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentSize where
+    isPropertyChanged (ComponentSize size) = isRegistryValueChangedMaybe ComponentSizeRegKey size
+
     applyProperty (ComponentSize (width, height)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
                 ComponentInternal.setComponentSize width' height' componentHWND >>
-                    addAttributeToHWND componentHWND (ComponentSizeAttr (width, height)) >>
-                        addAttributeToHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
+                    addComponentRegistryEntry ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
 
     updateProperty (ComponentSize (width, height)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND width >>= \width' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND height >>= \height' ->
                 ComponentInternal.setComponentSize width' height' componentHWND >>
-                    updateAttributeOfHWND componentHWND (ComponentSizeAttr (width, height))
+                    updateComponentRegistryEntry ComponentSizeRegKey (ComponentSizeReg (width, height)) componentHWND
 
-    unapplyProperty (ComponentSize (width, height)) componentHWND =
+    unapplyProperty _ componentHWND =
         ComponentInternal.setComponentSize 0 0 componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentSizeAttr (width, height)) >>
-                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentSizeSet)
+            removeComponentRegistryEntry ComponentSizeRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentPosition where
+    isPropertyChanged (ComponentPosition pos) = isRegistryValueChangedMaybe ComponentPositionRegKey pos
+
     applyProperty (ComponentPosition (x, y)) componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
                 ComponentInternal.setComponentPosition x' y' componentHWND >>
-                    addAttributeToHWND componentHWND (ComponentPositionAttr (x, y)) >>
-                        addAttributeToHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
+                    addComponentRegistryEntry ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
 
     updateProperty (ComponentPosition (x, y)) _ componentHWND =
         ComponentInternal.resolveScalableValueForHWND componentHWND x >>= \x' ->
             ComponentInternal.resolveScalableValueForHWND componentHWND y >>= \y' ->
                 ComponentInternal.setComponentPosition x' y' componentHWND >>
-                    updateAttributeOfHWND componentHWND (ComponentPositionAttr (x, y))
+                    updateComponentRegistryEntry ComponentPositionRegKey (ComponentPositionReg (x, y)) componentHWND
 
-    unapplyProperty (ComponentPosition (x, y)) componentHWND =
+    unapplyProperty _ componentHWND =
         ComponentInternal.setComponentPosition 0 0 componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentPositionAttr (x, y)) >>
-                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentPositionSet)
+            removeComponentRegistryEntry ComponentPositionRegKey componentHWND
 
 instance IsGUIComponentProperty ComponentFont where
+    isPropertyChanged (ComponentFont font) = isRegistryValueChangedMaybe ComponentFontRegKey font
+
     applyProperty (ComponentFont font) componentHWND =
         ComponentInternal.setComponentFont font componentHWND >>
-            addAttributeToHWND componentHWND (ComponentFontAttr font) >>
-                addAttributeToHWND componentHWND (ComponentFlagAttr ComponentFontSet)
+            addComponentRegistryEntry ComponentFontRegKey (ComponentFontReg font) componentHWND
 
     updateProperty (ComponentFont font) _ componentHWND =
         ComponentInternal.setComponentFont font componentHWND >>
-            updateAttributeOfHWND componentHWND (ComponentFontAttr font)
-
-    unapplyProperty (ComponentFont font) componentHWND =
-        ComponentInternal.useDefaultFont componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentFontAttr font) >>
-                removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentFontSet)
-
-instance IsGUIComponentProperty ComponentChildren where
-    applyProperty (ComponentChildren children) componentHWND =
-        ComponentInternal.sortComponentsWithZIndex children (Just componentHWND) >>= \sortedChildren ->
-            forM_ sortedChildren (\(GUIComponent child) ->
-                render child (Just componentHWND)) >>
-                    addAttributeToHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
-
-    updateProperty (ComponentChildren newChildren) (ComponentChildren oldChildren) componentHWND =
-        ApplicationInternal.updateComponents newChildren oldChildren (Just componentHWND)
+            updateComponentRegistryEntry ComponentFontRegKey (ComponentFontReg font) componentHWND
 
     unapplyProperty _ componentHWND =
-        ComponentInternal.destroyChildren componentHWND >>
-            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentChildrenSet)
+        ComponentInternal.useDefaultFont componentHWND >>
+            removeComponentRegistryEntry ComponentFontRegKey componentHWND
+
+instance IsGUIComponentProperty ComponentChildren where
+    isPropertyChanged _ componentHWND =
+        doesComponentHaveRegistryKey ComponentHasChildrenRegKey componentHWND >>= \case
+            True ->
+                pure (Just True)
+
+            False ->
+                pure Nothing
+
+    applyProperty (ComponentChildren children) componentHWND =
+        ComponentInternal.sortComponentsWithZIndex children (Just componentHWND) >>= \sortedChildren ->
+            forM_ sortedChildren $ \(GUIComponent child) ->
+                render child (Just componentHWND)
+
+    updateProperty (ComponentChildren newChildren) _ componentHWND =
+        ApplicationInternal.updateComponents newChildren (Just componentHWND)
+
+    unapplyProperty _ =
+        ComponentInternal.destroyChildren
 
 instance IsGUIComponentProperty ComponentZIndex where
-    applyProperty (ComponentZIndex zIndex) componentHWND =
-        addAttributeToHWND componentHWND (ComponentZIndexAttr zIndex) >>
-            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentZIndexSet)
+    isPropertyChanged (ComponentZIndex zIndex) = isRegistryValueChangedMaybe ComponentZIndexRegKey zIndex
 
-    updateProperty (ComponentZIndex zIndex) _ componentHWND =
-        updateAttributeOfHWND componentHWND (ComponentZIndexAttr zIndex)
+    applyProperty (ComponentZIndex zIndex) =
+        addComponentRegistryEntry ComponentZIndexRegKey (ComponentZIndexReg zIndex)
 
-    unapplyProperty (ComponentZIndex zIndex) componentHWND =
-        removeAttributeFromHWND componentHWND (ComponentZIndexAttr zIndex) >>
-            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentZIndexSet)
+    updateProperty (ComponentZIndex zIndex) _ =
+        updateComponentRegistryEntry ComponentZIndexRegKey (ComponentZIndexReg zIndex)
+
+    unapplyProperty _ =
+        removeComponentRegistryEntry ComponentZIndexRegKey
 
 instance IsGUIComponentProperty ComponentOnClick where
-    applyProperty (ComponentOnClick msg) componentHWND =
-        addAttributeToHWND componentHWND (ComponentEventHandlerAttr ComponentClickEvent (ApplicationInternal.Msg msg)) >>
-            addAttributeToHWND componentHWND (ComponentFlagAttr ComponentOnClickSet)
+    isPropertyChanged (ComponentOnClick msg) = isRegistryValueChangedMaybe ComponentClickEventHandlerRegKey msg
 
-    updateProperty (ComponentOnClick msg) _ componentHWND =
-        updateAttributeOfHWND componentHWND (ComponentEventHandlerAttr ComponentClickEvent (ApplicationInternal.Msg msg))
+    applyProperty (ComponentOnClick msg) =
+        addComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg msg)
 
-    unapplyProperty (ComponentOnClick msg) componentHWND =
-        removeAttributeFromHWND componentHWND (ComponentEventHandlerAttr ComponentClickEvent (ApplicationInternal.Msg msg)) >>
-            removeAttributeFromHWND componentHWND (ComponentFlagAttr ComponentOnClickSet)
+    updateProperty (ComponentOnClick msg) _ =
+        updateComponentRegistryEntry ComponentClickEventHandlerRegKey (ComponentClickEventHandlerReg msg)
+
+    unapplyProperty _ =
+        removeComponentRegistryEntry ComponentClickEventHandlerRegKey

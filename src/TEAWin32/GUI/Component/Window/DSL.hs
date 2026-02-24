@@ -17,6 +17,7 @@ import           TEAWin32.GUI.Component                 (GUIComponent (GUICompon
 import           TEAWin32.GUI.Component.Window          (Window (Window))
 import           TEAWin32.GUI.Component.Window.Property
 import           TEAWin32.GUI.DSL.Internal              (getNextSystemUniqueId,
+                                                         recordUserUniqueId,
                                                          resolveChildren)
 
 icon_ :: Icon -> WindowProperty
@@ -30,8 +31,9 @@ bgColour_ = WindowProperty . WindowBackgroundColour
 
 window_' :: Text -> Text -> WindowStyle -> [WindowProperty] -> GUIComponents -> GUIComponents
 window_' windowUniqueId windowClass windowStyle windowProperties windowChildren =
-    resolveChildren WindowProperty windowProperties windowChildren >>= \properties ->
-        tell [GUIComponent (Window (UserUniqueId windowUniqueId) windowClass windowStyle properties)]
+    recordUserUniqueId windowUniqueId >>
+        resolveChildren WindowProperty windowProperties windowChildren >>= \properties ->
+            tell [GUIComponent (Window (UserUniqueId windowUniqueId) windowClass windowStyle properties)]
 
 window_ :: Text -> WindowStyle -> [WindowProperty] -> GUIComponents -> GUIComponents
 window_ windowClass windowStyle windowProperties windowChildren =

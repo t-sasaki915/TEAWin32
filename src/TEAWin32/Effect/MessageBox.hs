@@ -12,16 +12,17 @@ module TEAWin32.Effect.MessageBox
     , fromWin32MessageBoxResult
     ) where
 
-import           Data.Bits                     ((.|.))
-import           Data.Maybe                    (fromMaybe)
-import           Data.Text                     (Text)
-import qualified Data.Text                     as Text
-import           GHC.Stack                     (HasCallStack)
-import qualified Graphics.Win32                as Win32
-import qualified TEAWin32.Application.Internal as ApplicationInternal
-import           TEAWin32.GUI                  (UniqueId (..))
-import           TEAWin32.Internal             (throwTEAWin32InternalError)
-import qualified TEAWin32.Internal.Foreign     as Win32
+import           Data.Bits                                ((.|.))
+import           Data.Maybe                               (fromMaybe)
+import           Data.Text                                (Text)
+import qualified Data.Text                                as Text
+import           GHC.Stack                                (HasCallStack)
+import qualified Graphics.Win32                           as Win32
+import           TEAWin32.Exception                       (TEAWin32Error (..),
+                                                           errorTEAWin32)
+import           TEAWin32.GUI                             (UniqueId (..))
+import           TEAWin32.GUI.Component.ComponentRegistry (getComponentHWNDFromUniqueIdRegistryMaybe)
+import qualified TEAWin32.Internal.Foreign                as Win32
 
 showMessageBox :: HasCallStack => MessageBoxSettings -> IO MessageBoxResult
 showMessageBox settings = do
@@ -37,7 +38,7 @@ showMessageBox settings = do
             [msgBoxBtns, msgBoxIcon, msgBoxDefBtn, msgBoxTaskModal, msgBoxRightText, msgBoxSetForeground, msgBoxTopMost]
 
     maybeOwner <- case messageBoxOwnerUniqueId settings of
-        Just uniqueId -> ApplicationInternal.getHWNDByUniqueId (UserUniqueId uniqueId)
+        Just uniqueId -> getComponentHWNDFromUniqueIdRegistryMaybe (UserUniqueId uniqueId)
         Nothing       -> pure Nothing
 
     fromWin32MessageBoxResult <$>
@@ -140,4 +141,4 @@ fromWin32MessageBoxResult x
     | x == Win32.iDRETRY    = MessageBoxResultRetry
     | x == Win32.iDTRYAGAIN = MessageBoxResultTryAgain
     | x == Win32.iDYES      = MessageBoxResultYes
-    | otherwise             = throwTEAWin32InternalError "Unknown MessageBox MBStatus."
+    | otherwise             = errorTEAWin32 (InternalTEAWin32Error "Unknown MessageBox MBStatus.")

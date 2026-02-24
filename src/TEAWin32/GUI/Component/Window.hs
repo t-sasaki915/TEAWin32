@@ -1,31 +1,28 @@
 module TEAWin32.GUI.Component.Window (Window (..)) where
 
-import           Control.Exception                         (bracket)
-import           Control.Monad                             (when)
-import           Data.Bits                                 ((.|.))
-import           Data.IORef                                (atomicModifyIORef')
-import           Data.Text                                 (Text)
-import qualified Data.Text                                 as Text
-import           Foreign                                   (Storable (peek),
-                                                            castPtr,
-                                                            intPtrToPtr,
-                                                            wordPtrToPtr)
-import           GHC.Stack                                 (HasCallStack)
-import qualified Graphics.Win32                            as Win32
-import qualified System.Win32                              as Win32
-import qualified TEAWin32.Application.Internal             as ApplicationInternal
-import           TEAWin32.Drawing                          (toWin32Colour)
-import           TEAWin32.GUI                              (UniqueId,
-                                                            WindowStyle,
-                                                            toWin32WindowStyle)
-import           TEAWin32.GUI.Component                    (IsGUIComponent (..))
-import qualified TEAWin32.GUI.Component.Internal           as ComponentInternal
-import           TEAWin32.GUI.Component.Internal.Attribute
-import           TEAWin32.GUI.Component.Property           (GUIComponentProperty (..),
-                                                            IsGUIComponentProperty (applyProperty))
-import           TEAWin32.GUI.Component.Window.Property    (WindowProperty (..))
-import qualified TEAWin32.GUI.Internal                     as GUIInternal
-import qualified TEAWin32.Internal.Foreign                 as Win32
+import           Control.Exception                        (bracket)
+import           Control.Monad                            (when)
+import           Data.IORef                               (atomicModifyIORef')
+import           Data.Text                                (Text)
+import qualified Data.Text                                as Text
+import           Foreign                                  (intPtrToPtr)
+import           GHC.Stack                                (HasCallStack)
+import qualified Graphics.Win32                           as Win32
+import qualified System.Win32                             as Win32
+import qualified TEAWin32.Application.Internal            as ApplicationInternal
+import           TEAWin32.Drawing                         (toWin32Colour)
+import           TEAWin32.GUI                             (UniqueId,
+                                                           WindowStyle,
+                                                           toWin32WindowStyle)
+import           TEAWin32.GUI.Component                   (ComponentType (ComponentWindow),
+                                                           IsGUIComponent (..))
+import           TEAWin32.GUI.Component.ComponentRegistry
+import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
+import           TEAWin32.GUI.Component.Property          (GUIComponentProperty (..),
+                                                           IsGUIComponentProperty (applyProperty))
+import           TEAWin32.GUI.Component.Window.Property   (WindowProperty (..))
+import qualified TEAWin32.GUI.Internal                    as GUIInternal
+import qualified TEAWin32.Internal.Foreign                as Win32
 
 data Window = Window UniqueId Text WindowStyle [WindowProperty] deriving (Show, Eq)
 
@@ -67,24 +64,22 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
-        currentDPI <- GUIInternal.getDPIFromHWND window
+        scaleFactor <- Win32.c_GetScaleFactorForHWND window
 
-        ApplicationInternal.registerHWND windowUniqueId window
+        registerComponentToRegistry windowUniqueId window
+        addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg windowUniqueId) window
+        addComponentRegistryEntry ComponentTypeRegKey        (ComponentTypeReg ComponentWindow)    window
+        addComponentRegistryEntry ComponentScaleFactorRegKey (ComponentScaleFactorReg scaleFactor) window
+        addComponentRegistryEntry WindowClassNameRegKey      (WindowClassNameReg windowClassName)  window
+        addComponentRegistryEntry WindowStyleRegKey          (WindowStyleReg windowStyle)          window
 
-        registerHWNDToAttributeMap window
-        addAttributeToHWND window (ComponentUniqueIdAttr windowUniqueId)
-        addAttributeToHWND window (ComponentTypeAttr ComponentWindow)
-        addAttributeToHWND window (ComponentCurrentDPIAttr currentDPI)
-        addAttributeToHWND window (WindowClassNameAttr windowClassName)
-        addAttributeToHWND window (WindowStyleAttr windowStyle)
-
-        ComponentInternal.bringComponentToTop window
         ComponentInternal.useDefaultFont window
 
         mapM_ (`applyProperty` window) windowProperties
 
-        _ <- Win32.showWindow window Win32.sW_SHOWNORMAL
+        _ <- Win32.showWindow window Win32.sW_SHOW
         Win32.updateWindow window
+        ComponentInternal.bringComponentToTop window
 
         atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n + 1, ())
 
@@ -94,7 +89,8 @@ defaultWindowProc :: HasCallStack => Win32.HWND -> Win32.WindowMessage -> Win32.
 defaultWindowProc hwnd wMsg wParam lParam
     | wMsg == Win32.wM_DESTROY = do
         ComponentInternal.destroyChildren hwnd
-        ComponentInternal.unregisterComponent hwnd
+
+        unregisterComponentFromRegistry hwnd
 
         remainingWindow <- atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n - 1, n - 1)
 
@@ -110,7 +106,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 
         case notification of
             0 -> -- BN_CLICKED
-                getEventHandlerFromHWNDMaybe ComponentClickEvent targetHWND >>= \case
+                getComponentRegistryEntryValueMaybe ComponentClickEventHandlerRegKey targetHWND >>= \case
                     Just msg -> ApplicationInternal.issueMsg msg >> pure 0
                     Nothing  -> Win32.defWindowProcSafe (Just hwnd) wMsg wParam lParam
 
@@ -121,7 +117,7 @@ defaultWindowProc hwnd wMsg wParam lParam
         let hdc = intPtrToPtr $ fromIntegral wParam
         rect <- Win32.getClientRect hwnd
 
-        getComponentBackgroundColourFromHWNDMaybe hwnd >>= \case
+        getComponentRegistryEntryValueMaybe WindowBackgroundColourRegKey hwnd >>= \case
             Just backgroundColour -> do
                 bracket (Win32.createSolidBrush (toWin32Colour backgroundColour)) Win32.c_DeleteObject $
                     Win32.fillRect hdc rect
@@ -134,7 +130,7 @@ defaultWindowProc hwnd wMsg wParam lParam
 
                 pure 1
 
-    | wMsg == Win32.wM_DPICHANGED = do
+    | wMsg == Win32.wM_DPICHANGED = {-do
         putStrLn "!?"
         let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam
         (l, t, r, b) <- peek rectPtr :: IO Win32.RECT
@@ -142,7 +138,7 @@ defaultWindowProc hwnd wMsg wParam lParam
         Win32.c_SetWindowPos hwnd Win32.nullPtr l t (r - l) (b - t) (Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE .|. Win32.sWP_FRAMECHANGED) >>= print
 
         let newDPI = Win32.lOWORD (fromIntegral wParam)
-        ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)
+        ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)-}
 
         pure 0
 

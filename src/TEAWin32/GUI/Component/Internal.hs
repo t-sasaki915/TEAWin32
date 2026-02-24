@@ -1,9 +1,7 @@
 module TEAWin32.GUI.Component.Internal
-    ( ComponentUpdateAction (..)
-    , compareGUIComponents
-    , sortComponentsWithZIndex
+    ( sortComponentsWithZIndex
     , resolveScalableValueForHWND
-    , updateComponentDPI
+    --, updateComponentDPI
     , getRelativeRectFromHWNDUsingWin32
     , bringComponentToTop
     , setComponentTitle
@@ -16,80 +14,40 @@ module TEAWin32.GUI.Component.Internal
     , requestRedraw
     , destroyChildren
     , destroyComponent
-    , unregisterComponent
-    , restoreComponentFromHWND
     ) where
 
-import                          Control.Concurrent                        (modifyMVar)
-import                          Control.Monad                             (filterM,
-                                                                           forM,
-                                                                           unless,
-                                                                           when)
-import                          Data.Functor                              (void)
-import                qualified Data.List                                 as List
-import                          Data.Map.Strict                           ((!))
-import                qualified Data.Map.Strict                           as Map
-import                          Data.Text                                 (Text)
-import                qualified Data.Text                                 as Text
-import                          Foreign                                   hiding
-                                                                          (new,
-                                                                           void)
-import                          GHC.Stack                                 (HasCallStack)
-import                qualified Graphics.Win32                            as Win32
-import                qualified TEAWin32.Application.Internal             as ApplicationInternal
-import                          TEAWin32.GUI
-import                          TEAWin32.GUI.Component                    (GUIComponent,
-                                                                           IsGUIComponent (..),
-                                                                           ZIndex (..))
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Button.Internal    (restoreButtonFromHWND)
-import                          TEAWin32.GUI.Component.Internal.Attribute
-import                          TEAWin32.GUI.Component.Property
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Window.Internal    (restoreWindowFromHWND)
-import                qualified TEAWin32.GUI.Internal                     as GUIInternal
-import                          TEAWin32.Internal                         (throwTEAWin32InternalError)
-import                qualified TEAWin32.Internal.Foreign                 as Win32
-
-data ComponentUpdateAction = RenderComponent GUIComponent
-                           | UpdateProperties GUIComponent GUIComponent
-                           | RedrawComponent GUIComponent
-                           | DifferentComponent GUIComponent GUIComponent
-                           | DeleteComponent GUIComponent
-                           | NoComponentChange GUIComponent
-                           deriving Show
-
-compareGUIComponents :: [GUIComponent] -> [GUIComponent] -> [ComponentUpdateAction]
-compareGUIComponents newComponents oldComponents =
-    let newComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- newComponents ]
-        oldComponentsWithUniqueId = Map.fromList [ (getUniqueId x, x) | x <- oldComponents ]
-        deletedComponents = [ DeleteComponent x | x <- Map.elems $ Map.difference oldComponentsWithUniqueId newComponentsWithUniqueId ]
-        newComponentsWithAction =
-            flip map newComponents $ \newComponent ->
-                case Map.lookup (getUniqueId newComponent) oldComponentsWithUniqueId of
-                    Just oldComponent | getComponentType newComponent /= getComponentType oldComponent ->
-                        DifferentComponent newComponent oldComponent
-
-                    Just oldComponent | newComponent == oldComponent ->
-                        NoComponentChange newComponent
-
-                    Just oldComponent | doesNeedToRedraw oldComponent newComponent ->
-                        RedrawComponent newComponent
-
-                    Just oldComponent ->
-                        UpdateProperties newComponent oldComponent
-
-                    Nothing ->
-                        RenderComponent newComponent
-
-    in deletedComponents ++ newComponentsWithAction
+import           Control.Concurrent                       (modifyMVar)
+import           Control.Monad                            (filterM, forM,
+                                                           unless)
+import           Data.Functor                             (void, (<&>))
+import qualified Data.List                                as List
+import           Data.Map.Strict                          ((!))
+import qualified Data.Map.Strict                          as Map
+import           Data.Text                                (Text)
+import qualified Data.Text                                as Text
+import           Foreign                                  hiding (new, void)
+import           GHC.Stack                                (HasCallStack)
+import qualified Graphics.Win32                           as Win32
+import           TEAWin32.Exception                       (TEAWin32Error (..),
+                                                           errorTEAWin32)
+import           TEAWin32.GUI
+import           TEAWin32.GUI.Component                   (ComponentType (..),
+                                                           GUIComponent,
+                                                           IsGUIComponent (..),
+                                                           ZIndex (..))
+import           TEAWin32.GUI.Component.ComponentRegistry
+import           TEAWin32.GUI.Component.Property
+import qualified TEAWin32.GUI.Internal                    as GUIInternal
+import qualified TEAWin32.Internal.Foreign                as Win32
 
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
     children <- case maybeParent of
         Just parent' -> GUIInternal.withImmediateChildWindows parent' pure
-        Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isManagedByTEAWin32
+        Nothing      -> GUIInternal.withTopLevelWindows pure >>= filterM isComponentManaged
 
     uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] children) (\(i, hwnd) ->
-        getComponentUniqueIdFromHWND hwnd >>= \uniqueId ->
+        getComponentRegistryEntryValue ComponentUniqueIdRegKey hwnd >>= \uniqueId ->
             pure (uniqueId, i))
 
     let guiComponentMap = Map.fromList [ (getUniqueId comp, comp) | comp <- guiComponents ]
@@ -100,7 +58,7 @@ sortComponentsWithZIndex guiComponents maybeParent = do
             maybeUsrIndex = case [ usrIndex | Just (ComponentZIndex usrIndex) <- map getZIndexProperty (getProperties guiComponent) ] of
                 [ usrIndex ] -> Just usrIndex
                 []           -> Nothing
-                x            -> throwTEAWin32InternalError $ "Illegal ComponentZIndex state: " <> Text.show x
+                x            -> errorTEAWin32 $ InternalTEAWin32Error $ "Illegal ComponentZIndex state: " <> Text.show x
 
         case (maybeUsrIndex, maybeSysIndex) of
             (Just usrIndex, Just sysIndex) -> pure (ZIndexWithUserSpecification usrIndex sysIndex, uniqueId)
@@ -113,38 +71,30 @@ sortComponentsWithZIndex guiComponents maybeParent = do
 resolveScalableValueForHWND :: HasCallStack => Win32.HWND -> ScalableValue -> IO Int
 resolveScalableValueForHWND _ (RawValue x) = pure (round x)
 resolveScalableValueForHWND hwnd (ScalableValue x) =
-    getComponentCurrentDPIFromHWND hwnd >>= \currentDpi ->
-        pure (round (x * fromIntegral currentDpi / 96.0))
+    getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd >>= \scaleFactor ->
+        pure (round (x * scaleFactor))
 
-updateComponentDPI :: HasCallStack => Win32.HWND -> Int -> IO ()
+{-updateComponentDPI :: HasCallStack => Win32.HWND -> Int -> IO ()
 updateComponentDPI hwnd newDPI = do
-    updateAttributeOfHWND hwnd (ComponentCurrentDPIAttr newDPI)
+    updateComponentRegistryEntry ComponentCurrentDPIRegKey (ComponentCurrentDPIReg newDPI) hwnd
 
     GUIInternal.withImmediateChildWindows hwnd $ mapM_ $ \child -> do
-        isManaged <- isManagedByTEAWin32 child
+        isManaged <- isComponentManaged child
 
         when isManaged $ do
-            isComponentFontSet <- doesHWNDHaveFlag ComponentFontSet child
+            whenComponentHasRegistryKey ComponentFontRegKey child $ \font ->
+                updateProperty (ComponentFont font) (ComponentFont font) child
 
-            when isComponentFontSet $
-                getComponentFontFromHWND child >>= \font ->
-                    updateProperty (ComponentFont font) (ComponentFont font) child
-
-            getComponentTypeFromHWND child >>= \case
+            getComponentRegistryEntryValue ComponentTypeRegKey child >>= \case
                 ComponentWindow ->
                     pure ()
 
                 _ -> do
-                    isComponentSizeSet     <- doesHWNDHaveFlag ComponentSizeSet child
-                    isComponentPositionSet <- doesHWNDHaveFlag ComponentPositionSet child
+                    whenComponentHasRegistryKey ComponentSizeRegKey child $ \size ->
+                        updateProperty (ComponentSize size) (ComponentSize size) child
 
-                    when isComponentSizeSet $
-                        getComponentSizeFromHWND child >>= \size ->
-                            updateProperty (ComponentSize size) (ComponentSize size) child
-
-                    when isComponentPositionSet $
-                        getComponentPositionFromHWND child >>= \position ->
-                            updateProperty (ComponentPosition position) (ComponentPosition position) child
+                    whenComponentHasRegistryKey ComponentPositionRegKey child $ \position ->
+                        updateProperty (ComponentPosition position) (ComponentPosition position) child-}
 
 getRelativeRectFromHWNDUsingWin32 :: Win32.HWND -> IO (Int, Int, Int, Int)
 getRelativeRectFromHWNDUsingWin32 hwnd = do
@@ -204,11 +154,9 @@ setComponentFont font@(Font fontName fontSize) hwnd =
                     pure (fontCache, ())
             Nothing ->
                 resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
-                    Win32.createFont (fromIntegral fontSize') 0 0 0 Win32.fW_NORMAL False False False Win32.dEFAULT_CHARSET
-                        Win32.oUT_DEFAULT_PRECIS Win32.cLIP_DEFAULT_PRECIS Win32.dEFAULT_QUALITY
-                            (Win32.fIXED_PITCH .|. Win32.fF_DONTCARE) (Text.unpack fontName) >>= \fontHandle ->
-                                setComponentFont' fontHandle hwnd >>
-                                    pure (Map.insert font fontHandle fontCache, ())
+                    Win32.createFont (fromIntegral (- fontSize')) 0 0 0 400 False False False 1 0 0 0 0 (Text.unpack fontName) >>= \fontHandle ->
+                        setComponentFont' fontHandle hwnd >>
+                            pure (Map.insert font fontHandle fontCache, ())
 
 setComponentFont' :: Win32.HANDLE -> Win32.HWND -> IO ()
 setComponentFont' font hwnd =
@@ -237,21 +185,9 @@ destroyChildren hwnd =
 
 destroyComponent :: Win32.HWND -> IO ()
 destroyComponent hwnd = do
-    isWindow <- isComponentWindow hwnd
+    isWindow <- getComponentRegistryEntryValue ComponentTypeRegKey hwnd <&> (== ComponentWindow)
 
-    unless isWindow $ do
-        getComponentUniqueIdFromHWND hwnd >>= print
-        unregisterComponent hwnd
+    unless isWindow $
+        unregisterComponentFromRegistry hwnd
 
     Win32.destroyWindow hwnd
-
-unregisterComponent :: Win32.HWND -> IO ()
-unregisterComponent hwnd = do
-    unregisterHWNDFromAttributeMap hwnd
-    ApplicationInternal.unregisterHWND hwnd
-
-restoreComponentFromHWND :: HasCallStack => Win32.HWND -> IO GUIComponent
-restoreComponentFromHWND hwnd =
-    getComponentTypeFromHWND hwnd >>= \case
-        ComponentButton -> restoreButtonFromHWND hwnd
-        ComponentWindow -> restoreWindowFromHWND hwnd
