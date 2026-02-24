@@ -13,10 +13,12 @@ module TEAWin32.GUI.Internal
     , initialiseIconCache
     , setProcessDPIAware
     , finaliseFontCache
+    , withVisualStyles
     ) where
 
 import                          Control.Concurrent        (MVar, modifyMVar_,
                                                            newMVar, takeMVar)
+import                          Control.Exception         (bracket)
 import                          Control.Monad             (filterM, void)
 import                          Data.Either               (fromRight)
 import                          Data.IORef                (IORef,
@@ -152,3 +154,9 @@ withTopLevelWindows func = do
     freeHaskellFunPtr enumPtr
 
     pure x
+
+withVisualStyles :: IO a -> IO a
+withVisualStyles action =
+    bracket Win32.c_EnableVisualStyles
+            Win32.c_ReleaseActCtx
+            (const action)

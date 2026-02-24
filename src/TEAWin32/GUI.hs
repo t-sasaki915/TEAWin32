@@ -11,18 +11,13 @@ module TEAWin32.GUI
     , toWin32WindowStyle
     , toWin32Icon
     , toWin32Cursor
-    , withVisualStyles
     ) where
 
 import                          Control.Concurrent        (modifyMVar, readMVar)
-import                          Control.Monad             (unless, void)
 import                          Data.Bits                 ((.|.))
 import                          Data.Map                  ((!))
 import                qualified Data.Map                  as Map
 import                          Data.Text                 (Text)
-import                          Foreign                   (Storable (poke, sizeOf),
-                                                           alloca)
-import                          Foreign.C                 (withCWString)
 import                qualified Graphics.Win32            as Win32
 import                qualified System.Win32              as Win32
 import {-# SOURCE #-}           TEAWin32.GUI.Internal     (cursorCacheRef,
@@ -142,31 +137,3 @@ instance Fractional ScalableValue where
     (RawValue a)      / (RawValue b)      = RawValue      (a / b)
     (ScalableValue a) / (RawValue b)      = ScalableValue (a / b)
     (RawValue a)      / (ScalableValue b) = RawValue      (a / b)
-
-withVisualStyles :: IO a -> IO a
-withVisualStyles action =
-    alloca $ \ul ->
-        alloca $ \actctxPtr -> do
-            hInstance <- Win32.loadLibrary "SHLWAPI.DLL"
-            szPath    <- Win32.getModuleFileName hInstance
-
-            withCWString szPath $ \szPath' -> do
-                let actctx = Win32.ACTCTX
-                        { Win32.cbSize        = fromIntegral $ sizeOf (undefined :: Win32.ACTCTX)
-                        , Win32.actctxDWFlags = 0x008
-                        , Win32.lpResName     = Win32.makeIntResource 123
-                        , Win32.lpSource      = szPath'
-                        }
-
-                poke actctxPtr actctx
-
-                hActCtx <- Win32.c_CreateActCtx actctxPtr
-
-                unless (hActCtx == Win32.iNVALID_HANDLE_VALUE) $
-                    void $ Win32.c_ActivateActCtx hActCtx ul
-
-                x <- action
-
-                _ <- Win32.c_ReleaseActCtx hActCtx
-
-                pure x

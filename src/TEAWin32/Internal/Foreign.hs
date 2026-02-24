@@ -22,6 +22,7 @@ module TEAWin32.Internal.Foreign
     , c_SHGetStockIconInfo
     , c_GetScaleFactorForHWND
     , c_GetGetDpiForWindowFunctionIfExists
+    , c_EnableVisualStyles
     , makeGetDpiForWindow
     , makeSetProcessDpiAwareness
     , gCLP_HICON
@@ -142,6 +143,9 @@ foreign import ccall unsafe "GetGetDpiForWindowFunctionIfExists"
 
 foreign import ccall unsafe "GetScaleFactorForHWND"
     c_GetScaleFactorForHWND :: Win32.HWND -> IO Double
+
+foreign import ccall unsafe "EnableVisualStyles"
+    c_EnableVisualStyles :: IO Win32.HANDLE
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

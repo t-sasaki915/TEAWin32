@@ -61,7 +61,7 @@ library
       TEAWin32.GUI
       TEAWin32.Util
   c-sources:
-      cbits/win32_utils.c
+      cbits/gui.c
   include-dirs:
       cbits
   other-modules:

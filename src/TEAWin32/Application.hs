@@ -18,7 +18,6 @@ import           TEAWin32.Application.Internal
 import           TEAWin32.Exception              (ErrorLocation (..),
                                                   TEAWin32Error (..),
                                                   errorTEAWin32)
-import           TEAWin32.GUI                    (withVisualStyles)
 import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
@@ -44,7 +43,7 @@ runTEA settings init update view = do
 
     Win32.c_GetGetDpiForWindowFunctionIfExists
 
-    let preFunc = if useVisualStyles settings then withVisualStyles else id
+    let preFunc = if useVisualStyles settings then GUIInternal.withVisualStyles else id
 
     preFunc (runTEA' init update view)
 
