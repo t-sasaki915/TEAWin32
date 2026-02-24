@@ -10,7 +10,6 @@ void InitialiseDPIAwareFunctions(void)
     HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
-        SetProcessDPIAware();
         return;
     }
 
