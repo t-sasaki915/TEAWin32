@@ -23,6 +23,7 @@ import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
 import qualified TEAWin32.GUI.Internal           as GUIInternal
+import qualified TEAWin32.Internal.Foreign       as Win32
 import           TEAWin32.Util                   (try_)
 
 newtype Settings = Settings
@@ -40,6 +41,8 @@ runTEA settings init update view = do
 
     GUIInternal.initialiseCursorCache
     GUIInternal.initialiseIconCache
+
+    Win32.c_GetGetDpiForWindowFunctionIfExists
 
     let preFunc = if useVisualStyles settings then withVisualStyles else id
 
