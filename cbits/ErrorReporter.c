@@ -11,7 +11,7 @@
 
 #define ERROR_REPORTER_WINDOW_WIDTH 505
 #define ERROR_REPORTER_WINDOW_HEIGHT 150
-#define ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX 363
+#define ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX 361
 
 #define CLOSE_BUTTON_LABEL L"Close"
 #define CLOSE_BUTTON_X 375
@@ -21,9 +21,9 @@
 #define CLOSE_BUTTON_ID 100
 
 #define COPY_BUTTON_LABEL L"Copy Details"
-#define COPY_BUTTON_X 185
+#define COPY_BUTTON_X 180
 #define COPY_BUTTON_Y 70
-#define COPY_BUTTON_WIDTH 100
+#define COPY_BUTTON_WIDTH 115
 #define COPY_BUTTON_HEIGHT 28
 #define COPY_BUTTON_ID 101
 
@@ -41,13 +41,15 @@
 #define DETAIL_BOX_HEIGHT 200
 
 #define ERROR_ICON_X 10
-#define ERROR_ICON_Y 10
+#define ERROR_ICON_Y 18
 #define ERROR_ICON_WIDTH 32
 #define ERROR_ICON_HEIGHT 32
 
 #define SHORT_ERROR_MESSAGE_TEXT_X 53
-#define SHORT_ERROR_MESSAGE_TEXT_Y 16
+#define SHORT_ERROR_MESSAGE_TEXT_Y 24
 #define SHORT_ERROR_MESSAGE_TEXT_COLOUR RGB(0, 0, 0)
+
+#define SCALE(a) ScaleValue(SCALE_FACTOR, a)
 
 HINSTANCE ERROR_REPORTER_INSTANCE;
 
@@ -56,9 +58,12 @@ HICON ERROR_ICON;
 HFONT UI_FONT;
 HFONT EDITOR_FONT;
 
-BOOL IS_DETAIL_VISIBLE = FALSE;
+HWND CLOSE_BUTTON;
+HWND COPY_BUTTON;
 HWND DETAIL_BUTTON;
 HWND DETAIL_BOX;
+
+BOOL IS_DETAIL_VISIBLE = FALSE;
 
 LPCWSTR SHORT_ERROR_MESSAGE;
 LPCWSTR FULL_ERROR_MSG;
@@ -67,6 +72,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (wMsg)
     {
+    case WM_DESTROY: {
+        PostQuitMessage(0);
+
+        return 0;
+    }
+
     case WM_PAINT: {
         HDC hdc;
         PAINTSTRUCT ps;
@@ -75,11 +86,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
         DrawIconEx(
             hdc,
-            ScaleValue(SCALE_FACTOR, ERROR_ICON_X),
-            ScaleValue(SCALE_FACTOR, ERROR_ICON_Y),
+            SCALE(ERROR_ICON_X),
+            SCALE(ERROR_ICON_Y),
             ERROR_ICON,
-            ScaleValue(SCALE_FACTOR, ERROR_ICON_WIDTH),
-            ScaleValue(SCALE_FACTOR, ERROR_ICON_HEIGHT),
+            SCALE(ERROR_ICON_WIDTH),
+            SCALE(ERROR_ICON_HEIGHT),
             0,
             NULL,
             3);
@@ -91,8 +102,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
         TextOutW(
             hdc,
-            ScaleValue(SCALE_FACTOR, SHORT_ERROR_MESSAGE_TEXT_X),
-            ScaleValue(SCALE_FACTOR, SHORT_ERROR_MESSAGE_TEXT_Y),
+            SCALE(SHORT_ERROR_MESSAGE_TEXT_X),
+            SCALE(SHORT_ERROR_MESSAGE_TEXT_Y),
             SHORT_ERROR_MESSAGE,
             wcslen(SHORT_ERROR_MESSAGE));
 
@@ -107,7 +118,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
         switch (LOWORD(wParam))
         {
         case CLOSE_BUTTON_ID: {
-            PostQuitMessage(0);
+            SendMessage(hwnd, WM_CLOSE, 0, 0);
 
             return 0;
         }
@@ -156,8 +167,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
                     NULL,
                     0,
                     0,
-                    ScaleValue(SCALE_FACTOR, ERROR_REPORTER_WINDOW_WIDTH),
-                    ScaleValue(SCALE_FACTOR, ERROR_REPORTER_WINDOW_HEIGHT),
+                    SCALE(ERROR_REPORTER_WINDOW_WIDTH),
+                    SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
                     SWP_NOMOVE);
 
                 ShowWindow(DETAIL_BOX, SW_HIDE);
@@ -175,8 +186,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
                     NULL,
                     0,
                     0,
-                    ScaleValue(SCALE_FACTOR, ERROR_REPORTER_WINDOW_WIDTH),
-                    ScaleValue(SCALE_FACTOR, ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX),
+                    SCALE(ERROR_REPORTER_WINDOW_WIDTH),
+                    SCALE(ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX),
                     SWP_NOMOVE);
 
                 ShowWindow(DETAIL_BOX, SW_SHOW);
@@ -191,6 +202,95 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
             return (DefWindowProcW(hwnd, wMsg, wParam, lParam));
         }
         }
+    }
+
+    case WM_DPICHANGED: {
+        RECT *rect = (RECT *)lParam;
+
+        LONG l = rect->left;
+        LONG t = rect->top;
+        LONG r = rect->right;
+        LONG b = rect->bottom;
+
+        SetWindowPos(hwnd, NULL, l, t, r - l, b - t, SWP_NOZORDER | SWP_NOACTIVATE);
+
+        SCALE_FACTOR = GetScaleFactorForHWND(hwnd);
+
+        SetWindowPos(
+            CLOSE_BUTTON,
+            NULL,
+            SCALE(CLOSE_BUTTON_X),
+            SCALE(CLOSE_BUTTON_Y),
+            SCALE(CLOSE_BUTTON_WIDTH),
+            SCALE(CLOSE_BUTTON_HEIGHT),
+            SWP_NOZORDER);
+        SetWindowPos(
+            COPY_BUTTON,
+            NULL,
+            SCALE(COPY_BUTTON_X),
+            SCALE(COPY_BUTTON_Y),
+            SCALE(COPY_BUTTON_WIDTH),
+            SCALE(COPY_BUTTON_HEIGHT),
+            SWP_NOZORDER);
+        SetWindowPos(
+            DETAIL_BUTTON,
+            NULL,
+            SCALE(DETAIL_BUTTON_X),
+            SCALE(DETAIL_BUTTON_Y),
+            SCALE(DETAIL_BUTTON_WIDTH),
+            SCALE(DETAIL_BUTTON_HEIGHT),
+            SWP_NOZORDER);
+        SetWindowPos(
+            DETAIL_BOX,
+            NULL,
+            SCALE(DETAIL_BOX_X),
+            SCALE(DETAIL_BOX_Y),
+            SCALE(DETAIL_BOX_WIDTH),
+            SCALE(DETAIL_BOX_HEIGHT),
+            SWP_NOZORDER);
+
+        DeleteObject(UI_FONT);
+        DeleteObject(EDITOR_FONT);
+
+        UI_FONT = CreateFontW(
+            -SCALE(UI_FONT_SIZE),
+            0,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            DEFAULT_PITCH | FF_DONTCARE,
+            UI_FONT_NAME);
+        EDITOR_FONT = CreateFontW(
+            -SCALE(EDITOR_FONT_SIZE),
+            0,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            DEFAULT_PITCH | FF_DONTCARE,
+            EDITOR_FONT_NAME);
+
+        SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+        SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+        SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+        SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
+
+        InvalidateRect(hwnd, NULL, TRUE);
+
+        return 0;
     }
 
     default: {
@@ -241,12 +341,12 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         NULL,
         0,
         0,
-        ScaleValue(SCALE_FACTOR, ERROR_REPORTER_WINDOW_WIDTH),
-        ScaleValue(SCALE_FACTOR, ERROR_REPORTER_WINDOW_HEIGHT),
+        SCALE(ERROR_REPORTER_WINDOW_WIDTH),
+        SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
         SWP_NOMOVE);
 
     UI_FONT = CreateFontW(
-        -ScaleValue(SCALE_FACTOR, UI_FONT_SIZE),
+        -SCALE(UI_FONT_SIZE),
         0,
         0,
         0,
@@ -261,7 +361,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         DEFAULT_PITCH | FF_DONTCARE,
         UI_FONT_NAME);
     EDITOR_FONT = CreateFontW(
-        -ScaleValue(SCALE_FACTOR, EDITOR_FONT_SIZE),
+        -SCALE(EDITOR_FONT_SIZE),
         0,
         0,
         0,
@@ -276,44 +376,44 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         DEFAULT_PITCH | FF_DONTCARE,
         EDITOR_FONT_NAME);
 
-    HWND closeButton = CreateWindowW(
+    CLOSE_BUTTON = CreateWindowW(
         L"BUTTON",
         CLOSE_BUTTON_LABEL,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-        ScaleValue(SCALE_FACTOR, CLOSE_BUTTON_X),
-        ScaleValue(SCALE_FACTOR, CLOSE_BUTTON_Y),
-        ScaleValue(SCALE_FACTOR, CLOSE_BUTTON_WIDTH),
-        ScaleValue(SCALE_FACTOR, CLOSE_BUTTON_HEIGHT),
+        SCALE(CLOSE_BUTTON_X),
+        SCALE(CLOSE_BUTTON_Y),
+        SCALE(CLOSE_BUTTON_WIDTH),
+        SCALE(CLOSE_BUTTON_HEIGHT),
         errorReporterWindow,
         (HMENU)CLOSE_BUTTON_ID,
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessageW(closeButton, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
-    HWND copyButton = CreateWindowW(
+    COPY_BUTTON = CreateWindowW(
         L"BUTTON",
         COPY_BUTTON_LABEL,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-        ScaleValue(SCALE_FACTOR, COPY_BUTTON_X),
-        ScaleValue(SCALE_FACTOR, COPY_BUTTON_Y),
-        ScaleValue(SCALE_FACTOR, COPY_BUTTON_WIDTH),
-        ScaleValue(SCALE_FACTOR, COPY_BUTTON_HEIGHT),
+        SCALE(COPY_BUTTON_X),
+        SCALE(COPY_BUTTON_Y),
+        SCALE(COPY_BUTTON_WIDTH),
+        SCALE(COPY_BUTTON_HEIGHT),
         errorReporterWindow,
         (HMENU)COPY_BUTTON_ID,
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessageW(copyButton, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     DETAIL_BUTTON = CreateWindowW(
         L"BUTTON",
         DETAIL_BUTTON_LABEL_EXPAND,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-        ScaleValue(SCALE_FACTOR, DETAIL_BUTTON_X),
-        ScaleValue(SCALE_FACTOR, DETAIL_BUTTON_Y),
-        ScaleValue(SCALE_FACTOR, DETAIL_BUTTON_WIDTH),
-        ScaleValue(SCALE_FACTOR, DETAIL_BUTTON_HEIGHT),
+        SCALE(DETAIL_BUTTON_X),
+        SCALE(DETAIL_BUTTON_Y),
+        SCALE(DETAIL_BUTTON_WIDTH),
+        SCALE(DETAIL_BUTTON_HEIGHT),
         errorReporterWindow,
         (HMENU)DETAIL_BUTTON_ID,
         ERROR_REPORTER_INSTANCE,
@@ -325,10 +425,10 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         L"EDIT",
         specificMsgWithStacktrace,
         WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE | ES_READONLY,
-        ScaleValue(SCALE_FACTOR, DETAIL_BOX_X),
-        ScaleValue(SCALE_FACTOR, DETAIL_BOX_Y),
-        ScaleValue(SCALE_FACTOR, DETAIL_BOX_WIDTH),
-        ScaleValue(SCALE_FACTOR, DETAIL_BOX_HEIGHT),
+        SCALE(DETAIL_BOX_X),
+        SCALE(DETAIL_BOX_Y),
+        SCALE(DETAIL_BOX_WIDTH),
+        SCALE(DETAIL_BOX_HEIGHT),
         errorReporterWindow,
         NULL,
         ERROR_REPORTER_INSTANCE,
