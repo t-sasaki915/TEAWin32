@@ -1,6 +1,7 @@
 #include <windows.h>
 
 typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);
+typedef HRESULT(WINAPI *PSET_PROCESS_DPI_AWARENESS)(int);
 
 PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
 
@@ -70,6 +71,7 @@ void GetGetDpiForWindowFunctionIfExists(void)
     {
         return;
     }
+
     FARPROC getDpiForWindowAddr = GetProcAddress(user32, "GetDpiForWindow");
     if (getDpiForWindowAddr == NULL)
     {
@@ -77,6 +79,26 @@ void GetGetDpiForWindowFunctionIfExists(void)
     }
 
     GET_DPI_FOR_WINDOW_FUNC = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
+}
+
+void EnableDPIAware(void)
+{
+    HMODULE shcore = GetModuleHandle("shcore.dll");
+    if (shcore == NULL)
+    {
+        SetProcessDPIAware();
+        return;
+    }
+
+    FARPROC setProcessDpiAwarenessPtr = GetProcAddress(shcore, "SetProcessDpiAwareness");
+    if (setProcessDpiAwarenessPtr == NULL)
+    {
+        SetProcessDPIAware();
+        return;
+    }
+
+    // PROCESS_PER_MONITOR_DPI_AWARE
+    ((PSET_PROCESS_DPI_AWARENESS)setProcessDpiAwarenessPtr)(2);
 }
 
 double GetScaleFactorForHWND(HWND hwnd)

@@ -1,5 +1,4 @@
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module TEAWin32.Internal.Foreign
@@ -8,7 +7,6 @@ module TEAWin32.Internal.Foreign
     , c_DeleteObject
     , c_ReleaseActCtx
     , c_GetSysColorBrush
-    , c_SetProcessDPIAware
     , c_SelectObject
     , c_DrawIconEx
     , c_GetScaleFactorForHWND
@@ -18,7 +16,7 @@ module TEAWin32.Internal.Foreign
     , c_GetTopLevelWindows
     , c_IsWindowTopLevel
     , c_GetHighDPIIcon
-    , makeSetProcessDpiAwareness
+    , c_EnableDPIAware
     , gCLP_HICON
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
@@ -34,8 +32,8 @@ module TEAWin32.Internal.Foreign
     ) where
 
 import           Data.Int       (Int32)
-import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
-                                 fillBytes, intPtrToPtr)
+import           Foreign        (Ptr, Storable (..), Word16, Word32, fillBytes,
+                                 intPtrToPtr)
 import qualified Graphics.Win32 as Win32
 
 foreign import ccall "SetClassLongPtrW"
@@ -52,9 +50,6 @@ foreign import ccall "ReleaseActCtx"
 
 foreign import ccall "GetSysColorBrush"
     c_GetSysColorBrush :: Word32 -> IO Win32.HBRUSH
-
-foreign import ccall "SetProcessDPIAware"
-    c_SetProcessDPIAware :: IO Bool
 
 foreign import ccall "SelectObject"
     c_SelectObject :: Win32.HDC -> Win32.HANDLE -> IO Win32.HANDLE
@@ -83,10 +78,8 @@ foreign import ccall unsafe "IsWindowTopLevel"
 foreign import ccall unsafe "GetHighDPIIcon"
     c_GetHighDPIIcon :: Int -> IO Win32.HICON
 
-type SetProcessDpiAwareness = Int -> IO Bool
-
-foreign import ccall "dynamic"
-    makeSetProcessDpiAwareness :: FunPtr SetProcessDpiAwareness -> SetProcessDpiAwareness
+foreign import ccall unsafe "EnableDPIAware"
+    c_EnableDPIAware :: IO ()
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

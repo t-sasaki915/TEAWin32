@@ -36,7 +36,7 @@ defaultSettings = Settings
 
 runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA settings init update view = do
-    GUIInternal.setProcessDPIAware
+    Win32.c_EnableDPIAware
 
     GUIInternal.initialiseCursorCache
     GUIInternal.initialiseIconCache

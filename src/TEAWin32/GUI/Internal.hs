@@ -7,7 +7,6 @@ module TEAWin32.GUI.Internal
     , fontCacheRef
     , initialiseCursorCache
     , initialiseIconCache
-    , setProcessDPIAware
     , finaliseFontCache
     , withVisualStyles
     ) where
@@ -15,21 +14,16 @@ module TEAWin32.GUI.Internal
 import                          Control.Concurrent        (MVar, modifyMVar_,
                                                            newMVar, takeMVar)
 import                          Control.Exception         (bracket)
-import                          Control.Monad             (void)
-import                          Data.Either               (fromRight)
 import                          Data.IORef                (IORef, newIORef)
 import                          Data.Map                  (Map)
 import                qualified Data.Map                  as Map
 import                          Foreign                   (allocaArray,
-                                                           castPtrToFunPtr,
                                                            peekArray)
 import                qualified Graphics.Win32            as Win32
 import                          System.IO.Unsafe          (unsafePerformIO)
-import                qualified System.Win32              as Win32
 import {-# SOURCE #-}           TEAWin32.GUI              (Cursor (..), Font,
                                                            Icon (..))
 import                qualified TEAWin32.Internal.Foreign as Win32
-import                          TEAWin32.Util             (try_)
 
 activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)
@@ -76,17 +70,6 @@ initialiseIconCache = do
             ]
 
     modifyMVar_ iconCacheRef (const $ pure builtInIconCache)
-
-setProcessDPIAware :: IO ()
-setProcessDPIAware = do
-    shcore                    <- fromRight Win32.nullPtr <$> try_ (Win32.getModuleHandle (Just "shcore.dll"))
-    setProcessDpiAwarenessPtr <- fromRight Win32.nullPtr <$> try_ (Win32.getProcAddress shcore "SetProcessDpiAwareness")
-
-    if setProcessDpiAwarenessPtr == Win32.nullPtr
-        then void Win32.c_SetProcessDPIAware
-        else
-            let setProcessDpiAwareness = Win32.makeSetProcessDpiAwareness (castPtrToFunPtr setProcessDpiAwarenessPtr) in
-                void (setProcessDpiAwareness 2)
 
 finaliseFontCache :: IO ()
 finaliseFontCache =
