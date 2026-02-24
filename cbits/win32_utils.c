@@ -6,5 +6,5 @@ double GetScaleFactorForHWND(HWND hwnd)
     int dpiY = GetDeviceCaps(hdc, 90);
     ReleaseDC(hwnd, hdc);
 
-    return ((double) dpiY / 96.0);
+    return ((double)dpiY / 96.0);
 }
