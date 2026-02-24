@@ -73,3 +73,8 @@ double GetScaleFactorForHWND(HWND hwnd)
 
     return ((double)dpi / 96.0);
 }
+
+int ScaleValue(double scaleFactor, int v)
+{
+    return ((int)((v * scaleFactor) + 0.5));
+}

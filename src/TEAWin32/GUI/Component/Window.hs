@@ -66,7 +66,7 @@ instance IsGUIComponent Window where
 
         scaleFactor <- Win32.c_GetScaleFactorForHWND window
 
-        registerComponentToRegistry windowUniqueId window
+        --registerComponentToRegistry windowUniqueId window
         addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg windowUniqueId) window
         addComponentRegistryEntry ComponentTypeRegKey        (ComponentTypeReg ComponentWindow)    window
         addComponentRegistryEntry ComponentScaleFactorRegKey (ComponentScaleFactorReg scaleFactor) window

@@ -17,6 +17,7 @@ module TEAWin32.Internal.Foreign
     , c_IsWindowTopLevel
     , c_GetHighDPIIcon
     , c_EnableDPIAware
+    , c_ShowErrorReporter
     , gCLP_HICON
     , gCLP_HCURSOR
     , dEFAULT_GUI_FONT
@@ -34,6 +35,7 @@ module TEAWin32.Internal.Foreign
 import           Data.Int       (Int32)
 import           Foreign        (Ptr, Storable (..), Word16, Word32, fillBytes,
                                  intPtrToPtr)
+import           Foreign.C      (CWString)
 import qualified Graphics.Win32 as Win32
 
 foreign import ccall "SetClassLongPtrW"
@@ -80,6 +82,9 @@ foreign import ccall unsafe "GetHighDPIIcon"
 
 foreign import ccall unsafe "EnableDPIAware"
     c_EnableDPIAware :: IO ()
+
+foreign import ccall "ShowErrorReporter"
+    c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

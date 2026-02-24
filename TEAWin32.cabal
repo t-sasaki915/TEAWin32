@@ -61,8 +61,11 @@ library
       TEAWin32.GUI
       TEAWin32.Util
   c-sources:
-      cbits/dpiaware.c
-      cbits/gui.c
+      cbits/DPIAware.c
+      cbits/ErrorReporter.c
+      cbits/GUI.c
+  install-includes:
+      DPIAware.h
   include-dirs:
       cbits
   other-modules:
