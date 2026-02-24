@@ -170,7 +170,7 @@ reportTEAWin32Error dialogTitle shortErrorMsg specificErrorMsg = unsafePerformIO
         mainInstance
         wndProc
 
-    Win32.c_GetGetDpiForWindowFunctionIfExists
+    Win32.c_InitialiseDPIAwareFunctions
     scaleRatio <- Win32.c_GetScaleFactorForHWND errorReporterWindow
 
     uiFont <- Win32.createFont (-scale scaleRatio 14)

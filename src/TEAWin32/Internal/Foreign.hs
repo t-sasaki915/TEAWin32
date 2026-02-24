@@ -10,7 +10,7 @@ module TEAWin32.Internal.Foreign
     , c_SelectObject
     , c_DrawIconEx
     , c_GetScaleFactorForHWND
-    , c_GetGetDpiForWindowFunctionIfExists
+    , c_InitialiseDPIAwareFunctions
     , c_EnableVisualStyles
     , c_GetImmediateChildWindows
     , c_GetTopLevelWindows
@@ -57,8 +57,8 @@ foreign import ccall "SelectObject"
 foreign import ccall "DrawIconEx"
     c_DrawIconEx :: Win32.HDC -> Int -> Int -> Win32.HICON -> Int -> Int -> Win32.UINT -> Win32.HBRUSH -> Win32.UINT -> IO Win32.BOOL
 
-foreign import ccall unsafe "GetGetDpiForWindowFunctionIfExists"
-    c_GetGetDpiForWindowFunctionIfExists :: IO ()
+foreign import ccall unsafe "InitialiseDPIAwareFunctions"
+    c_InitialiseDPIAwareFunctions :: IO ()
 
 foreign import ccall unsafe "GetScaleFactorForHWND"
     c_GetScaleFactorForHWND :: Win32.HWND -> IO Double

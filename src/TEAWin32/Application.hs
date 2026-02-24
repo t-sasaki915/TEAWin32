@@ -41,7 +41,7 @@ runTEA settings init update view = do
     GUIInternal.initialiseCursorCache
     GUIInternal.initialiseIconCache
 
-    Win32.c_GetGetDpiForWindowFunctionIfExists
+    Win32.c_InitialiseDPIAwareFunctions
 
     let preFunc = if useVisualStyles settings then GUIInternal.withVisualStyles else id
 

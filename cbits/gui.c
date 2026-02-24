@@ -1,10 +1,5 @@
 #include <windows.h>
 
-typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);
-typedef BOOL(WINAPI *PSET_PROCESS_DPI_AWARENESS_CONTEXT)(int);
-
-PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
-
 typedef struct
 {
     HWND parentHWND;
@@ -64,63 +59,6 @@ BOOL IsWindowTopLevel(HWND hwnd)
     return (GetParent(hwnd) == NULL);
 }
 
-void GetGetDpiForWindowFunctionIfExists(void)
-{
-    HMODULE user32 = GetModuleHandle("user32.dll");
-    if (user32 == NULL)
-    {
-        return;
-    }
-
-    FARPROC getDpiForWindowAddr = GetProcAddress(user32, "GetDpiForWindow");
-    if (getDpiForWindowAddr == NULL)
-    {
-        return;
-    }
-
-    GET_DPI_FOR_WINDOW_FUNC = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
-}
-
-void EnableDPIAware(void)
-{
-    HMODULE user32 = GetModuleHandle("user32.dll");
-    if (user32 == NULL)
-    {
-        SetProcessDPIAware();
-        return;
-    }
-
-    FARPROC setProcessDpiAwarenessContextPtr = GetProcAddress(user32, "SetProcessDpiAwarenessContext");
-    if (setProcessDpiAwarenessContextPtr == NULL)
-    {
-        SetProcessDPIAware();
-        return;
-    }
-
-    PSET_PROCESS_DPI_AWARENESS_CONTEXT setProcessDpiAwarenessContextFunc =
-        (PSET_PROCESS_DPI_AWARENESS_CONTEXT)setProcessDpiAwarenessContextPtr;
-
-    setProcessDpiAwarenessContextFunc(-4); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
-}
-
-double GetScaleFactorForHWND(HWND hwnd)
-{
-    int dpi;
-
-    if (GET_DPI_FOR_WINDOW_FUNC != NULL)
-    {
-        dpi = GET_DPI_FOR_WINDOW_FUNC(hwnd);
-    }
-    else
-    {
-        HDC hdc = GetDC(hwnd);
-        dpi = GetDeviceCaps(hdc, LOGPIXELSX);
-        ReleaseDC(hwnd, hdc);
-    }
-
-    return ((double)dpi / 96.0);
-}
-
 HANDLE EnableVisualStyles(void)
 {
     HMODULE hInstance = LoadLibrary("SHLWAPI.DLL");
@@ -157,16 +95,4 @@ HANDLE EnableVisualStyles(void)
     }
 
     return hActCtx;
-}
-
-HICON GetHighDPIIcon(SHSTOCKICONID siid)
-{
-    DWORD structSize = 544;
-
-    SHSTOCKICONINFO iconInfo;
-    iconInfo.cbSize = structSize;
-
-    SHGetStockIconInfo(siid, SHGSI_ICON, &iconInfo);
-
-    return iconInfo.hIcon;
 }
