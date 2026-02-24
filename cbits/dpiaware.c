@@ -7,9 +7,10 @@ PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
 
 void InitialiseDPIAwareFunctions(void)
 {
-    HMODULE user32 = GetModuleHandle("user32.dll");
+    HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
+        SetProcessDPIAware();
         return;
     }
 
@@ -24,7 +25,7 @@ void InitialiseDPIAwareFunctions(void)
 
 void EnableDPIAware(void)
 {
-    HMODULE user32 = GetModuleHandle("user32.dll");
+    HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
         SetProcessDPIAware();

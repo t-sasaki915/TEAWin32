@@ -61,27 +61,27 @@ BOOL IsWindowTopLevel(HWND hwnd)
 
 HANDLE EnableVisualStyles(void)
 {
-    HMODULE hInstance = LoadLibrary("SHLWAPI.DLL");
+    HMODULE hInstance = LoadLibraryW(L"SHLWAPI.DLL");
     if (hInstance == NULL)
     {
         return INVALID_HANDLE_VALUE;
     }
 
-    char szPath[512];
-    if (GetModuleFileNameA(hInstance, szPath, 512) == 0)
+    wchar_t szPath[512];
+    if (GetModuleFileNameW(hInstance, szPath, ARRAYSIZE(szPath)) == 0)
     {
         return INVALID_HANDLE_VALUE;
     }
 
-    ACTCTX actCtx;
+    ACTCTXW actCtx;
     ZeroMemory(&actCtx, sizeof(actCtx));
     actCtx.cbSize = sizeof(actCtx);
     actCtx.hModule = hInstance;
-    actCtx.lpResourceName = MAKEINTRESOURCE(123);
+    actCtx.lpResourceName = MAKEINTRESOURCEW(123);
     actCtx.lpSource = szPath;
     actCtx.dwFlags = ACTCTX_FLAG_RESOURCE_NAME_VALID;
 
-    HANDLE hActCtx = CreateActCtx(&actCtx);
+    HANDLE hActCtx = CreateActCtxW(&actCtx);
     if (hActCtx == INVALID_HANDLE_VALUE)
     {
         return INVALID_HANDLE_VALUE;

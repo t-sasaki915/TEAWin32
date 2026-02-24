@@ -204,7 +204,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
     SHORT_ERROR_MESSAGE = shortMsg;
     FULL_ERROR_MSG = fullMsg;
 
-    ERROR_REPORTER_INSTANCE = GetModuleHandle(NULL);
+    ERROR_REPORTER_INSTANCE = GetModuleHandleW(NULL);
     ERROR_ICON = GetHighDPIIcon(SIID_ERROR);
 
     WNDCLASSEXW wndClass;
@@ -289,7 +289,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessage(closeButton, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(closeButton, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     HWND copyButton = CreateWindowW(
         L"BUTTON",
@@ -304,7 +304,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessage(copyButton, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(copyButton, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     DETAIL_BUTTON = CreateWindowW(
         L"BUTTON",
@@ -319,7 +319,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessage(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
+    SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
 
     DETAIL_BOX = CreateWindowW(
         L"EDIT",
@@ -334,7 +334,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         ERROR_REPORTER_INSTANCE,
         NULL);
 
-    SendMessage(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
+    SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
 
     MessageBeep(MB_ICONHAND);
 
@@ -343,7 +343,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
 
     MSG msg;
     BOOL bRet;
-    while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+    while ((bRet = GetMessageW(&msg, NULL, 0, 0)) != 0)
     {
         if (bRet == -1)
         {
@@ -351,7 +351,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         }
 
         TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        DispatchMessageW(&msg);
     }
 
     DeleteObject(UI_FONT);
