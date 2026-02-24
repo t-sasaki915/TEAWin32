@@ -64,7 +64,7 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
-        scaleFactor <- GUIInternal.getScaleFactorForHWND window
+        scaleFactor <- Win32.c_GetScaleFactorForHWND window
 
         registerComponentToRegistry windowUniqueId window
         addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg windowUniqueId) window

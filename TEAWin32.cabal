@@ -60,6 +60,10 @@ library
       TEAWin32.Exception
       TEAWin32.GUI
       TEAWin32.Util
+  c-sources:
+      cbits/win32_utils.c
+  include-dirs:
+      cbits
   other-modules:
       Paths_TEAWin32
   autogen-modules:
@@ -67,6 +71,7 @@ library
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  cc-options: -Wall -Wextra -O2
   build-depends:
       base >=4.7 && <5
     , Win32 >=2.14 && <2.15

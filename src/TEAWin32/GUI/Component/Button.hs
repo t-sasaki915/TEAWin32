@@ -12,7 +12,7 @@ import           TEAWin32.GUI.Component.ComponentRegistry
 import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 import           TEAWin32.GUI.Component.Property          (GUIComponentProperty (..),
                                                            IsGUIComponentProperty (applyProperty))
-import qualified TEAWin32.GUI.Internal                    as GUIInternal
+import qualified TEAWin32.Internal.Foreign                as Win32
 
 data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
@@ -41,7 +41,7 @@ instance IsGUIComponent Button where
             (intPtrToPtr $ fromIntegral parentInstance)
             (const $ const $ const $ const $ pure 0)
 
-        scaleFactor <- GUIInternal.getScaleFactorForHWND button
+        scaleFactor <- Win32.c_GetScaleFactorForHWND button
 
         registerComponentToRegistry buttonUniqueId button
         addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg buttonUniqueId) button

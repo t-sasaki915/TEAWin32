@@ -13,7 +13,6 @@ module TEAWin32.GUI.Internal
     , initialiseIconCache
     , setProcessDPIAware
     , finaliseFontCache
-    , getScaleFactorForHWND
     ) where
 
 import                          Control.Concurrent        (MVar, modifyMVar_,
@@ -95,14 +94,6 @@ setProcessDPIAware = do
         else
             let setProcessDpiAwareness = Win32.makeSetProcessDpiAwareness (castPtrToFunPtr setProcessDpiAwarenessPtr) in
                 void (setProcessDpiAwareness 2)
-
-getScaleFactorForHWND :: Win32.HWND -> IO Double
-getScaleFactorForHWND hwnd = do
-    hdc <- Win32.getDC (Just hwnd)
-    dpiY <- Win32.c_GetDeviceCaps hdc 90
-    Win32.releaseDC (Just hwnd) hdc
-
-    pure (fromIntegral dpiY / 96.0)
 
 finaliseFontCache :: IO ()
 finaliseFontCache =

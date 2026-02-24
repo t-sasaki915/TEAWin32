@@ -20,6 +20,7 @@ module TEAWin32.Internal.Foreign
     , c_SelectObject
     , c_DrawIconEx
     , c_SHGetStockIconInfo
+    , c_GetScaleFactorForHWND
     , makeGetDpiForWindow
     , makeSetProcessDpiAwareness
     , gCLP_HICON
@@ -134,6 +135,9 @@ foreign import ccall "DrawIconEx"
 
 foreign import ccall "SHGetStockIconInfo"
     c_SHGetStockIconInfo :: Int -> Int -> Ptr () -> IO Int
+
+foreign import ccall unsafe "GetScaleFactorForHWND"
+    c_GetScaleFactorForHWND :: Win32.HWND -> IO Double
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14
