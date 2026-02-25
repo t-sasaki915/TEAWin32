@@ -1,2 +1,2 @@
 # TEAWin32
-Win32 native GUI framework with The Elm Architecture
+Type-safe, Elm-inspired native Win32 GUI framework for Haskell
