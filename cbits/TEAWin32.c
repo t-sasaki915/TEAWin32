@@ -1,6 +1,5 @@
 #include "TEAWin32.h"
 
-#include <stdio.h>
 #include <wchar.h>
 #include <windows.h>
 

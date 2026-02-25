@@ -1,7 +1,6 @@
 #include "TEAWin32.h"
 
 #include <windows.h>
-#include <winuser.h>
 
 typedef struct
 {
