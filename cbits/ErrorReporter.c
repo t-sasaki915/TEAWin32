@@ -154,7 +154,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
             SCALE(ERROR_ICON_HEIGHT),
             0,
             NULL,
-            3);
+            DI_NORMAL);
 
         HFONT oldFont = SelectObject(hdc, UI_FONT);
 

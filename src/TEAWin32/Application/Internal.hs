@@ -11,7 +11,8 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
-import           Control.Monad                            (forM, void, when)
+import           Control.Monad                            (filterM, forM, void,
+                                                           when)
 import           Control.Monad.State.Strict               (evalState)
 import           Control.Monad.Writer.Strict              (execWriterT)
 import           Data.Data                                (Typeable, cast)
@@ -92,7 +93,7 @@ updateComponents newGUIComponents maybeParent = do
                         pure (uniqueId, child)
 
             Nothing -> do
-                windows <- GUIInternal.getTopLevelWindows
+                windows <- GUIInternal.getTopLevelWindows >>= filterM isComponentManaged
                 forM windows $ \child ->
                     getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
                         pure (uniqueId, child)
