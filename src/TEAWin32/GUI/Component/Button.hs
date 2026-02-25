@@ -41,7 +41,7 @@ instance IsGUIComponent Button where
             (intPtrToPtr $ fromIntegral parentInstance)
             (const $ const $ const $ const $ pure 0)
 
-        scaleFactor <- Native.c_GetScaleFactorForHWND button
+        scaleFactor <- Native.getScaleFactorForHWND button
 
         registerComponentToRegistry buttonUniqueId button
         addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg buttonUniqueId) button

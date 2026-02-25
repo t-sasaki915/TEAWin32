@@ -1,7 +1,5 @@
 module TEAWin32.GUI.Internal
     ( activeWindowCountRef
-    , getImmediateChildWindows
-    , getTopLevelWindows
     , cursorCacheRef
     , resourceIconCacheRef
     , stockIconCacheRef
@@ -18,8 +16,6 @@ import                          Control.Exception         (bracket)
 import                          Data.IORef                (IORef, newIORef)
 import                          Data.Map                  (Map)
 import                qualified Data.Map                  as Map
-import                          Foreign                   (allocaArray,
-                                                           peekArray)
 import                qualified Graphics.Win32            as Win32
 import                          System.IO.Unsafe          (unsafePerformIO)
 import {-# SOURCE #-}           TEAWin32.GUI              (Cursor (..), Font,
@@ -74,22 +70,8 @@ finaliseFontCache =
     takeMVar fontCacheRef >>=
         mapM_ Win32.c_DeleteObject . Map.elems
 
-getImmediateChildWindows :: Win32.HWND -> IO [Win32.HWND]
-getImmediateChildWindows parent =
-    let maxWindows = 1024 in
-        allocaArray maxWindows $ \arrayPtr ->
-            Native.c_GetImmediateChildWindows parent arrayPtr maxWindows >>= \hwndCount ->
-                peekArray hwndCount arrayPtr
-
-getTopLevelWindows :: IO [Win32.HWND]
-getTopLevelWindows =
-    let maxWindows = 1024 in
-        allocaArray maxWindows $ \arrayPtr ->
-            Native.c_GetTopLevelWindows arrayPtr maxWindows >>= \hwndCount ->
-                peekArray hwndCount arrayPtr
-
 withVisualStyles :: IO a -> IO a
 withVisualStyles action =
-    bracket Native.c_EnableVisualStyles
+    bracket Native.enableVisualStyles
             Win32.c_ReleaseActCtx
             (const action)

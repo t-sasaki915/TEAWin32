@@ -1,5 +1,6 @@
 #include "DPIAware.h"
 #include "GUI.h"
+#include "TEAWin32.h"
 
 #include <windows.h>
 
@@ -52,23 +53,21 @@
 
 #define SCALE(a) ScaleValue(SCALE_FACTOR, a)
 
-HINSTANCE ERROR_REPORTER_INSTANCE;
+static double SCALE_FACTOR;
+static HICON ERROR_ICON;
+static HFONT UI_FONT;
+static HFONT EDITOR_FONT;
 
-double SCALE_FACTOR;
-HICON ERROR_ICON;
-HFONT UI_FONT;
-HFONT EDITOR_FONT;
+static HWND ERROR_REPORTER_WINDOW;
+static HWND CLOSE_BUTTON;
+static HWND COPY_BUTTON;
+static HWND DETAIL_BUTTON;
+static HWND DETAIL_BOX;
 
-HWND ERROR_REPORTER_WINDOW;
-HWND CLOSE_BUTTON;
-HWND COPY_BUTTON;
-HWND DETAIL_BUTTON;
-HWND DETAIL_BOX;
+static BOOL IS_DETAIL_VISIBLE = FALSE;
 
-BOOL IS_DETAIL_VISIBLE = FALSE;
-
-LPCWSTR SHORT_ERROR_MESSAGE;
-LPCWSTR FULL_ERROR_MSG;
+static LPCWSTR SHORT_ERROR_MESSAGE;
+static LPCWSTR FULL_ERROR_MSG;
 
 void DesignErrorReporter(BOOL redesign)
 {
@@ -185,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
                 }
 
                 case COPY_BUTTON_ID: {
-                    int msgSize = (wcslen(FULL_ERROR_MSG) + 1) * sizeof(LPCWSTR);
+                    int msgSize = (wcslen(FULL_ERROR_MSG) + 1) * sizeof(wchar_t);
 
                     HGLOBAL hndl = GlobalAlloc(GMEM_MOVEABLE, msgSize);
 
@@ -296,7 +295,6 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
     SHORT_ERROR_MESSAGE = shortMsg;
     FULL_ERROR_MSG = fullMsg;
 
-    ERROR_REPORTER_INSTANCE = GetModuleHandleW(NULL);
     ERROR_ICON = GetHighDPIIcon(SIID_ERROR);
 
     WNDCLASSEXW wndClass;
@@ -304,7 +302,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = ERROR_REPORTER_CLASS_NAME;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
-    wndClass.hInstance = ERROR_REPORTER_INSTANCE;
+    wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
     wndClass.hIcon = ERROR_ICON;
     wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wndClass.lpfnWndProc = WndProc;
@@ -322,7 +320,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         NULL,
         NULL,
-        ERROR_REPORTER_INSTANCE,
+        TEAWIN32_MAIN_INSTANCE,
         0);
 
     CLOSE_BUTTON = CreateWindowW(
@@ -335,7 +333,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         (HMENU)CLOSE_BUTTON_ID,
-        ERROR_REPORTER_INSTANCE,
+        TEAWIN32_MAIN_INSTANCE,
         NULL);
 
     COPY_BUTTON = CreateWindowW(
@@ -348,7 +346,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         (HMENU)COPY_BUTTON_ID,
-        ERROR_REPORTER_INSTANCE,
+        TEAWIN32_MAIN_INSTANCE,
         NULL);
 
     DETAIL_BUTTON = CreateWindowW(
@@ -361,7 +359,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         (HMENU)DETAIL_BUTTON_ID,
-        ERROR_REPORTER_INSTANCE,
+        TEAWIN32_MAIN_INSTANCE,
         NULL);
 
     DETAIL_BOX = CreateWindowW(
@@ -374,7 +372,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         NULL,
-        ERROR_REPORTER_INSTANCE,
+        TEAWIN32_MAIN_INSTANCE,
         NULL);
 
     MessageBeep(MB_ICONHAND);

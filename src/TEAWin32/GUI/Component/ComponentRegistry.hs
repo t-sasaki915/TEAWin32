@@ -7,7 +7,6 @@ module TEAWin32.GUI.Component.ComponentRegistry
     , unregisterComponentFromRegistry
     , getComponentHWNDFromUniqueIdRegistry
     , getComponentHWNDFromUniqueIdRegistryMaybe
-    , isComponentManaged
     , addComponentRegistryEntry
     , removeComponentRegistryEntry
     , updateComponentRegistryEntry
@@ -170,11 +169,6 @@ getComponentHWNDFromUniqueIdRegistryMaybe uniqueId =
 
             Nothing ->
                 pure Nothing
-
-isComponentManaged :: Win32.HWND -> IO Bool
-isComponentManaged hwnd =
-    readMVar componentRegistryRef >>= \componentRegistry ->
-        pure (hwndToInt hwnd `IntMap.member` componentRegistry)
 
 addComponentRegistryEntry :: HasCallStack => ComponentRegistryKey a -> ComponentRegistryEntry -> Win32.HWND -> IO ()
 addComponentRegistryEntry regKey regEntry hwnd =

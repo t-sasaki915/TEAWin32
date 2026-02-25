@@ -11,10 +11,12 @@ import           Control.Monad.Writer.Strict     (execWriterT)
 import           Data.Data                       (Typeable, cast)
 import           Data.IORef                      (atomicModifyIORef')
 import qualified Data.Text                       as Text
+import           Foreign                         (freeHaskellFunPtr)
 import           GHC.Stack                       (HasCallStack)
 import qualified Graphics.Win32                  as Win32
 import           Prelude                         hiding (init)
 import           TEAWin32.Application.Internal
+import           TEAWin32.Application.WndProc    (windowProc)
 import           TEAWin32.Exception              (ErrorLocation (..),
                                                   TEAWin32Error (..),
                                                   errorTEAWin32)
@@ -22,6 +24,7 @@ import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
 import qualified TEAWin32.GUI.Internal           as GUIInternal
+import qualified TEAWin32.Internal.Foreign       as Win32
 import qualified TEAWin32.Internal.Native        as Native
 import           TEAWin32.Util                   (try_)
 
@@ -36,11 +39,14 @@ defaultSettings = Settings
 
 runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA settings init update view = do
-    Native.c_EnableDPIAware
+    Native.enableDPIAware
+
+    wndProcPtr <- Win32.makeWndProc windowProc
+    Native.initialiseTEAWin32C wndProcPtr
 
     GUIInternal.initialiseCursorCache
 
-    Native.c_InitialiseDPIAwareFunctions
+    Native.initialiseDPIAwareFunctions
 
     let preFunc = if useVisualStyles settings then GUIInternal.withVisualStyles else id
 
@@ -48,6 +54,10 @@ runTEA settings init update view = do
 
     GUIInternal.finaliseStockIconCache
     GUIInternal.finaliseFontCache
+
+    Native.finaliseTEAWin32C
+
+    freeHaskellFunPtr wndProcPtr
 
 runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA' init update view = do

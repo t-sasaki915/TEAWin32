@@ -5,23 +5,30 @@
 module TEAWin32.Internal.Foreign where
 
 import           Data.Int       (Int32)
-import           Foreign        (Ptr, Storable (..), Word16, Word32, fillBytes)
+import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
+                                 fillBytes)
+import           Foreign.C      (CIntPtr (..))
 import qualified Graphics.Win32 as Win32
 
-foreign import ccall "SetClassLongPtrW"
+type WNDPROC = Win32.HWND -> Win32.UINT -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
+
+foreign import ccall unsafe "SetClassLongPtrW"
     c_SetClassLongPtr :: Win32.HWND -> Int32 -> Ptr () -> IO (Ptr ())
 
-foreign import ccall "SetWindowPos"
+foreign import ccall unsafe "SetWindowPos"
     c_SetWindowPos :: Win32.HWND -> Win32.HWND -> Int32 -> Int32 -> Int32 -> Int32 -> Win32.UINT -> IO Win32.BOOL
 
-foreign import ccall "DeleteObject"
+foreign import ccall unsafe "DeleteObject"
     c_DeleteObject :: Ptr () -> IO Win32.BOOL
 
-foreign import ccall "ReleaseActCtx"
+foreign import ccall unsafe "ReleaseActCtx"
     c_ReleaseActCtx :: Win32.HANDLE -> IO ()
 
-foreign import ccall "GetSysColorBrush"
+foreign import ccall unsafe "GetSysColorBrush"
     c_GetSysColorBrush :: Word32 -> IO Win32.HBRUSH
+
+foreign import ccall "wrapper"
+    makeWndProc :: WNDPROC -> IO (FunPtr WNDPROC)
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14

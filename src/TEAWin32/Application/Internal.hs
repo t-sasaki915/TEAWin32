@@ -11,8 +11,7 @@ module TEAWin32.Application.Internal
     , updateComponents
     ) where
 
-import           Control.Monad                            (filterM, forM, void,
-                                                           when)
+import           Control.Monad                            (forM, void, when)
 import           Control.Monad.State.Strict               (evalState)
 import           Control.Monad.Writer.Strict              (execWriterT)
 import           Data.Data                                (Typeable, cast)
@@ -33,7 +32,7 @@ import           TEAWin32.GUI.Component                   (DSLState (..),
                                                            IsGUIComponent (..))
 import           TEAWin32.GUI.Component.ComponentRegistry
 import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
-import qualified TEAWin32.GUI.Internal                    as GUIInternal
+import qualified TEAWin32.Internal.Native                 as Native
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -87,13 +86,13 @@ updateComponents newGUIComponents maybeParent = do
     childrenWithUniqueId <- Map.fromList <$>
         case maybeParent of
             Just parent -> do
-                children <- GUIInternal.getImmediateChildWindows parent
+                children <- Native.getImmediateChildWindows parent
                 forM children $ \child ->
                     getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
                         pure (uniqueId, child)
 
             Nothing -> do
-                windows <- GUIInternal.getTopLevelWindows >>= filterM isComponentManaged
+                windows <- Native.getTopLevelWindows
                 forM windows $ \child ->
                     getComponentRegistryEntryValue ComponentUniqueIdRegKey child >>= \uniqueId ->
                         pure (uniqueId, child)

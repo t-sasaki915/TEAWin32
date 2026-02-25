@@ -1,4 +1,7 @@
+#include "TEAWin32.h"
+
 #include <windows.h>
+#include <winuser.h>
 
 typedef struct
 {
@@ -12,17 +15,38 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 {
     EnumContext *enumCtx = (EnumContext *)lParam;
 
-    if (enumCtx->currentCount < enumCtx->maxWindowCount)
+    if (enumCtx->currentCount >= enumCtx->maxWindowCount)
     {
-        if (GetParent(hwnd) == enumCtx->parentHWND)
-        {
-            enumCtx->enumBuffer[enumCtx->currentCount++] = hwnd;
-        }
+        return FALSE;
+    }
 
+    DWORD pid;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid != TEAWIN32_INSTANCE_PID)
+    {
         return TRUE;
     }
 
-    return FALSE;
+    if (enumCtx->parentHWND == NULL)
+    {
+        wchar_t className[256];
+        if (GetClassNameW(hwnd, className, 256) <= 18)
+        {
+            return TRUE;
+        }
+
+        if (wcsncmp(className + 8, TEAWIN32_WINDOW_CLASS_IDENTIFIER, TEAWIN32_WINDOW_CLASS_IDENTIFIER_LENGTH) != 0)
+        {
+            return TRUE;
+        }
+    }
+
+    if (GetParent(hwnd) == enumCtx->parentHWND)
+    {
+        enumCtx->enumBuffer[enumCtx->currentCount++] = hwnd;
+    }
+
+    return TRUE;
 }
 
 int GetImmediateChildWindows(HWND parent, HWND *resultPtr, int maxWindows)
@@ -48,8 +72,7 @@ int GetTopLevelWindows(HWND *resultPtr, int maxWindows)
     enumCtx.maxWindowCount = maxWindows;
     enumCtx.currentCount = 0;
 
-    DWORD threadId = GetCurrentThreadId();
-    EnumThreadWindows(threadId, EnumWindowsCallback, (LPARAM)&enumCtx);
+    EnumWindows(EnumWindowsCallback, (LPARAM)&enumCtx);
 
     return enumCtx.currentCount;
 }
@@ -118,6 +141,5 @@ HFONT CreateFontSimple(int fontSize, LPCWSTR fontName)
 
 HICON GetResourceIcon(int resourceId)
 {
-    HMODULE hInstance = GetModuleHandle(NULL);
-    return LoadIconW(hInstance, MAKEINTRESOURCEW(resourceId));
+    return LoadIconW(TEAWIN32_MAIN_INSTANCE, MAKEINTRESOURCEW(resourceId));
 }

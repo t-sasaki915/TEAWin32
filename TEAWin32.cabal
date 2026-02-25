@@ -40,6 +40,7 @@ executable TEAWin32-Experiment
 library
   exposed-modules:
       TEAWin32.Application.Internal
+      TEAWin32.Application.WndProc
       TEAWin32.Effect.MessageBox
       TEAWin32.GUI.Component.Button.DSL
       TEAWin32.GUI.Component.Button.Property
@@ -65,9 +66,12 @@ library
       cbits/DPIAware.c
       cbits/ErrorReporter.c
       cbits/GUI.c
+      cbits/GUIComponent.c
+      cbits/TEAWin32.c
   install-includes:
       DPIAware.h
       GUI.h
+      TEAWin32.h
   include-dirs:
       cbits
   other-modules:

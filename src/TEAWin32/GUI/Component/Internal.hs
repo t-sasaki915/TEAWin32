@@ -17,8 +17,7 @@ module TEAWin32.GUI.Component.Internal
     ) where
 
 import           Control.Concurrent                       (modifyMVar)
-import           Control.Monad                            (filterM, forM,
-                                                           unless)
+import           Control.Monad                            (forM, unless)
 import           Data.Functor                             (void, (<&>))
 import qualified Data.List                                as List
 import           Data.Map.Strict                          ((!))
@@ -26,7 +25,6 @@ import qualified Data.Map.Strict                          as Map
 import           Data.Text                                (Text)
 import qualified Data.Text                                as Text
 import           Foreign                                  hiding (new, void)
-import           Foreign.C                                (withCWString)
 import           GHC.Stack                                (HasCallStack)
 import qualified Graphics.Win32                           as Win32
 import           TEAWin32.Exception                       (TEAWin32Error (..),
@@ -44,9 +42,7 @@ import qualified TEAWin32.Internal.Native                 as Native
 
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
-    children <- case maybeParent of
-        Just parent' -> GUIInternal.getImmediateChildWindows parent'
-        Nothing      -> GUIInternal.getTopLevelWindows >>= filterM isComponentManaged
+    children <- maybe Native.getTopLevelWindows Native.getImmediateChildWindows maybeParent
 
     uniqueIdsWithZIndex <- Map.fromList <$> forM (zip [1..] children) (\(i, hwnd) ->
         getComponentRegistryEntryValue ComponentUniqueIdRegKey hwnd >>= \uniqueId ->
@@ -103,7 +99,7 @@ getRelativeRectFromHWNDUsingWin32 hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
     let (l, t, r, b) = (fromIntegral l', fromIntegral t', fromIntegral r', fromIntegral b')
 
-    Native.c_IsWindowTopLevel hwnd >>= \case
+    Native.isWindowTopLevel hwnd >>= \case
         True  -> pure (l, t, r - l, b - t)
         False -> do
             parentHWND <- Win32.getParent hwnd
@@ -156,10 +152,9 @@ setComponentFont font@(Font fontName fontSize) hwnd =
                     pure (fontCache, ())
             Nothing ->
                 resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
-                    withCWString (Text.unpack fontName) $ \fontName' ->
-                        Native.c_CreateFontSimple fontSize' fontName' >>= \fontHandle ->
-                            setComponentFont' fontHandle hwnd >>
-                                pure (Map.insert font fontHandle fontCache, ())
+                    Native.createFontSimple fontSize' fontName >>= \fontHandle ->
+                        setComponentFont' fontHandle hwnd >>
+                            pure (Map.insert font fontHandle fontCache, ())
 
 setComponentFont' :: Win32.HANDLE -> Win32.HWND -> IO ()
 setComponentFont' font hwnd =
@@ -184,7 +179,7 @@ requestRedraw hwnd =
 
 destroyChildren :: Win32.HWND -> IO ()
 destroyChildren hwnd =
-    GUIInternal.getImmediateChildWindows hwnd >>=
+    Native.getImmediateChildWindows hwnd >>=
         mapM_ destroyComponent
 
 destroyComponent :: Win32.HWND -> IO ()

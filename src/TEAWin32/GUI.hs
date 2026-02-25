@@ -246,7 +246,7 @@ toWin32Icon icon@(IconFromResource resourceId) =
         case Map.lookup icon resourceIconCache of
             Just hndl -> pure (resourceIconCache, hndl)
             Nothing ->
-                Native.c_GetResourceIcon resourceId >>= \iconHandle ->
+                Native.getResourceIcon resourceId >>= \iconHandle ->
                     pure (Map.insert icon iconHandle resourceIconCache, iconHandle)
 
 toWin32Icon icon =
@@ -254,7 +254,7 @@ toWin32Icon icon =
         case Map.lookup icon stockIconCache of
             Just hndl -> pure (stockIconCache, hndl)
             Nothing ->
-                Native.c_GetHighDPIIcon (toStockIconId icon) >>= \iconHandle ->
+                Native.getHighDPIIcon (toStockIconId icon) >>= \iconHandle ->
                     pure (Map.insert icon iconHandle stockIconCache, iconHandle)
 
 data Cursor = CursorArrow
