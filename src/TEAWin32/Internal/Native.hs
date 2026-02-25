@@ -9,6 +9,7 @@ module TEAWin32.Internal.Native
     , c_EnableDPIAware
     , c_ShowErrorReporter
     , c_CreateFontSimple
+    , c_GetResourceIcon
     ) where
 
 import           Foreign                   (Ptr)
@@ -43,5 +44,8 @@ foreign import ccall unsafe "EnableDPIAware"
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
-foreign import ccall "CreateFontSimple"
+foreign import ccall unsafe "CreateFontSimple"
     c_CreateFontSimple :: Int -> CWString -> IO Win32.HFONT
+
+foreign import ccall unsafe "GetResourceIcon"
+    c_GetResourceIcon :: Int -> IO Win32.HICON

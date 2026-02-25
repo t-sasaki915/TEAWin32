@@ -18,7 +18,6 @@ import                          Data.Map                  ((!))
 import                qualified Data.Map                  as Map
 import                          Data.Text                 (Text)
 import                qualified Graphics.Win32            as Win32
-import                qualified System.Win32              as Win32
 import                          TEAWin32.Exception        (TEAWin32Error (InternalTEAWin32Error),
                                                            errorTEAWin32)
 import {-# SOURCE #-}           TEAWin32.GUI.Internal
@@ -247,9 +246,8 @@ toWin32Icon icon@(IconFromResource resourceId) =
         case Map.lookup icon resourceIconCache of
             Just hndl -> pure (resourceIconCache, hndl)
             Nothing ->
-                Win32.getModuleHandle Nothing >>= \hInstance ->
-                    Win32.loadIcon (Just hInstance) (Win32.makeIntResource resourceId) >>= \iconHandle ->
-                        pure (Map.insert icon iconHandle resourceIconCache, iconHandle)
+                Native.c_GetResourceIcon resourceId >>= \iconHandle ->
+                    pure (Map.insert icon iconHandle resourceIconCache, iconHandle)
 
 toWin32Icon icon =
     modifyMVar stockIconCacheRef $ \stockIconCache ->

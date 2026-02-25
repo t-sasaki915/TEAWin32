@@ -115,3 +115,9 @@ HFONT CreateFontSimple(int fontSize, LPCWSTR fontName)
         DEFAULT_PITCH | FF_DONTCARE,
         fontName);
 }
+
+HICON GetResourceIcon(int resourceId)
+{
+    HMODULE hInstance = GetModuleHandle(NULL);
+    return LoadIconW(hInstance, MAKEINTRESOURCEW(resourceId));
+}

@@ -5,8 +5,7 @@
 module TEAWin32.Internal.Foreign where
 
 import           Data.Int       (Int32)
-import           Foreign        (Ptr, Storable (..), Word16, Word32, fillBytes,
-                                 intPtrToPtr)
+import           Foreign        (Ptr, Storable (..), Word16, Word32, fillBytes)
 import qualified Graphics.Win32 as Win32
 
 foreign import ccall "SetClassLongPtrW"
@@ -23,15 +22,6 @@ foreign import ccall "ReleaseActCtx"
 
 foreign import ccall "GetSysColorBrush"
     c_GetSysColorBrush :: Word32 -> IO Win32.HBRUSH
-
-foreign import ccall "SelectObject"
-    c_SelectObject :: Win32.HDC -> Win32.HANDLE -> IO Win32.HANDLE
-
-foreign import ccall "DrawIconEx"
-    c_DrawIconEx :: Win32.HDC -> Int -> Int -> Win32.HICON -> Int -> Int -> Win32.UINT -> Win32.HBRUSH -> Win32.UINT -> IO Win32.BOOL
-
-makeIntResource :: Int -> Win32.LPCTSTR
-makeIntResource = intPtrToPtr . fromIntegral
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14
