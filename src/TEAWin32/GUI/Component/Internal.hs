@@ -40,6 +40,7 @@ import           TEAWin32.GUI.Component.ComponentRegistry
 import           TEAWin32.GUI.Component.Property
 import qualified TEAWin32.GUI.Internal                    as GUIInternal
 import qualified TEAWin32.Internal.Foreign                as Win32
+import qualified TEAWin32.Internal.Native                 as Native
 
 sortComponentsWithZIndex :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO [GUIComponent]
 sortComponentsWithZIndex guiComponents maybeParent = do
@@ -102,7 +103,7 @@ getRelativeRectFromHWNDUsingWin32 hwnd = do
     (l', t', r', b') <- Win32.getWindowRect hwnd
     let (l, t, r, b) = (fromIntegral l', fromIntegral t', fromIntegral r', fromIntegral b')
 
-    Win32.c_IsWindowTopLevel hwnd >>= \case
+    Native.c_IsWindowTopLevel hwnd >>= \case
         True  -> pure (l, t, r - l, b - t)
         False -> do
             parentHWND <- Win32.getParent hwnd
@@ -156,7 +157,7 @@ setComponentFont font@(Font fontName fontSize) hwnd =
             Nothing ->
                 resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
                     withCWString (Text.unpack fontName) $ \fontName' ->
-                        Win32.c_CreateFontSimple fontSize' fontName' >>= \fontHandle ->
+                        Native.c_CreateFontSimple fontSize' fontName' >>= \fontHandle ->
                             setComponentFont' fontHandle hwnd >>
                                 pure (Map.insert font fontHandle fontCache, ())
 

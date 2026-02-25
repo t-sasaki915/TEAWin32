@@ -3,10 +3,11 @@ module TEAWin32.GUI.Internal
     , getImmediateChildWindows
     , getTopLevelWindows
     , cursorCacheRef
-    , iconCacheRef
+    , resourceIconCacheRef
+    , stockIconCacheRef
     , fontCacheRef
     , initialiseCursorCache
-    , initialiseIconCache
+    , finaliseStockIconCache
     , finaliseFontCache
     , withVisualStyles
     ) where
@@ -24,20 +25,25 @@ import                          System.IO.Unsafe          (unsafePerformIO)
 import {-# SOURCE #-}           TEAWin32.GUI              (Cursor (..), Font,
                                                            Icon (..))
 import                qualified TEAWin32.Internal.Foreign as Win32
+import                qualified TEAWin32.Internal.Native  as Native
 
 activeWindowCountRef :: IORef Int
 activeWindowCountRef = unsafePerformIO (newIORef 0)
 {-# NOINLINE activeWindowCountRef #-}
 
-cursorCacheRef :: MVar (Map Cursor Win32.HANDLE)
+cursorCacheRef :: MVar (Map Cursor Win32.HCURSOR)
 cursorCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE cursorCacheRef #-}
 
-iconCacheRef :: MVar (Map Icon Win32.HANDLE)
-iconCacheRef = unsafePerformIO (newMVar Map.empty)
-{-# NOINLINE iconCacheRef #-}
+resourceIconCacheRef :: MVar (Map Icon Win32.HICON)
+resourceIconCacheRef = unsafePerformIO (newMVar Map.empty)
+{-# NOINLINE resourceIconCacheRef #-}
 
-fontCacheRef :: MVar (Map Font Win32.HANDLE)
+stockIconCacheRef :: MVar (Map Icon Win32.HICON)
+stockIconCacheRef = unsafePerformIO (newMVar Map.empty)
+{-# NOINLINE stockIconCacheRef #-}
+
+fontCacheRef :: MVar (Map Font Win32.HFONT)
 fontCacheRef = unsafePerformIO (newMVar Map.empty)
 {-# NOINLINE fontCacheRef #-}
 
@@ -58,18 +64,10 @@ initialiseCursorCache = do
 
     modifyMVar_ cursorCacheRef (const $ pure buildInCursorCache)
 
-initialiseIconCache :: IO ()
-initialiseIconCache = do
-    builtInIconCache <- Map.fromList <$>
-        mapM (\(a, b) -> Win32.loadIcon Nothing b >>= \b' -> pure (a, b'))
-            [ (IconApplication, Win32.iDI_APPLICATION)
-            , (IconHand,        Win32.iDI_HAND       )
-            , (IconQuestion,    Win32.iDI_QUESTION   )
-            , (IconExclamation, Win32.iDI_EXCLAMATION)
-            , (IconAsterisk,    Win32.iDI_ASTERISK   )
-            ]
-
-    modifyMVar_ iconCacheRef (const $ pure builtInIconCache)
+finaliseStockIconCache :: IO ()
+finaliseStockIconCache =
+    takeMVar stockIconCacheRef >>=
+        mapM_ Win32.c_DestroyIcon . Map.elems
 
 finaliseFontCache :: IO ()
 finaliseFontCache =
@@ -80,18 +78,18 @@ getImmediateChildWindows :: Win32.HWND -> IO [Win32.HWND]
 getImmediateChildWindows parent =
     let maxWindows = 1024 in
         allocaArray maxWindows $ \arrayPtr ->
-            Win32.c_GetImmediateChildWindows parent arrayPtr maxWindows >>= \hwndCount ->
+            Native.c_GetImmediateChildWindows parent arrayPtr maxWindows >>= \hwndCount ->
                 peekArray hwndCount arrayPtr
 
 getTopLevelWindows :: IO [Win32.HWND]
 getTopLevelWindows =
     let maxWindows = 1024 in
         allocaArray maxWindows $ \arrayPtr ->
-            Win32.c_GetTopLevelWindows arrayPtr maxWindows >>= \hwndCount ->
+            Native.c_GetTopLevelWindows arrayPtr maxWindows >>= \hwndCount ->
                 peekArray hwndCount arrayPtr
 
 withVisualStyles :: IO a -> IO a
 withVisualStyles action =
-    bracket Win32.c_EnableVisualStyles
+    bracket Native.c_EnableVisualStyles
             Win32.c_ReleaseActCtx
             (const action)

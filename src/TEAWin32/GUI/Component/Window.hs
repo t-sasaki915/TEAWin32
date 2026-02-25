@@ -23,6 +23,7 @@ import           TEAWin32.GUI.Component.Property          (GUIComponentProperty 
 import           TEAWin32.GUI.Component.Window.Property   (WindowProperty (..))
 import qualified TEAWin32.GUI.Internal                    as GUIInternal
 import qualified TEAWin32.Internal.Foreign                as Win32
+import qualified TEAWin32.Internal.Native                 as Native
 
 data Window = Window UniqueId Text WindowStyle [WindowProperty] deriving (Show, Eq)
 
@@ -64,7 +65,7 @@ instance IsGUIComponent Window where
                     mainInstance
                     defaultWindowProc
 
-        scaleFactor <- Win32.c_GetScaleFactorForHWND window
+        scaleFactor <- Native.c_GetScaleFactorForHWND window
 
         registerComponentToRegistry windowUniqueId window
         addComponentRegistryEntry ComponentUniqueIdRegKey    (ComponentUniqueIdReg windowUniqueId) window

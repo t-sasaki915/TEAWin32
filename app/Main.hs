@@ -57,15 +57,15 @@ view model = do
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" WindowStyleNormal
-            [title_ "Count is even!", icon_ IconExclamation, size_ (400, 10), pos_ (0, 0), bgColour_ (RGB 0 0 255)] noChildren
+            [title_ "Count is even!", icon_ IconFolder, size_ (400, 10), pos_ (0, 0), bgColour_ (RGB 0 0 255)] noChildren
 
     window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
-        [title_ "!?", icon_ IconExclamation, size_ (400, 200), pos_ (200, 0)] $
+        [title_ "!?", icon_ IconDriveRAM, size_ (400, 200), pos_ (200, 0)] $
             button_ [title_ "!?!?", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
-        , icon_ IconApplication
+        , icon_ IconImageFiles
         , size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
         , bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
         ] ++ [cursor_ CursorIBeam | isCountEven]) $ do
@@ -73,7 +73,7 @@ view model = do
 
             window_ "TEAWin32-Sub" WindowStyleNormalChild
                 [ title_ "HELLO"
-                , icon_ IconExclamation
+                , icon_ IconError
                 , cursor_ CursorArrow
                 , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
                 , pos_ (100, 100)
@@ -87,11 +87,11 @@ view model = do
                         [title_ "おはようございます", size_ (200, 50), pos_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
 
                     window_ "TEAWin32-Sub-Sub" WindowStyleBorderlessChild
-                        [title_ "GOOD MORNING", icon_ IconApplication, cursor_ CursorWait, size_ (50, 50), pos_ (0, 0), bgColour_ (RGB 0 255 0)] noChildren
+                        [title_ "GOOD MORNING", cursor_ CursorWait, size_ (50, 50), pos_ (0, 0), bgColour_ (RGB 0 255 0)] noChildren
 
             window_ "TEAWin32-SubSubSubSub" WindowStyleNormalChild
                 [ title_ "HELLO 2"
-                , icon_ IconExclamation
+                , icon_ IconFolder
                 , cursor_ CursorSizeNWSE
                 , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
                 , pos_ (200, 200)

@@ -4,16 +4,16 @@ module TEAWin32.Exception
     , errorTEAWin32
     ) where
 
-import           Control.Monad.Cont        (ContT (..), evalContT)
-import           Control.Monad.IO.Class    (liftIO)
-import           Data.Text                 (Text)
-import qualified Data.Text                 as Text
-import           Foreign.C                 (withCWString)
-import           GHC.IO                    (unsafePerformIO)
-import           GHC.Stack                 (HasCallStack, callStack,
-                                            prettyCallStack)
-import           System.Exit               (exitFailure)
-import qualified TEAWin32.Internal.Foreign as Win32
+import           Control.Monad.Cont       (ContT (..), evalContT)
+import           Control.Monad.IO.Class   (liftIO)
+import           Data.Text                (Text)
+import qualified Data.Text                as Text
+import           Foreign.C                (withCWString)
+import           GHC.IO                   (unsafePerformIO)
+import           GHC.Stack                (HasCallStack, callStack,
+                                           prettyCallStack)
+import           System.Exit              (exitFailure)
+import qualified TEAWin32.Internal.Native as Native
 
 data ErrorLocation = Init
                    | Update
@@ -43,6 +43,6 @@ reportTEAWin32Error dialogTitle shortMsg specificMsg = unsafePerformIO $ do
         specificMsgWithStacktrace' <- ContT $ withCWString (Text.unpack specificMsgWithStacktrace)
         fullMsg'                   <- ContT $ withCWString (Text.unpack fullMsg)
 
-        liftIO $ Win32.c_ShowErrorReporter dialogTitle' shortMsg' specificMsgWithStacktrace' fullMsg'
+        liftIO $ Native.c_ShowErrorReporter dialogTitle' shortMsg' specificMsgWithStacktrace' fullMsg'
 
     exitFailure

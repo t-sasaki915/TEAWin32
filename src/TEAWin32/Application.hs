@@ -22,7 +22,7 @@ import           TEAWin32.GUI.Component          (DSLState (..), GUIComponents,
                                                   IsGUIComponent (render))
 import qualified TEAWin32.GUI.Component.Internal as ComponentInternal
 import qualified TEAWin32.GUI.Internal           as GUIInternal
-import qualified TEAWin32.Internal.Foreign       as Win32
+import qualified TEAWin32.Internal.Native        as Native
 import           TEAWin32.Util                   (try_)
 
 newtype Settings = Settings
@@ -36,17 +36,17 @@ defaultSettings = Settings
 
 runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
 runTEA settings init update view = do
-    Win32.c_EnableDPIAware
+    Native.c_EnableDPIAware
 
     GUIInternal.initialiseCursorCache
-    GUIInternal.initialiseIconCache
 
-    Win32.c_InitialiseDPIAwareFunctions
+    Native.c_InitialiseDPIAwareFunctions
 
     let preFunc = if useVisualStyles settings then GUIInternal.withVisualStyles else id
 
     preFunc (runTEA' init update view)
 
+    GUIInternal.finaliseStockIconCache
     GUIInternal.finaliseFontCache
 
 runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
