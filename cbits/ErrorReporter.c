@@ -133,161 +133,161 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (wMsg)
     {
-    case WM_DESTROY: {
-        PostQuitMessage(0);
-
-        return 0;
-    }
-
-    case WM_PAINT: {
-        HDC hdc;
-        PAINTSTRUCT ps;
-
-        hdc = BeginPaint(hwnd, &ps);
-
-        DrawIconEx(
-            hdc,
-            SCALE(ERROR_ICON_X),
-            SCALE(ERROR_ICON_Y),
-            ERROR_ICON,
-            SCALE(ERROR_ICON_WIDTH),
-            SCALE(ERROR_ICON_HEIGHT),
-            0,
-            NULL,
-            DI_NORMAL);
-
-        HFONT oldFont = SelectObject(hdc, UI_FONT);
-
-        SetTextColor(hdc, SHORT_ERROR_MESSAGE_TEXT_COLOUR);
-        SetBkMode(hdc, 1);
-
-        TextOutW(
-            hdc,
-            SCALE(SHORT_ERROR_MESSAGE_TEXT_X),
-            SCALE(SHORT_ERROR_MESSAGE_TEXT_Y),
-            SHORT_ERROR_MESSAGE,
-            wcslen(SHORT_ERROR_MESSAGE));
-
-        SelectObject(hdc, oldFont);
-
-        EndPaint(hwnd, &ps);
-
-        return 0;
-    }
-
-    case WM_COMMAND: {
-        switch (LOWORD(wParam))
-        {
-        case CLOSE_BUTTON_ID: {
-            SendMessage(hwnd, WM_CLOSE, 0, 0);
+        case WM_DESTROY: {
+            PostQuitMessage(0);
 
             return 0;
         }
 
-        case COPY_BUTTON_ID: {
-            int msgSize = (wcslen(FULL_ERROR_MSG) + 1) * sizeof(LPCSTR);
+        case WM_PAINT: {
+            HDC hdc;
+            PAINTSTRUCT ps;
 
-            HGLOBAL hndl = GlobalAlloc(GMEM_MOVEABLE, msgSize);
+            hdc = BeginPaint(hwnd, &ps);
 
-            if (hndl != NULL)
+            DrawIconEx(
+                hdc,
+                SCALE(ERROR_ICON_X),
+                SCALE(ERROR_ICON_Y),
+                ERROR_ICON,
+                SCALE(ERROR_ICON_WIDTH),
+                SCALE(ERROR_ICON_HEIGHT),
+                0,
+                NULL,
+                DI_NORMAL);
+
+            HFONT oldFont = SelectObject(hdc, UI_FONT);
+
+            SetTextColor(hdc, SHORT_ERROR_MESSAGE_TEXT_COLOUR);
+            SetBkMode(hdc, 1);
+
+            TextOutW(
+                hdc,
+                SCALE(SHORT_ERROR_MESSAGE_TEXT_X),
+                SCALE(SHORT_ERROR_MESSAGE_TEXT_Y),
+                SHORT_ERROR_MESSAGE,
+                wcslen(SHORT_ERROR_MESSAGE));
+
+            SelectObject(hdc, oldFont);
+
+            EndPaint(hwnd, &ps);
+
+            return 0;
+        }
+
+        case WM_COMMAND: {
+            switch (LOWORD(wParam))
             {
-                void *mem = GlobalLock(hndl);
-                if (mem != NULL)
-                {
-                    memcpy(mem, FULL_ERROR_MSG, msgSize);
-                    GlobalUnlock(hndl);
+                case CLOSE_BUTTON_ID: {
+                    SendMessage(hwnd, WM_CLOSE, 0, 0);
 
-                    if (OpenClipboard(hwnd))
+                    return 0;
+                }
+
+                case COPY_BUTTON_ID: {
+                    int msgSize = (wcslen(FULL_ERROR_MSG) + 1) * sizeof(LPCWSTR);
+
+                    HGLOBAL hndl = GlobalAlloc(GMEM_MOVEABLE, msgSize);
+
+                    if (hndl != NULL)
                     {
-                        EmptyClipboard();
-                        HANDLE handle = SetClipboardData(CF_UNICODETEXT, hndl);
-                        CloseClipboard();
-
-                        if (handle == NULL)
+                        void *mem = GlobalLock(hndl);
+                        if (mem != NULL)
                         {
-                            GlobalFree(hndl);
+                            memcpy(mem, FULL_ERROR_MSG, msgSize);
+                            GlobalUnlock(hndl);
+
+                            if (OpenClipboard(hwnd))
+                            {
+                                EmptyClipboard();
+                                HANDLE handle = SetClipboardData(CF_UNICODETEXT, hndl);
+                                CloseClipboard();
+
+                                if (handle == NULL)
+                                {
+                                    GlobalFree(hndl);
+                                }
+                            }
+                            else
+                            {
+                                GlobalFree(hndl);
+                            }
                         }
+                    }
+
+                    return 0;
+                }
+
+                case DETAIL_BUTTON_ID: {
+                    if (IS_DETAIL_VISIBLE)
+                    {
+                        SetWindowTextW(DETAIL_BUTTON, DETAIL_BUTTON_LABEL_EXPAND);
+
+                        SetWindowPos(
+                            hwnd,
+                            NULL,
+                            0,
+                            0,
+                            SCALE(ERROR_REPORTER_WINDOW_WIDTH),
+                            SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
+                            SWP_NOMOVE);
+
+                        ShowWindow(DETAIL_BOX, SW_HIDE);
+
+                        IS_DETAIL_VISIBLE = FALSE;
+
+                        return 0;
                     }
                     else
                     {
-                        GlobalFree(hndl);
+                        SetWindowTextW(DETAIL_BUTTON, DETAIL_BUTTON_LABEL_COLLAPSE);
+
+                        SetWindowPos(
+                            hwnd,
+                            NULL,
+                            0,
+                            0,
+                            SCALE(ERROR_REPORTER_WINDOW_WIDTH),
+                            SCALE(ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX),
+                            SWP_NOMOVE);
+
+                        ShowWindow(DETAIL_BOX, SW_SHOW);
+
+                        IS_DETAIL_VISIBLE = TRUE;
+
+                        return 0;
                     }
                 }
-            }
 
-            return 0;
+                default: {
+                    return (DefWindowProcW(hwnd, wMsg, wParam, lParam));
+                }
+            }
         }
 
-        case DETAIL_BUTTON_ID: {
-            if (IS_DETAIL_VISIBLE)
-            {
-                SetWindowTextW(DETAIL_BUTTON, DETAIL_BUTTON_LABEL_EXPAND);
+        case WM_DPICHANGED: {
+            SCALE_FACTOR = GetScaleFactorForHWND(hwnd);
 
-                SetWindowPos(
-                    hwnd,
-                    NULL,
-                    0,
-                    0,
-                    SCALE(ERROR_REPORTER_WINDOW_WIDTH),
-                    SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
-                    SWP_NOMOVE);
+            RECT *rect = (RECT *)lParam;
+            LONG l = rect->left;
+            LONG t = rect->top;
+            LONG r = rect->right;
+            LONG b = rect->bottom;
+            SetWindowPos(hwnd, NULL, l, t, r - l, b - t, SWP_NOZORDER | SWP_NOACTIVATE);
 
-                ShowWindow(DETAIL_BOX, SW_HIDE);
+            DeleteObject(UI_FONT);
+            DeleteObject(EDITOR_FONT);
 
-                IS_DETAIL_VISIBLE = FALSE;
+            DesignErrorReporter(TRUE);
 
-                return 0;
-            }
-            else
-            {
-                SetWindowTextW(DETAIL_BUTTON, DETAIL_BUTTON_LABEL_COLLAPSE);
+            InvalidateRect(hwnd, NULL, TRUE);
 
-                SetWindowPos(
-                    hwnd,
-                    NULL,
-                    0,
-                    0,
-                    SCALE(ERROR_REPORTER_WINDOW_WIDTH),
-                    SCALE(ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX),
-                    SWP_NOMOVE);
-
-                ShowWindow(DETAIL_BOX, SW_SHOW);
-
-                IS_DETAIL_VISIBLE = TRUE;
-
-                return 0;
-            }
+            return 0;
         }
 
         default: {
             return (DefWindowProcW(hwnd, wMsg, wParam, lParam));
         }
-        }
-    }
-
-    case WM_DPICHANGED: {
-        SCALE_FACTOR = GetScaleFactorForHWND(hwnd);
-
-        RECT *rect = (RECT *)lParam;
-        LONG l = rect->left;
-        LONG t = rect->top;
-        LONG r = rect->right;
-        LONG b = rect->bottom;
-        SetWindowPos(hwnd, NULL, l, t, r - l, b - t, SWP_NOZORDER | SWP_NOACTIVATE);
-
-        DeleteObject(UI_FONT);
-        DeleteObject(EDITOR_FONT);
-
-        DesignErrorReporter(TRUE);
-
-        InvalidateRect(hwnd, NULL, TRUE);
-
-        return 0;
-    }
-
-    default: {
-        return (DefWindowProcW(hwnd, wMsg, wParam, lParam));
-    }
     }
 }
 
