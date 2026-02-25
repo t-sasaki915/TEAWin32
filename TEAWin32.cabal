@@ -68,10 +68,12 @@ library
       cbits/GUI.c
       cbits/GUIComponent.c
       cbits/TEAWin32.c
+      cbits/Util.c
   install-includes:
       DPIAware.h
       GUI.h
       TEAWin32.h
+      Util.h
   include-dirs:
       cbits
   other-modules:

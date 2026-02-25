@@ -1,6 +1,7 @@
 #include "DPIAware.h"
 #include "GUI.h"
 #include "TEAWin32.h"
+#include "Util.h"
 
 #include <windows.h>
 
@@ -292,6 +293,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
 void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMsgWithStacktrace, LPCWSTR fullMsg)
 {
+    MakeWindowTaskModal(ERROR_REPORTER_WINDOW);
+
     SHORT_ERROR_MESSAGE = shortMsg;
     FULL_ERROR_MSG = fullMsg;
 

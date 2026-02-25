@@ -1,5 +1,6 @@
-#include "TEAWIN32.h"
+#include "TEAWin32.h"
 
+#include <stdio.h>
 #include <wchar.h>
 #include <windows.h>
 
@@ -41,6 +42,23 @@ wchar_t *LookupClassCache(LPCWSTR userClassName)
     return NULL;
 }
 
+LRESULT CALLBACK CallHaskellWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (TEAWIN32_WNDPROC != NULL)
+    {
+        switch (wMsg)
+        {
+            case WM_DESTROY:
+            case WM_COMMAND:
+            case WM_ERASEBKGND:
+            case WM_DPICHANGED:
+                return TEAWIN32_WNDPROC(hwnd, wMsg, wParam, lParam);
+        }
+    }
+
+    return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+}
+
 wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
 {
     wchar_t *cachedClassName = LookupClassCache(userClass);
@@ -78,7 +96,7 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
     wndClass.lpszClassName = permanentFullClassName;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
     wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
-    wndClass.lpfnWndProc = TEAWIN32_WNDPROC;
+    wndClass.lpfnWndProc = CallHaskellWndProc;
 
     RegisterClassExW(&wndClass);
 
