@@ -64,6 +64,7 @@ library
       TEAWin32.GUI
       TEAWin32.Util
   c-sources:
+      cbits/Cache.c
       cbits/DPIAware.c
       cbits/ErrorReporter.c
       cbits/GUI.c
