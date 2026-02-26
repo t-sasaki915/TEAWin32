@@ -1,0 +1,53 @@
+#ifndef CACHE_H
+#define CACHE_H
+
+#include <windows.h>
+
+typedef struct
+{
+    LPCWSTR fontName;
+    int fontSize;
+    double scaleRatio;
+    int fontStyle; // 0: Normal, 1: Italic, 2: Bold
+} CachedFont;
+
+typedef struct
+{
+    LPCWSTR cursorKey;
+    BOOL isKeyId;
+} CachedCursor;
+
+typedef enum
+{
+    RESOURCE_ICON = 0,
+    STOCK_ICON = 1
+} CachedIconType;
+
+typedef struct
+{
+    CachedIconType iconType;
+    double scaleRatio;
+    union {
+        SHSTOCKICONID stockIconId;
+        LPCWSTR resourceId;
+    } iconId;
+    BOOL isKeyId;
+} CachedIcon;
+
+wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass);
+
+HFONT GetCachedFont(CachedFont fontKey);
+
+HCURSOR GetCachedCursor(CachedCursor cacheKey);
+
+HICON GetCachedIcon(CachedIcon cacheKey);
+
+void FinaliseClassCache(void);
+
+void FinaliseFontCache(void);
+
+void FinaliseCursorCache(void);
+
+void FinaliseIconCache(void);
+
+#endif

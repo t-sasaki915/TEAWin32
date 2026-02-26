@@ -55,6 +55,7 @@ library
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
       TEAWin32.GUI.Internal
+      TEAWin32.GUI.VirtualDOM
       TEAWin32.Internal.Foreign
       TEAWin32.Internal.Native
       TEAWin32.Application
@@ -69,7 +70,9 @@ library
       cbits/GUIComponent.c
       cbits/TEAWin32.c
       cbits/Util.c
+      cbits/VirtualDOM.c
   install-includes:
+      Cache.h
       DPIAware.h
       GUI.h
       TEAWin32.h
