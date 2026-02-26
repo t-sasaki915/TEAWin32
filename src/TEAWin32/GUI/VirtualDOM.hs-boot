@@ -7,15 +7,11 @@ module TEAWin32.GUI.VirtualDOM
     , fromHaskellCachedIconType
     ) where
 
-import                          Data.Text                                (Text)
-import                          Foreign.C                                (CDouble,
-                                                                          CInt)
-import                qualified Graphics.Win32                           as Win32
-import                          TEAWin32.GUI                             (Cursor,
-                                                                          Font,
-                                                                          Icon)
-import {-# SOURCE #-}           TEAWin32.GUI.VirtualDOM.StorableInstance ()
-import                qualified TEAWin32.Internal.Foreign                as Win32
+import           Data.Text                 (Text)
+import           Foreign.C                 (CDouble, CInt)
+import qualified Graphics.Win32            as Win32
+import           TEAWin32.GUI              (Cursor, Font, Icon)
+import qualified TEAWin32.Internal.Foreign as Win32
 
 data UpdatePosReq = UpdatePosReq
     { newLocation           :: Maybe (Int, Int)
@@ -37,8 +33,6 @@ newtype CreateButtonReq = CreateButtonReq
 data CachedIconType = ResourceIcon | StockIcon
 
 fromHaskellCachedIconType :: CachedIconType -> CInt
-fromHaskellCachedIconType ResourceIcon = 0
-fromHaskellCachedIconType StockIcon    = 1
 
 data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | CreateWindowRequest'       Win32.HWND Win32.LPCWSTR Win32.DWORD Win32.DWORD
@@ -56,4 +50,3 @@ data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | UpdateCursorRequest        Win32.HWND Cursor
                   | UpdateCursorRequest'       Win32.HWND Win32.LPCWSTR
                   | InvalidateRectFullyRequest Win32.HWND
-

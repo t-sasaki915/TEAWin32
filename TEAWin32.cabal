@@ -52,6 +52,7 @@ library
       TEAWin32.GUI.Component.Property
       TEAWin32.GUI.Component.Window
       TEAWin32.GUI.DSL.Internal
+      TEAWin32.GUI.VirtualDOM.StorableInstance
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
       TEAWin32.GUI.Internal
@@ -78,6 +79,7 @@ library
       GUI.h
       TEAWin32.h
       Util.h
+      VirtualDOM.h
   include-dirs:
       cbits
   other-modules:
@@ -86,6 +88,8 @@ library
       Paths_TEAWin32
   hs-source-dirs:
       src
+  build-tool-depends:
+      hsc2hs:hsc2hs
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   cc-options: -Wall -Wextra -Wpedantic -O2
   build-depends:

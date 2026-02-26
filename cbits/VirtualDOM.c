@@ -1,53 +1,9 @@
+#include "VirtualDOM.h"
 #include "Cache.h"
 
 #include <windows.h>
 
-typedef enum
-{
-    REQ_CREATE_WINDOW = 0,
-    REQ_CREATE_BUTTON,
-    REQ_DESTROY_COMPONENT,
-    REQ_UPDATE_TEXT,
-    REQ_UPDATE_POS,
-    REQ_UPDATE_FONT,
-    REQ_UPDATE_ICON,
-    REQ_UPDATE_CURSOR,
-    REQ_INVALIDATE_RECT_FULLY
-} RequestType;
-
-typedef struct
-{
-    LPCWSTR newWindowClassName;
-    DWORD newWindowExStyles;
-    DWORD newWindowStyles;
-} CreateWindowReq;
-
-typedef struct
-{
-    BOOL hasNewLocation;
-    BOOL hasNewSize;
-    BOOL bringComponentToFront;
-    int newX;
-    int newY;
-    int newWidth;
-    int newHeight;
-} UpdatePosReq;
-
-typedef struct
-{
-    RequestType reqType;
-    HWND targetHWND; // Parent HWND if request of creation
-    union {
-        CreateWindowReq createWindowReq;
-        LPCWSTR newComponentText;
-        UpdatePosReq updatePosReq;
-        CachedFont newFontCacheKey;
-        CachedIcon newIconCacheKey;
-        CachedCursor newCursorCacheKey;
-    } reqData;
-} CCallRequest;
-
-void ExecuteCCallRequest(CCallRequest *request)
+void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 {
     HWND target = request->targetHWND;
 
@@ -89,21 +45,56 @@ void ExecuteCCallRequest(CCallRequest *request)
                 flags = flags | SWP_NOZORDER;
             }
 
-            SetWindowPos(target, NULL, x, y, w, h, flags);
+            if (hdwp != NULL)
+            {
+                *hdwp = DeferWindowPos(*hdwp, target, HWND_TOP, x, y, w, h, flags);
+            }
+            else
+            {
+                SetWindowPos(target, HWND_TOP, x, y, w, h, flags);
+            }
 
             break;
         }
         case REQ_UPDATE_FONT: {
+            SendMessageW(target, WM_SETFONT, (WPARAM)GetCachedFont(request->reqData.newFontCacheKey), 1);
+
             break;
         }
         case REQ_UPDATE_ICON: {
+            SendMessageW(target, WM_SETICON, 1, (LPARAM)GetCachedIcon(request->reqData.newIconCacheKey));
+
             break;
         }
         case REQ_UPDATE_CURSOR: {
+            SetClassLongPtrW(target, GCLP_HCURSOR, (LONG_PTR)GetCachedCursor(request->reqData.newCursorCacheKey));
+
             break;
         }
         case REQ_INVALIDATE_RECT_FULLY: {
+            InvalidateRect(target, NULL, TRUE);
+
             break;
         }
+    }
+}
+
+void ExecuteCCallRequests(CCallRequest requests[], int requestSize, int updatePosNumber)
+{
+    HDWP hdwp = NULL;
+    if (updatePosNumber > 0)
+    {
+        hdwp = BeginDeferWindowPos(updatePosNumber);
+    }
+
+    for (int i = 0; i < requestSize; i++)
+    {
+        CCallRequest *req = &requests[i];
+        ExecuteCCallRequest(req, &hdwp);
+    }
+
+    if (hdwp != NULL)
+    {
+        EndDeferWindowPos(hdwp);
     }
 }
