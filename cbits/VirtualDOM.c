@@ -35,14 +35,75 @@ typedef struct
 
 typedef struct
 {
-    RequestType requestType;
-    HWND targetHWND; // Parent HWND if CreateRequest
+    RequestType reqType;
+    HWND targetHWND; // Parent HWND if request of creation
     union {
         CreateWindowReq createWindowReq;
         LPCWSTR newComponentText;
         UpdatePosReq updatePosReq;
         CachedFont newFontCacheKey;
-        int newIconCacheId;
-        int newCursorCacheId;
-    } data;
+        CachedIcon newIconCacheKey;
+        CachedCursor newCursorCacheKey;
+    } reqData;
 } CCallRequest;
+
+void ExecuteCCallRequest(CCallRequest *request)
+{
+    HWND target = request->targetHWND;
+
+    switch (request->reqType)
+    {
+        case REQ_CREATE_WINDOW: {
+            break;
+        }
+        case REQ_CREATE_BUTTON: {
+            break;
+        }
+        case REQ_DESTROY_COMPONENT: {
+            break;
+        }
+        case REQ_UPDATE_TEXT: {
+            SetWindowTextW(target, request->reqData.newComponentText);
+
+            break;
+        }
+        case REQ_UPDATE_POS: {
+            UpdatePosReq updatePosReq = request->reqData.updatePosReq;
+
+            int x = updatePosReq.hasNewLocation ? updatePosReq.newX : 0;
+            int y = updatePosReq.hasNewLocation ? updatePosReq.newY : 0;
+            int w = updatePosReq.hasNewSize ? updatePosReq.newWidth : 0;
+            int h = updatePosReq.hasNewSize ? updatePosReq.newHeight : 0;
+
+            DWORD flags = SWP_NOACTIVATE;
+            if (!updatePosReq.hasNewLocation)
+            {
+                flags = flags | SWP_NOMOVE;
+            }
+            if (!updatePosReq.hasNewSize)
+            {
+                flags = flags | SWP_NOSIZE;
+            }
+            if (!updatePosReq.bringComponentToFront)
+            {
+                flags = flags | SWP_NOZORDER;
+            }
+
+            SetWindowPos(target, NULL, x, y, w, h, flags);
+
+            break;
+        }
+        case REQ_UPDATE_FONT: {
+            break;
+        }
+        case REQ_UPDATE_ICON: {
+            break;
+        }
+        case REQ_UPDATE_CURSOR: {
+            break;
+        }
+        case REQ_INVALIDATE_RECT_FULLY: {
+            break;
+        }
+    }
+}
