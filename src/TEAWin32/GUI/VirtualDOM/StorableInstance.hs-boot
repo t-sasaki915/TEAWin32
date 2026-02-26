@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module TEAWin32.GUI.VirtualDOM.StorableInstance () where
 
 import                          Foreign                 (Storable)
