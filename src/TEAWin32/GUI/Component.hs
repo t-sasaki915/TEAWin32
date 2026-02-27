@@ -10,14 +10,12 @@ module TEAWin32.GUI.Component
     , DSLState (..)
     ) where
 
-import                          Control.Monad.State.Strict      (State)
-import                          Control.Monad.Writer.Strict     (WriterT)
-import                          Data.Data                       (Typeable, cast)
-import                          Data.Text                       (Text)
-import                          GHC.Stack                       (HasCallStack)
-import                qualified Graphics.Win32                  as Win32
-import                          TEAWin32.GUI                    (UniqueId)
-import {-# SOURCE #-}           TEAWin32.GUI.Component.Property (GUIComponentProperty)
+import           Control.Monad.State.Strict  (State)
+import           Control.Monad.Writer.Strict (WriterT)
+import           Data.Data                   (Typeable, cast)
+import           Data.Text                   (Text)
+import           GHC.Stack                   (HasCallStack)
+import           TEAWin32.GUI                (UniqueId)
 
 data DSLState = DSLState
     { nextSystemUniqueIdNum :: Int
@@ -34,15 +32,7 @@ data EventType = ComponentClickEvent
                deriving (Eq, Show)
 
 class Eq a => IsGUIComponent a where
-    render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND
-
-    getProperties :: a -> [GUIComponentProperty]
-
-    getUniqueId :: a -> UniqueId
-
-    doesNeedToRedraw :: a -> a -> Bool
-
-    getComponentType :: a -> ComponentType
+    scheduleRendering :: HasCallStack => a -> Maybe UniqueId -> IO ()
 
 data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
 
@@ -56,18 +46,7 @@ instance Eq GUIComponent where
             Nothing -> False
 
 instance IsGUIComponent GUIComponent where
-    render (GUIComponent a) = render a
-
-    getProperties (GUIComponent a) = getProperties a
-
-    getUniqueId (GUIComponent a) = getUniqueId a
-
-    doesNeedToRedraw (GUIComponent a) (GUIComponent b) =
-        case cast b of
-            Just b' -> doesNeedToRedraw a b'
-            Nothing -> True
-
-    getComponentType (GUIComponent a) = getComponentType a
+    scheduleRendering (GUIComponent a) = scheduleRendering a
 
 data ZIndex = SystemCalculatedZIndex Int
             | ZIndexWithUserSpecification Int Int

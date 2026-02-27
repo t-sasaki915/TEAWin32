@@ -20,8 +20,7 @@ import           TEAWin32.Application.WndProc  (windowProc)
 import           TEAWin32.Exception            (ErrorLocation (..),
                                                 TEAWin32Error (..),
                                                 errorTEAWin32)
-import           TEAWin32.GUI.Component        (DSLState (..), GUIComponents,
-                                                IsGUIComponent (render))
+import           TEAWin32.GUI.Component        (DSLState (..), GUIComponents)
 import qualified TEAWin32.GUI.Internal         as GUIInternal
 import qualified TEAWin32.Internal.Foreign     as Win32
 import qualified TEAWin32.Internal.Native      as Native
