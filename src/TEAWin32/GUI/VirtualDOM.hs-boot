@@ -35,18 +35,18 @@ data CachedIconType = ResourceIcon | StockIcon
 fromHaskellCachedIconType :: CachedIconType -> CInt
 
 data CCallRequest = CreateWindowRequest        CreateWindowReq
-                  | CreateWindowRequest'       Win32.HWND Win32.LPCWSTR Win32.DWORD Win32.DWORD
                   | CreateButtonRequest        CreateButtonReq
-                  | CreateButtonRequest'       Win32.HWND
                   | DestroyComponentRequest    Win32.HWND
                   | UpdateTextRequest          Win32.HWND Text
-                  | UpdateTextRequest'         Win32.HWND Win32.LPCWSTR
                   | UpdatePosRequest           Win32.HWND UpdatePosReq
-                  | UpdatePosRequest'          Win32.HWND Win32.BOOL Win32.BOOL Win32.BOOL (Maybe CInt) (Maybe CInt) (Maybe CInt) (Maybe CInt)
                   | UpdateFontRequest          Win32.HWND Font
-                  | UpdateFontRequest'         Win32.HWND Win32.LPCWSTR CInt CDouble CInt
                   | UpdateIconRequest          Win32.HWND Icon
-                  | UpdateIconRequest'         Win32.HWND CachedIconType CDouble (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
                   | UpdateCursorRequest        Win32.HWND Cursor
-                  | UpdateCursorRequest'       Win32.HWND Win32.LPCWSTR
                   | InvalidateRectFullyRequest Win32.HWND
+                  | CreateWindowRequest'       Win32.HWND Win32.LPCWSTR Win32.DWORD Win32.DWORD
+                  | CreateButtonRequest'       Win32.HWND
+                  | UpdateTextRequest'         Win32.HWND Win32.LPCWSTR
+                  | UpdatePosRequest'          Win32.HWND Win32.BOOL Win32.BOOL Win32.BOOL (Maybe CInt) (Maybe CInt) (Maybe CInt) (Maybe CInt)
+                  | UpdateFontRequest'         Win32.HWND Win32.LPCWSTR CInt CDouble CInt
+                  | UpdateIconRequest'         Win32.HWND CachedIconType CDouble (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
+                  | UpdateCursorRequest'       Win32.HWND Win32.LPCWSTR

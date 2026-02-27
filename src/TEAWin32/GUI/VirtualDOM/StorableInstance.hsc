@@ -5,8 +5,10 @@ module TEAWin32.GUI.VirtualDOM.StorableInstance () where
 
 import                          Control.Monad           (when)
 import                          Data.Maybe              (fromJust)
-import                          Foreign                 (Storable (..), Word32, fillBytes,
-                                                         plusPtr)
+import                          Foreign                 (Storable (..), Word32,
+                                                         fillBytes, plusPtr)
+import                          TEAWin32.Exception      (TEAWin32Error (..),
+                                                         errorTEAWin32)
 import {-# SOURCE #-}           TEAWin32.GUI.VirtualDOM
 
 #include "VirtualDOM.h"
@@ -16,7 +18,7 @@ instance Storable CCallRequest where
 
     alignment _ = #{alignment CCallRequest}
 
-    peek _ = error "NOT IMPLEMENTED"
+    peek _ = errorTEAWin32 (InternalTEAWin32Error "Tried to peek CCallRequest")
 
     poke ptr val = do
         fillBytes ptr 0 (sizeOf val)
@@ -102,22 +104,22 @@ instance Storable CCallRequest where
                 #{poke CCallRequest, targetHWND} ptr hwnd
 
             (CreateWindowRequest _) ->
-                error "CreateWindowRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke raw CreateWindowRequest")
 
             (CreateButtonRequest _) ->
-                error "CreateButtonRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw CreateWindowRequest")
 
             (UpdateTextRequest _ _) ->
-                error "UpdateTextRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateTextRequest")
 
             (UpdatePosRequest _ _) ->
-                error "UpdatePosRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdatePosRequest")
 
             (UpdateFontRequest _ _) ->
-                error "UpdateFontRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateFontRequest")
 
             (UpdateIconRequest _ _) ->
-                error "UpdateIconRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateIconRequest")
 
             (UpdateCursorRequest _ _) ->
-                error "UpdateCursorRequest"
+                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateCursorRequest")
