@@ -185,7 +185,7 @@ marshallRequest (UpdateIconRequest target icon) =
                     target'
                     ResourceIcon
                     Nothing
-                    (Just (toWin32Icon' icon))
+                    (Just (toWin32Icon icon))
             StockIcon ->
                 pure $ UpdateIconRequest'
                     target'
@@ -195,7 +195,7 @@ marshallRequest (UpdateIconRequest target icon) =
 
 marshallRequest (UpdateCursorRequest target cursor) =
     liftIO (internUniqueId target) >>= \target' ->
-        pure (UpdateCursorRequest' target' (toWin32Cursor' cursor))
+        pure (UpdateCursorRequest' target' (toWin32Cursor cursor))
 
 marshallRequest (InvalidateRectFullyRequest target) =
     liftIO (internUniqueId target) >>= \target' ->

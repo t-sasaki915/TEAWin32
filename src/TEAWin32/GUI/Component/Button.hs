@@ -9,7 +9,6 @@ import           TEAWin32.GUI.Component                   (ComponentType (Compon
                                                            IsGUIComponent (..))
 import           TEAWin32.GUI.Component.Button.Property   (ButtonProperty)
 import           TEAWin32.GUI.Component.ComponentRegistry
-import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 import           TEAWin32.GUI.Component.Property          (GUIComponentProperty (..),
                                                            IsGUIComponentProperty (applyProperty))
 import qualified TEAWin32.Internal.Native                 as Native
@@ -48,10 +47,10 @@ instance IsGUIComponent Button where
         addComponentRegistryEntry ComponentTypeRegKey        (ComponentTypeReg ComponentButton)    button
         addComponentRegistryEntry ComponentScaleFactorRegKey (ComponentScaleFactorReg scaleFactor) button
 
-        ComponentInternal.useDefaultFont button
+        --ComponentInternal.useDefaultFont button
 
         mapM_ (`applyProperty` button) buttonProperties
 
-        ComponentInternal.bringComponentToTop button
+        --ComponentInternal.bringComponentToTop button
 
         pure button

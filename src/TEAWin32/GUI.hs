@@ -11,23 +11,16 @@ module TEAWin32.GUI
     , toWin32WindowStyle
     , getIconType
     , toWin32Icon
-    , toWin32Icon'
     , toStockIconId
     , toWin32Cursor
-    , toWin32Cursor'
     ) where
 
-import                          Control.Concurrent        (modifyMVar, readMVar)
-import                          Data.Bits                 ((.|.))
-import                          Data.Map                  ((!))
-import                qualified Data.Map                  as Map
-import                          Data.Text                 (Text)
-import                qualified Graphics.Win32            as Win32
-import                          TEAWin32.Exception        (TEAWin32Error (InternalTEAWin32Error),
-                                                           errorTEAWin32)
-import {-# SOURCE #-}           TEAWin32.GUI.Internal
-import                qualified TEAWin32.Internal.Foreign as Win32
-import                qualified TEAWin32.Internal.Native  as Native
+import           Data.Bits                 ((.|.))
+import           Data.Text                 (Text)
+import qualified Graphics.Win32            as Win32
+import           TEAWin32.Exception        (TEAWin32Error (InternalTEAWin32Error),
+                                            errorTEAWin32)
+import qualified TEAWin32.Internal.Foreign as Win32
 
 data UniqueId = UserUniqueId  Text
               | SystemUniqueId Int
@@ -154,9 +147,9 @@ getIconType :: Icon -> IconType
 getIconType (IconFromResource _) = ResourceIcon
 getIconType _                    = StockIcon
 
-toWin32Icon' :: Icon -> Win32.Icon
-toWin32Icon' (IconFromResource i) = Win32.c_MakeIntResourceW (fromIntegral i)
-toWin32Icon' _                    = errorTEAWin32 (InternalTEAWin32Error "Impossible pattern matching")
+toWin32Icon :: Icon -> Win32.Icon
+toWin32Icon (IconFromResource i) = Win32.c_MakeIntResourceW (fromIntegral i)
+toWin32Icon _                    = errorTEAWin32 (InternalTEAWin32Error "Impossible pattern matching")
 
 toStockIconId :: Icon -> Win32.SHSTOCKICONID
 toStockIconId icon = case icon of
@@ -255,23 +248,6 @@ toStockIconId icon = case icon of
     IconClusteredDrive    -> Win32.sIID_CLUSTEREDDRIVE
     (IconFromResource _)  -> errorTEAWin32 (InternalTEAWin32Error "Impossible pattern matching")
 
-toWin32Icon :: Icon -> IO Win32.HANDLE
-toWin32Icon icon@(IconFromResource resourceId) =
-    modifyMVar resourceIconCacheRef $ \resourceIconCache ->
-        case Map.lookup icon resourceIconCache of
-            Just hndl -> pure (resourceIconCache, hndl)
-            Nothing ->
-                Native.getResourceIcon resourceId >>= \iconHandle ->
-                    pure (Map.insert icon iconHandle resourceIconCache, iconHandle)
-
-toWin32Icon icon =
-    modifyMVar stockIconCacheRef $ \stockIconCache ->
-        case Map.lookup icon stockIconCache of
-            Just hndl -> pure (stockIconCache, hndl)
-            Nothing ->
-                Native.getHighDPIIcon (toStockIconId icon) >>= \iconHandle ->
-                    pure (Map.insert icon iconHandle stockIconCache, iconHandle)
-
 data Cursor = CursorArrow
             | CursorIBeam
             | CursorWait
@@ -283,21 +259,16 @@ data Cursor = CursorArrow
             | CursorSizeNS
             deriving (Show, Eq, Ord)
 
-toWin32Cursor' :: Cursor -> Win32.Cursor
-toWin32Cursor' CursorArrow    = Win32.iDC_ARROW
-toWin32Cursor' CursorIBeam    = Win32.iDC_IBEAM
-toWin32Cursor' CursorWait     = Win32.iDC_WAIT
-toWin32Cursor' CursorCross    = Win32.iDC_CROSS
-toWin32Cursor' CursorUparrow  = Win32.iDC_UPARROW
-toWin32Cursor' CursorSizeNWSE = Win32.iDC_SIZENWSE
-toWin32Cursor' CursorSizeNESW = Win32.iDC_SIZENESW
-toWin32Cursor' CursorSizeWE   = Win32.iDC_SIZEWE
-toWin32Cursor' CursorSizeNS   = Win32.iDC_SIZENS
-
-toWin32Cursor :: Cursor -> IO Win32.HANDLE
-toWin32Cursor cursor =
-    readMVar cursorCacheRef >>= \cursorCache ->
-        pure (cursorCache ! cursor)
+toWin32Cursor :: Cursor -> Win32.Cursor
+toWin32Cursor CursorArrow    = Win32.iDC_ARROW
+toWin32Cursor CursorIBeam    = Win32.iDC_IBEAM
+toWin32Cursor CursorWait     = Win32.iDC_WAIT
+toWin32Cursor CursorCross    = Win32.iDC_CROSS
+toWin32Cursor CursorUparrow  = Win32.iDC_UPARROW
+toWin32Cursor CursorSizeNWSE = Win32.iDC_SIZENWSE
+toWin32Cursor CursorSizeNESW = Win32.iDC_SIZENESW
+toWin32Cursor CursorSizeWE   = Win32.iDC_SIZEWE
+toWin32Cursor CursorSizeNS   = Win32.iDC_SIZENS
 
 data Font = Font
     { fontName :: Text

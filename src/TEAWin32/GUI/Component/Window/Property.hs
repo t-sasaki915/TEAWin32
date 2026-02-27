@@ -10,14 +10,11 @@ module TEAWin32.GUI.Component.Window.Property
     , WindowBackgroundColour (..)
     ) where
 
-import           Data.Data                                (Typeable, cast,
-                                                           typeOf)
-import           TEAWin32.Drawing                         (Colour)
-import           TEAWin32.Exception                       (TEAWin32Error (..),
-                                                           errorTEAWin32)
+import           Data.Data                       (Typeable, cast, typeOf)
+import           TEAWin32.Drawing                (Colour)
+import           TEAWin32.Exception              (TEAWin32Error (..),
+                                                  errorTEAWin32)
 import           TEAWin32.GUI
-import           TEAWin32.GUI.Component.ComponentRegistry
-import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 import           TEAWin32.GUI.Component.Property
 
 data WindowProperty = forall a. (Typeable a, Show a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
@@ -75,47 +72,7 @@ instance IsWindowProperty ComponentZIndex
 instance IsWindowProperty ComponentChildren
 
 instance IsGUIComponentProperty WindowIcon where
-    isPropertyChanged (WindowIcon icon) = isRegistryValueChangedMaybe WindowIconRegKey icon
-
-    applyProperty (WindowIcon icon) windowHWND =
-        ComponentInternal.setWindowIcon icon windowHWND >>
-            addComponentRegistryEntry WindowIconRegKey (WindowIconReg icon) windowHWND
-
-    updateProperty (WindowIcon icon) _ windowHWND =
-        ComponentInternal.setWindowIcon icon windowHWND >>
-            updateComponentRegistryEntry WindowIconRegKey (WindowIconReg icon) windowHWND
-
-    unapplyProperty _ windowHWND =
-        ComponentInternal.setWindowIcon IconApplication windowHWND >>
-            removeComponentRegistryEntry WindowIconRegKey windowHWND
 
 instance IsGUIComponentProperty WindowCursor where
-    isPropertyChanged (WindowCursor cursor) = isRegistryValueChangedMaybe WindowCursorRegKey cursor
-
-    applyProperty (WindowCursor cursor) windowHWND =
-        ComponentInternal.setWindowCursor cursor windowHWND >>
-            addComponentRegistryEntry WindowCursorRegKey (WindowCursorReg cursor) windowHWND
-
-    updateProperty (WindowCursor cursor) _ windowHWND =
-        ComponentInternal.setWindowCursor cursor windowHWND >>
-            updateComponentRegistryEntry WindowCursorRegKey (WindowCursorReg cursor) windowHWND
-
-    unapplyProperty _ windowHWND =
-        ComponentInternal.setWindowCursor CursorArrow windowHWND >>
-            removeComponentRegistryEntry WindowCursorRegKey windowHWND
-
 
 instance IsGUIComponentProperty WindowBackgroundColour where
-    isPropertyChanged (WindowBackgroundColour colour) = isRegistryValueChangedMaybe WindowBackgroundColourRegKey colour
-
-    applyProperty (WindowBackgroundColour colour) windowHWND =
-        addComponentRegistryEntry WindowBackgroundColourRegKey (WindowBackgroundColourReg colour) windowHWND >>
-            ComponentInternal.requestRedraw windowHWND
-
-    updateProperty (WindowBackgroundColour colour) _ windowHWND =
-        updateComponentRegistryEntry WindowBackgroundColourRegKey (WindowBackgroundColourReg colour) windowHWND >>
-            ComponentInternal.requestRedraw windowHWND
-
-    unapplyProperty _ windowHWND =
-        removeComponentRegistryEntry WindowBackgroundColourRegKey windowHWND >>
-            ComponentInternal.requestRedraw windowHWND

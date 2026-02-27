@@ -12,7 +12,6 @@ import           TEAWin32.GUI                             (UniqueId,
 import           TEAWin32.GUI.Component                   (ComponentType (ComponentWindow),
                                                            IsGUIComponent (..))
 import           TEAWin32.GUI.Component.ComponentRegistry
-import qualified TEAWin32.GUI.Component.Internal          as ComponentInternal
 import           TEAWin32.GUI.Component.Property          (GUIComponentProperty (..),
                                                            IsGUIComponentProperty (applyProperty))
 import           TEAWin32.GUI.Component.Window.Property   (WindowProperty (..))
@@ -52,13 +51,13 @@ instance IsGUIComponent Window where
         addComponentRegistryEntry WindowClassNameRegKey      (WindowClassNameReg windowClassName)  window
         addComponentRegistryEntry WindowStyleRegKey          (WindowStyleReg windowStyle)          window
 
-        ComponentInternal.useDefaultFont window
+        --ComponentInternal.useDefaultFont window
 
         mapM_ (`applyProperty` window) windowProperties
 
         _ <- Win32.showWindow window Win32.sW_SHOW
         Win32.updateWindow window
-        ComponentInternal.bringComponentToTop window
+        --ComponentInternal.bringComponentToTop window
 
         atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n + 1, ())
 
