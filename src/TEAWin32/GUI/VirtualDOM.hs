@@ -4,6 +4,7 @@ module TEAWin32.GUI.VirtualDOM
     , CreateWindowReq (..)
     , CreateButtonReq (..)
     , scheduleCCall
+    , flushCCallRequests
     ) where
 
 import           Control.Applicative                      ((<|>))
@@ -16,6 +17,7 @@ import qualified Data.List                                as List
 import           Data.Maybe                               (fromMaybe, isJust)
 import           Data.Text                                (Text)
 import qualified Data.Text                                as Text
+import           Foreign                                  (Ptr, withArray)
 import           Foreign.C                                (CDouble (..),
                                                            withCWString)
 import           GHC.IO                                   (unsafePerformIO)
@@ -26,14 +28,18 @@ import           TEAWin32.GUI
 import           TEAWin32.GUI.Component.ComponentRegistry (ComponentRegistryKey (ComponentScaleFactorRegKey),
                                                            getComponentRegistryEntryValue)
 import           TEAWin32.GUI.VirtualDOM.Internal         (InternalCCallRequest (..))
+import           TEAWin32.Util                            (applyScaleFactor)
+
+foreign import ccall unsafe "ExecuteCCallRequests"
+    c_ExecuteCCallRequests :: Ptr InternalCCallRequest -> Int -> Int -> IO ()
 
 cCallScheduleListRef :: IORef [(Maybe Win32.HWND, CCallRequest)]
 cCallScheduleListRef = unsafePerformIO (newIORef [])
 {-# NOINLINE cCallScheduleListRef #-}
 
 data UpdatePosReq = UpdatePosReq
-    { newLocation           :: Maybe (Int, Int)
-    , newSize               :: Maybe (Int, Int)
+    { newLocation           :: Maybe (ScalableValue, ScalableValue)
+    , newSize               :: Maybe (ScalableValue, ScalableValue)
     , bringComponentToFront :: Bool
     } deriving Eq
 
@@ -80,6 +86,10 @@ canCombine (UpdateCursorRequest h1 _)           (UpdateCursorRequest h2 _)      
 canCombine (InvalidateRectFullyRequest h1)      (InvalidateRectFullyRequest h2)      = h1 == h2
 canCombine _ _                                                                       = False
 
+isUpdatePosRequest :: CCallRequest -> Bool
+isUpdatePosRequest (UpdatePosRequest _ _) = True
+isUpdatePosRequest _                      = False
+
 combineRequests :: CCallRequest -> CCallRequest -> CCallRequest
 combineRequests newReq@(DestroyComponentRequest _)    (DestroyComponentRequest _)    = newReq
 combineRequests newReq@(UpdateTextRequest _ _)        (UpdateTextRequest _ _)        = newReq
@@ -112,6 +122,16 @@ scheduleCCall newReq =
             Nothing ->
                 ((Nothing, newReq) : scheduleList, ())
 
+flushCCallRequests :: IO ()
+flushCCallRequests = do
+    requests <- atomicModifyIORef' cCallScheduleListRef (\list -> ([], map snd (reverse list)))
+
+    let updatePosReqCount = length $ filter isUpdatePosRequest requests
+
+    runContT (mapM marshallRequest requests) $ \storableRequests ->
+        withArray storableRequests $ \arrayPtr ->
+            c_ExecuteCCallRequests arrayPtr (length requests) updatePosReqCount
+
 marshallRequest :: CCallRequest -> ContT a IO InternalCCallRequest
 marshallRequest (CreateWindowRequest req) =
     ContT (withCWString (Text.unpack $ newWindowClassName req)) >>= \classNamePtr ->
@@ -132,19 +152,26 @@ marshallRequest (UpdateTextRequest hwnd text) =
         pure (UpdateTextRequest' hwnd textPtr)
 
 marshallRequest (UpdatePosRequest hwnd req) =
-    pure $ UpdatePosRequest'
-        hwnd
-        (isJust (newLocation req))
-        (isJust (newSize req))
-        (bringComponentToFront req)
-        (fromIntegral . fst <$> newLocation req)
-        (fromIntegral . snd <$> newLocation req)
-        (fromIntegral . fst <$> newSize req)
-        (fromIntegral . snd <$> newSize req)
+    liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+        pure $ UpdatePosRequest'
+            hwnd
+            (isJust (newLocation req))
+            (isJust (newSize req))
+            (bringComponentToFront req)
+            (fromIntegral . (`applyScaleFactor` scaleFactor) . fst <$> newLocation req)
+            (fromIntegral . (`applyScaleFactor` scaleFactor) . snd <$> newLocation req)
+            (fromIntegral . (`applyScaleFactor` scaleFactor) . fst <$> newSize req)
+            (fromIntegral . (`applyScaleFactor` scaleFactor) . snd <$> newSize req)
 
 marshallRequest (UpdateFontRequest hwnd font) =
-    liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
-        error ""
+    ContT (withCWString (Text.unpack $ fontName font)) >>= \fontNamePtr ->
+        liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+            pure $ UpdateFontRequest'
+                hwnd
+                fontNamePtr
+                (fromIntegral $ applyScaleFactor (fontSize font) scaleFactor)
+                (CDouble scaleFactor)
+                0 -- TODO
 
 marshallRequest (UpdateIconRequest hwnd icon) =
     liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->

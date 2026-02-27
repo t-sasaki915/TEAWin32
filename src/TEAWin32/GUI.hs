@@ -299,10 +299,10 @@ toWin32Cursor cursor =
     readMVar cursorCacheRef >>= \cursorCache ->
         pure (cursorCache ! cursor)
 
-data Font = DefaultGUIFont
-          | SystemFont
-          | Font Text ScalableValue
-          deriving (Show, Eq, Ord)
+data Font = Font
+    { fontName :: Text
+    , fontSize :: ScalableValue
+    } deriving (Show, Eq, Ord)
 
 data ScalableValue = RawValue      Double
                    | ScalableValue Double

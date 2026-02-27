@@ -111,9 +111,10 @@ data Cursor = CursorArrow
 
 instance Ord Cursor
 
-data Font = DefaultGUIFont
-          | SystemFont
-          | Font Text ScalableValue
+data Font = Font
+    { fontName :: Text
+    , fontSize :: ScalableValue
+    }
 
 instance Ord Font
 

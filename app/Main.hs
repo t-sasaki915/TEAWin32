@@ -81,10 +81,10 @@ view model = do
                 ] $ do
                     button_ [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), pos_ (20, 50)]
 
-                    button_ [title_ "!?", size_ (50, 50), pos_ (100, 150), onClick_ ButtonClicked2, font_ SystemFont]
+                    button_ [title_ "!?", size_ (50, 50), pos_ (100, 150), onClick_ ButtonClicked2{-, font_ SystemFont-}]
 
                     button_
-                        [title_ "おはようございます", size_ (200, 50), pos_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else SystemFont)]
+                        [title_ "おはようございます", size_ (200, 50), pos_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else Font "Meiryo" 9)]
 
                     window_ "TEAWin32-Sub-Sub" WindowStyleBorderlessChild
                         [title_ "GOOD MORNING", cursor_ CursorWait, size_ (50, 50), pos_ (0, 0), bgColour_ (RGB 0 255 0)] noChildren

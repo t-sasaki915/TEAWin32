@@ -136,23 +136,15 @@ setComponentSize width height hwnd = void $ Win32.c_SetWindowPos
     (Win32.sWP_NOMOVE .|. Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE)
 
 setComponentFont :: HasCallStack => Font -> Win32.HWND -> IO ()
-setComponentFont DefaultGUIFont hwnd =
-    Win32.getStockFont Win32.dEFAULT_GUI_FONT >>= \font ->
-        setComponentFont' font hwnd
-
-setComponentFont SystemFont hwnd =
-    Win32.getStockFont Win32.sYSTEM_FONT >>= \font ->
-        setComponentFont' font hwnd
-
-setComponentFont font@(Font fontName fontSize) hwnd =
+setComponentFont font hwnd =
     modifyMVar GUIInternal.fontCacheRef $ \fontCache ->
         case Map.lookup font fontCache of
             Just hndl ->
                 setComponentFont' hndl hwnd >>
                     pure (fontCache, ())
             Nothing ->
-                resolveScalableValueForHWND hwnd fontSize >>= \fontSize' ->
-                    Native.createFontSimple fontSize' fontName >>= \fontHandle ->
+                resolveScalableValueForHWND hwnd (fontSize font) >>= \fontSize' ->
+                    Native.createFontSimple fontSize' (fontName font) >>= \fontHandle ->
                         setComponentFont' fontHandle hwnd >>
                             pure (Map.insert font fontHandle fontCache, ())
 
@@ -161,7 +153,7 @@ setComponentFont' font hwnd =
     void $ Win32.sendMessage hwnd Win32.wM_SETFONT (fromIntegral $ ptrToWordPtr font) 1
 
 useDefaultFont :: HasCallStack => Win32.HWND -> IO ()
-useDefaultFont = setComponentFont DefaultGUIFont
+useDefaultFont = setComponentFont (Font "GUI_DEFAULT" 9)
 
 setWindowIcon :: Icon -> Win32.HWND -> IO ()
 setWindowIcon icon hwnd =
