@@ -11,15 +11,7 @@ import {-# SOURCE #-}           TEAWin32.GUI.Component.Property (GUIComponentPro
 data ComponentType
 
 class Eq a => IsGUIComponent a where
-    render :: HasCallStack => a -> Maybe Win32.HWND -> IO Win32.HWND
-
-    getProperties :: a -> [GUIComponentProperty]
-
-    getUniqueId :: a -> UniqueId
-
-    doesNeedToRedraw :: a -> a -> Bool
-
-    getComponentType :: a -> ComponentType
+    scheduleRendering :: HasCallStack => a -> Maybe UniqueId -> IO ()
 
 data GUIComponent = forall a. (Typeable a, Eq a, Show a, IsGUIComponent a) => GUIComponent a
 

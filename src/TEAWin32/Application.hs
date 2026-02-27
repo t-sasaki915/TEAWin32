@@ -20,8 +20,10 @@ import           TEAWin32.Application.WndProc  (windowProc)
 import           TEAWin32.Exception            (ErrorLocation (..),
                                                 TEAWin32Error (..),
                                                 errorTEAWin32)
-import           TEAWin32.GUI.Component        (DSLState (..), GUIComponents)
+import           TEAWin32.GUI.Component        (DSLState (..), GUIComponents,
+                                                IsGUIComponent (scheduleRendering))
 import qualified TEAWin32.GUI.Internal         as GUIInternal
+import           TEAWin32.GUI.VirtualDOM       (flushCCallRequests)
 import qualified TEAWin32.Internal.Foreign     as Win32
 import qualified TEAWin32.Internal.Native      as Native
 import           TEAWin32.Util                 (try_)
@@ -81,9 +83,10 @@ runTEA' init update view = do
 
     let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) (DSLState 0 [])
 
-    {-sortedInitGUIComponents <- ComponentInternal.sortComponentsWithZIndex initGUIComponents Nothing
-    forM_ sortedInitGUIComponents $ \guiComponent ->
-        render guiComponent Nothing-}
+    forM_ initGUIComponents $ \guiComponent ->
+        scheduleRendering guiComponent Nothing -- TODO
+
+    flushCCallRequests
 
     Win32.allocaMessage messagePump
 

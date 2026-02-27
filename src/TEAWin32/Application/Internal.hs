@@ -20,6 +20,7 @@ import           GHC.IO                      (unsafePerformIO)
 import           GHC.Stack                   (HasCallStack)
 import qualified Graphics.Win32              as Win32
 import           TEAWin32.Exception          (TEAWin32Error (..), errorTEAWin32)
+import           TEAWin32.GUI                (UniqueId)
 import           TEAWin32.GUI.Component      (DSLState (..), GUIComponent,
                                               GUIComponents)
 
@@ -70,7 +71,7 @@ issueMsg msg = do
 
     atomicModifyIORef' isUpdateProgressingRef (const (False, ()))
 
-updateComponents :: HasCallStack => [GUIComponent] -> Maybe Win32.HWND -> IO ()
+updateComponents :: HasCallStack => [GUIComponent] -> Maybe UniqueId -> IO ()
 updateComponents newGUIComponents maybeParent =
     pure ()
 

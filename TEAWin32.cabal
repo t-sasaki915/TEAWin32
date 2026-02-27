@@ -48,7 +48,6 @@ library
       TEAWin32.GUI.Component.Window.Property
       TEAWin32.GUI.Component.Button
       TEAWin32.GUI.Component.ComponentRegistry
-      TEAWin32.GUI.Component.Internal
       TEAWin32.GUI.Component.Property
       TEAWin32.GUI.Component.Window
       TEAWin32.GUI.DSL.Internal
