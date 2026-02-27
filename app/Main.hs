@@ -51,7 +51,7 @@ update ButtonClicked2 model = do
         _ ->
             error "!?"
 
-view :: Model -> GUIComponents
+view :: Model -> DSL
 view model = do
     let isCountEven = even (model ^. clickedCount)
 

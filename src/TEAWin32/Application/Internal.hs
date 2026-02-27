@@ -16,13 +16,14 @@ import           Control.Monad.Writer.Strict (execWriterT)
 import           Data.Data                   (Typeable, cast)
 import           Data.IORef                  (IORef, atomicModifyIORef',
                                               newIORef, readIORef)
+import qualified Data.Map                    as Map
 import           GHC.IO                      (unsafePerformIO)
 import           GHC.Stack                   (HasCallStack)
-import qualified Graphics.Win32              as Win32
 import           TEAWin32.Exception          (TEAWin32Error (..), errorTEAWin32)
 import           TEAWin32.GUI                (UniqueId)
-import           TEAWin32.GUI.Component      (DSLState (..), GUIComponent,
-                                              GUIComponents)
+import           TEAWin32.GUI.Component      (GUIComponent)
+import           TEAWin32.GUI.DSL.Internal   (DSL, DSLState (..),
+                                              UniqueIdInternState (UniqueIdInternState))
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
@@ -44,7 +45,7 @@ updateFuncRef :: IORef (Msg -> Model -> IO Model)
 updateFuncRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE updateFuncRef #-}
 
-viewFuncRef :: IORef (Model -> GUIComponents)
+viewFuncRef :: IORef (Model -> DSL)
 viewFuncRef = unsafePerformIO (newIORef (errorTEAWin32 (InternalTEAWin32Error "TEA is not initialised.")))
 {-# NOINLINE viewFuncRef #-}
 
@@ -65,7 +66,7 @@ issueMsg msg = do
     atomicModifyIORef' modelRef (const (newModel, ()))
 
     viewFunc <- readIORef viewFuncRef
-    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) (DSLState 0 [])
+    let newGUIComponents = evalState (execWriterT $ viewFunc newModel) (DSLState 1 [] (UniqueIdInternState Map.empty 1))
 
     updateComponents newGUIComponents Nothing
 

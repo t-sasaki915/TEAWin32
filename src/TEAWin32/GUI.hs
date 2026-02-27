@@ -22,9 +22,7 @@ import           TEAWin32.Exception        (TEAWin32Error (InternalTEAWin32Error
                                             errorTEAWin32)
 import qualified TEAWin32.Internal.Foreign as Win32
 
-data UniqueId = UserUniqueId  Text
-              | SystemUniqueId Int
-              deriving (Show, Eq, Ord)
+newtype UniqueId = UniqueId Int deriving (Show, Eq, Ord)
 
 data WindowStyle = WindowStyleBorderless
                  | WindowStyleNormal

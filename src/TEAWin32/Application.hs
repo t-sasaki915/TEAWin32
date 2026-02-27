@@ -10,6 +10,7 @@ import           Control.Monad.State.Strict    (evalState)
 import           Control.Monad.Writer.Strict   (execWriterT)
 import           Data.Data                     (Typeable, cast)
 import           Data.IORef                    (atomicModifyIORef')
+import qualified Data.Map                      as Map
 import qualified Data.Text                     as Text
 import           Foreign                       (freeHaskellFunPtr)
 import           GHC.Stack                     (HasCallStack)
@@ -20,8 +21,9 @@ import           TEAWin32.Application.WndProc  (windowProc)
 import           TEAWin32.Exception            (ErrorLocation (..),
                                                 TEAWin32Error (..),
                                                 errorTEAWin32)
-import           TEAWin32.GUI.Component        (DSLState (..), GUIComponents,
-                                                IsGUIComponent (scheduleRendering))
+import           TEAWin32.GUI.Component        (IsGUIComponent (scheduleRendering))
+import           TEAWin32.GUI.DSL.Internal     (DSL, DSLState (..),
+                                                UniqueIdInternState (UniqueIdInternState))
 import qualified TEAWin32.GUI.Internal         as GUIInternal
 import           TEAWin32.GUI.VirtualDOM       (flushCCallRequests)
 import qualified TEAWin32.Internal.Foreign     as Win32
@@ -37,7 +39,7 @@ defaultSettings = Settings
     { useVisualStyles = True
     }
 
-runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
+runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -> (msg -> model -> IO model) -> (model -> DSL) -> IO ()
 runTEA settings init update view = do
     Native.enableDPIAware
 
@@ -54,7 +56,7 @@ runTEA settings init update view = do
 
     freeHaskellFunPtr wndProcPtr
 
-runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> GUIComponents) -> IO ()
+runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> DSL) -> IO ()
 runTEA' init update view = do
     initModel <- try_ init >>= \case
         Right x -> pure x
@@ -81,7 +83,7 @@ runTEA' init update view = do
     atomicModifyIORef' updateFuncRef (const (update', ()))
     atomicModifyIORef' viewFuncRef (const (view', ()))
 
-    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) (DSLState 0 [])
+    let initGUIComponents = evalState (execWriterT $ view' (Model initModel)) (DSLState 1 [] (UniqueIdInternState Map.empty 1))
 
     forM_ initGUIComponents $ \guiComponent ->
         scheduleRendering guiComponent Nothing -- TODO

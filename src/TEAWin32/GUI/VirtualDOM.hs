@@ -23,7 +23,6 @@ import qualified Graphics.Win32                   as Win32
 import           TEAWin32.Exception               (TEAWin32Error (InternalTEAWin32Error),
                                                    errorTEAWin32)
 import           TEAWin32.GUI
-import           TEAWin32.GUI.Intern              (internUniqueId)
 import           TEAWin32.GUI.VirtualDOM.Internal (InternalCCallRequest (..))
 
 foreign import ccall unsafe "ExecuteCCallRequests"
@@ -133,70 +132,59 @@ flushCCallRequests = do
 marshallRequest :: CCallRequest -> ContT a IO InternalCCallRequest
 marshallRequest (CreateWindowRequest req) =
     ContT (withCWString (Text.unpack $ newWindowClassName req)) >>= \classNamePtr ->
-        liftIO (internUniqueId (newWindowUniqueId req)) >>= \windowUniqueId ->
-            liftIO (maybe (pure Nothing) (fmap Just . internUniqueId) (newWindowParentUniqueId req)) >>= \parentUniqueId ->
-                pure $ CreateWindowRequest'
-                    windowUniqueId
-                    classNamePtr
-                    (newWindowExStyles req)
-                    (newWindowStyles req)
-                    parentUniqueId
+        pure $ CreateWindowRequest'
+            (newWindowUniqueId req)
+            classNamePtr
+            (newWindowExStyles req)
+            (newWindowStyles req)
+            (newWindowParentUniqueId req)
 
 marshallRequest (CreateButtonRequest req) =
-    liftIO (internUniqueId (newButtonUniqueId req)) >>= \buttonUniqueId ->
-        liftIO (internUniqueId (newButtonParentUniqueId req)) >>= \parentUniqueId ->
-            pure (CreateButtonRequest' buttonUniqueId parentUniqueId)
+    pure (CreateButtonRequest' (newButtonUniqueId req) (newButtonParentUniqueId req))
 
 marshallRequest (DestroyComponentRequest target) =
-    liftIO (internUniqueId target) >>= \target' ->
-        pure (DestroyComponentRequest' target')
+    pure (DestroyComponentRequest' target)
 
 marshallRequest (UpdateTextRequest target text) =
     ContT (withCWString (Text.unpack text)) >>= \textPtr ->
-        liftIO (internUniqueId target) >>= \target' ->
-            pure (UpdateTextRequest' target' textPtr)
+        pure (UpdateTextRequest' target textPtr)
 
 marshallRequest (UpdatePosRequest target req) =
-    liftIO (internUniqueId target) >>= \target' ->
-        pure $ UpdatePosRequest'
-            target'
-            (isJust (newLocation req))
-            (isJust (newSize req))
-            (bringComponentToFront req)
-            (fst <$> newLocation req)
-            (snd <$> newLocation req)
-            (fst <$> newSize req)
-            (snd <$> newSize req)
+    pure $ UpdatePosRequest'
+        target
+        (isJust (newLocation req))
+        (isJust (newSize req))
+        (bringComponentToFront req)
+        (fst <$> newLocation req)
+        (snd <$> newLocation req)
+        (fst <$> newSize req)
+        (snd <$> newSize req)
 
 marshallRequest (UpdateFontRequest target font) =
     ContT (withCWString (Text.unpack $ fontName font)) >>= \fontNamePtr ->
-        liftIO (internUniqueId target) >>= \target' ->
-            pure $ UpdateFontRequest'
-                target'
-                fontNamePtr
-                (fontSize font)
-                0 -- TODO
+        pure $ UpdateFontRequest'
+            target
+            fontNamePtr
+            (fontSize font)
+            0 -- TODO
 
 marshallRequest (UpdateIconRequest target icon) =
-    liftIO (internUniqueId target) >>= \target' ->
-        case getIconType icon of
-            ResourceIcon ->
-                pure $ UpdateIconRequest'
-                    target'
-                    ResourceIcon
-                    Nothing
-                    (Just (toWin32Icon icon))
-            StockIcon ->
-                pure $ UpdateIconRequest'
-                    target'
-                    StockIcon
-                    (Just (toStockIconId icon))
-                    Nothing
+    case getIconType icon of
+        ResourceIcon ->
+            pure $ UpdateIconRequest'
+                target
+                ResourceIcon
+                Nothing
+                (Just (toWin32Icon icon))
+        StockIcon ->
+            pure $ UpdateIconRequest'
+                target
+                StockIcon
+                (Just (toStockIconId icon))
+                Nothing
 
 marshallRequest (UpdateCursorRequest target cursor) =
-    liftIO (internUniqueId target) >>= \target' ->
-        pure (UpdateCursorRequest' target' (toWin32Cursor cursor))
+    pure (UpdateCursorRequest' target (toWin32Cursor cursor))
 
 marshallRequest (InvalidateRectFullyRequest target) =
-    liftIO (internUniqueId target) >>= \target' ->
-        pure (InvalidateRectFullyRequest' target')
+    pure (InvalidateRectFullyRequest' target)

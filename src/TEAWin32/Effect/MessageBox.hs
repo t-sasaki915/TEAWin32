@@ -38,7 +38,7 @@ showMessageBox settings = do
             [msgBoxBtns, msgBoxIcon, msgBoxDefBtn, msgBoxTaskModal, msgBoxRightText, msgBoxSetForeground, msgBoxTopMost]
 
     maybeOwner <- case messageBoxOwnerUniqueId settings of
-        Just uniqueId -> getComponentHWNDFromUniqueIdRegistryMaybe (UserUniqueId uniqueId)
+        --Just uniqueId -> getComponentHWNDFromUniqueIdRegistryMaybe (UserUniqueId uniqueId)
         Nothing       -> pure Nothing
 
     fromWin32MessageBoxResult <$>

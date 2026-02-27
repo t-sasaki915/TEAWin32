@@ -5,7 +5,7 @@ module TEAWin32.GUI.DSL
     , module TEAWin32.GUI
     , module TEAWin32.GUI.Component.Button.DSL
     , module TEAWin32.GUI.Component.Window.DSL
-    , GUIComponents
+    , DSL
     , noChildren
     , title_
     , size_
@@ -22,12 +22,12 @@ import           TEAWin32.Drawing                  (Colour (..))
 import           TEAWin32.GUI                      (Cursor (..), Font (..),
                                                     Icon (..), ScalableValue,
                                                     WindowStyle (..), raw)
-import           TEAWin32.GUI.Component            (GUIComponents)
 import           TEAWin32.GUI.Component.Button.DSL
 import           TEAWin32.GUI.Component.Property
 import           TEAWin32.GUI.Component.Window.DSL
+import           TEAWin32.GUI.DSL.Internal         (DSL)
 
-noChildren :: GUIComponents
+noChildren :: DSL
 noChildren = pure ()
 
 title_ :: (IsPropertyWrapper a ComponentTitle) => Text -> a

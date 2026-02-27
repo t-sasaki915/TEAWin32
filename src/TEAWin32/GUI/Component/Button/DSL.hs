@@ -2,20 +2,19 @@ module TEAWin32.GUI.Component.Button.DSL (button_', button_) where
 
 import           Control.Monad.Writer.Strict            (MonadWriter (tell))
 import           Data.Text                              (Text)
-import           TEAWin32.GUI                           (UniqueId (..))
-import           TEAWin32.GUI.Component                 (GUIComponent (..),
-                                                         GUIComponents)
+import           TEAWin32.GUI.Component                 (GUIComponent (..))
 import           TEAWin32.GUI.Component.Button          (Button (Button))
 import           TEAWin32.GUI.Component.Button.Property
-import           TEAWin32.GUI.DSL.Internal              (getNextSystemUniqueId,
-                                                         recordUserUniqueId)
+import           TEAWin32.GUI.DSL.Internal              (DSL,
+                                                         generateNextUniqueId,
+                                                         internUserUniqueId)
 
-button_' :: Text -> [ButtonProperty] -> GUIComponents
+button_' :: Text -> [ButtonProperty] -> DSL
 button_' uniqueId properties =
-    recordUserUniqueId uniqueId >>
-        tell [GUIComponent (Button (UserUniqueId uniqueId) properties)]
+    internUserUniqueId uniqueId >>= \uid ->
+        tell [GUIComponent (Button uid properties)]
 
-button_ :: [ButtonProperty] -> GUIComponents
+button_ :: [ButtonProperty] -> DSL
 button_ properties =
-    getNextSystemUniqueId >>= \uniqueId ->
-        tell [GUIComponent (Button uniqueId properties)]
+    generateNextUniqueId >>= \uid ->
+        tell [GUIComponent (Button uid properties)]

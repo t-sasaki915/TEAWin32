@@ -1,28 +1,16 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module TEAWin32.GUI.Component
-    ( GUIComponents
-    , ComponentType (..)
+    ( ComponentType (..)
     , IsGUIComponent (..)
     , GUIComponent (..)
     , ZIndex (..)
     , EventType (..)
-    , DSLState (..)
     ) where
 
-import           Control.Monad.State.Strict  (State)
-import           Control.Monad.Writer.Strict (WriterT)
-import           Data.Data                   (Typeable, cast)
-import           Data.Text                   (Text)
-import           GHC.Stack                   (HasCallStack)
-import           TEAWin32.GUI                (UniqueId)
-
-data DSLState = DSLState
-    { nextSystemUniqueIdNum :: Int
-    , userUniqueIds         :: [Text]
-    }
-
-type GUIComponents = WriterT [GUIComponent] (State DSLState) ()
+import           Data.Data    (Typeable, cast)
+import           GHC.Stack    (HasCallStack)
+import           TEAWin32.GUI (UniqueId)
 
 data ComponentType = ComponentWindow
                    | ComponentButton

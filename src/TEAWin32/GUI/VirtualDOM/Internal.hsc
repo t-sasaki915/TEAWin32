@@ -10,21 +10,21 @@ import           Foreign                   (Storable (..), Word32, fillBytes,
 import           Foreign.C                 (CDouble (..), CInt)
 import qualified Graphics.Win32            as Win32
 import           TEAWin32.Exception        (TEAWin32Error (..), errorTEAWin32)
-import           TEAWin32.GUI              (IconType (..), ScalableValue (..))
+import           TEAWin32.GUI              (IconType (..), ScalableValue (..), UniqueId (..))
 import qualified TEAWin32.Internal.Foreign as Win32
 
 #include "DPIAware.h"
 #include "VirtualDOM.h"
 
-data InternalCCallRequest = CreateWindowRequest'        CInt Win32.LPCWSTR Win32.DWORD Win32.DWORD (Maybe CInt)
-                          | CreateButtonRequest'        CInt CInt
-                          | DestroyComponentRequest'    CInt
-                          | UpdateTextRequest'          CInt Win32.LPCWSTR
-                          | UpdatePosRequest'           CInt Win32.BOOL Win32.BOOL Win32.BOOL (Maybe ScalableValue) (Maybe ScalableValue) (Maybe ScalableValue) (Maybe ScalableValue)
-                          | UpdateFontRequest'          CInt Win32.LPCWSTR ScalableValue CInt
-                          | UpdateIconRequest'          CInt IconType (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
-                          | UpdateCursorRequest'        CInt Win32.LPCWSTR
-                          | InvalidateRectFullyRequest' CInt
+data InternalCCallRequest = CreateWindowRequest'        UniqueId Win32.LPCWSTR Win32.DWORD Win32.DWORD (Maybe UniqueId)
+                          | CreateButtonRequest'        UniqueId UniqueId
+                          | DestroyComponentRequest'    UniqueId
+                          | UpdateTextRequest'          UniqueId Win32.LPCWSTR
+                          | UpdatePosRequest'           UniqueId Win32.BOOL Win32.BOOL Win32.BOOL (Maybe ScalableValue) (Maybe ScalableValue) (Maybe ScalableValue) (Maybe ScalableValue)
+                          | UpdateFontRequest'          UniqueId Win32.LPCWSTR ScalableValue CInt
+                          | UpdateIconRequest'          UniqueId IconType (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
+                          | UpdateCursorRequest'        UniqueId Win32.LPCWSTR
+                          | InvalidateRectFullyRequest' UniqueId
 
 instance Storable ScalableValue where
     sizeOf _ = #{size CScalableValue}
@@ -63,9 +63,9 @@ instance Storable InternalCCallRequest where
         fillBytes ptr 0 (sizeOf val)
 
         case val of
-            (CreateWindowRequest' uniqueId className exStyles styles maybeParent) -> do
+            (CreateWindowRequest' (UniqueId uniqueId) className exStyles styles maybeParent) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_CREATE_WINDOW} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr uniqueId
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
 
                 let dataPtr = ptr `plusPtr` #{offset CCallRequest, reqData.createWindowReq}
 
@@ -74,29 +74,29 @@ instance Storable InternalCCallRequest where
                 #{poke CreateWindowReq, newWindowStyles}    dataPtr styles
                 
                 case maybeParent of
-                    Just parent ->
-                        #{poke CreateWindowReq, newWindowParentUniqueId} dataPtr parent
+                    Just (UniqueId parent) ->
+                        #{poke CreateWindowReq, newWindowParentUniqueId} dataPtr (fromIntegral parent :: CInt)
 
                     Nothing ->
                         #{poke CreateWindowReq, newWindowParentUniqueId} dataPtr Win32.nullPtr
 
-            (CreateButtonRequest' uniqueId parentId) -> do
+            (CreateButtonRequest' (UniqueId uniqueId) (UniqueId parentId)) -> do
                 #{poke CCallRequest, reqType}                         ptr (#{const REQ_CREATE_BUTTON} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId}                  ptr uniqueId
-                #{poke CCallRequest, reqData.newButtonParentUniqueId} ptr parentId
+                #{poke CCallRequest, targetUniqueId}                  ptr (fromIntegral uniqueId :: CInt)
+                #{poke CCallRequest, reqData.newButtonParentUniqueId} ptr (fromIntegral parentId :: CInt)
 
-            (DestroyComponentRequest' hwnd) -> do
+            (DestroyComponentRequest' (UniqueId uniqueId)) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_DESTROY_COMPONENT} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr hwnd
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
 
-            (UpdateTextRequest' hwnd textPtr) -> do
+            (UpdateTextRequest' (UniqueId uniqueId) textPtr) -> do
                 #{poke CCallRequest, reqType}                  ptr (#{const REQ_UPDATE_TEXT} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId}           ptr hwnd
+                #{poke CCallRequest, targetUniqueId}           ptr (fromIntegral uniqueId :: CInt)
                 #{poke CCallRequest, reqData.newComponentText} ptr textPtr
 
-            (UpdatePosRequest' hwnd hasNewLoc hasNewSize bringFront maybeNewX maybeNewY maybeNewWidth maybeNewHeight) -> do
+            (UpdatePosRequest' (UniqueId uniqueId) hasNewLoc hasNewSize bringFront maybeNewX maybeNewY maybeNewWidth maybeNewHeight) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_UPDATE_POS} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr hwnd
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
 
                 let dataPtr = ptr `plusPtr` #{offset CCallRequest, reqData.updatePosReq}
 
@@ -112,9 +112,9 @@ instance Storable InternalCCallRequest where
                     #{poke UpdatePosReq, newWidth}  dataPtr (fromJust maybeNewWidth)
                     #{poke UpdatePosReq, newHeight} dataPtr (fromJust maybeNewHeight)
 
-            (UpdateFontRequest' hwnd fontName fontSize fontStyle) -> do
+            (UpdateFontRequest' (UniqueId uniqueId) fontName fontSize fontStyle) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_UPDATE_FONT} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr hwnd
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
 
                 let dataPtr = ptr `plusPtr` #{offset CCallRequest, reqData.newFontCacheKey}
 
@@ -122,9 +122,9 @@ instance Storable InternalCCallRequest where
                 #{poke CachedFont, fontSize}  dataPtr fontSize
                 #{poke CachedFont, fontStyle} dataPtr fontStyle
 
-            (UpdateIconRequest' hwnd iconType maybeStockIconId maybeResourceId) -> do
+            (UpdateIconRequest' (UniqueId uniqueId) iconType maybeStockIconId maybeResourceId) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_UPDATE_ICON} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr hwnd
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
                 
                 let dataPtr = ptr `plusPtr` #{offset CCallRequest, reqData.newIconCacheKey}
 
@@ -136,14 +136,14 @@ instance Storable InternalCCallRequest where
                         #{poke CachedIcon, iconType}           dataPtr (0 :: CInt)
                         #{poke CachedIcon, iconId.resourceId}  dataPtr (fromJust maybeResourceId)
 
-            (UpdateCursorRequest' hwnd cursorId) -> do
+            (UpdateCursorRequest' (UniqueId uniqueId) cursorId) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_UPDATE_CURSOR} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr hwnd
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
 
                 let dataPtr = ptr `plusPtr` #{offset CCallRequest, reqData.newCursorCacheKey}
 
                 #{poke CachedCursor, cursorKey} dataPtr cursorId
 
-            (InvalidateRectFullyRequest' hwnd) -> do
+            (InvalidateRectFullyRequest' (UniqueId uniqueId)) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_INVALIDATE_RECT_FULLY} :: #{type RequestType})
-                #{poke CCallRequest, targetUniqueId} ptr hwnd
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
