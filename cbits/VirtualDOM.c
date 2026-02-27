@@ -45,13 +45,19 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 flags = flags | SWP_NOZORDER;
             }
 
+            HWND hwndInsertAfter = NULL;
+            if (updatePosReq.bringComponentToFront)
+            {
+                hwndInsertAfter = HWND_TOP;
+            }
+
             if (hdwp != NULL)
             {
-                *hdwp = DeferWindowPos(*hdwp, target, HWND_TOP, x, y, w, h, flags);
+                *hdwp = DeferWindowPos(*hdwp, target, hwndInsertAfter, x, y, w, h, flags);
             }
             else
             {
-                SetWindowPos(target, HWND_TOP, x, y, w, h, flags);
+                SetWindowPos(target, hwndInsertAfter, x, y, w, h, flags);
             }
 
             break;
