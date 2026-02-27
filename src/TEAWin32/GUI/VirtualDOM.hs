@@ -104,10 +104,10 @@ combineRequests newReq@(InvalidateRectFullyRequest _) (InvalidateRectFullyReques
 combineRequests (UpdatePosRequest hwnd newReq) (UpdatePosRequest _ oldReq) =
     UpdatePosRequest hwnd $
         UpdatePosReq
-        { newLocation           = newLocation newReq <|> newLocation oldReq
-        , newSize               = newSize newReq     <|> newSize oldReq
-        , bringComponentToFront = bringComponentToFront newReq || bringComponentToFront oldReq
-        }
+            { newLocation           = newLocation newReq <|> newLocation oldReq
+            , newSize               = newSize newReq     <|> newSize oldReq
+            , bringComponentToFront = bringComponentToFront newReq || bringComponentToFront oldReq
+            }
 combineRequests _ _ = errorTEAWin32 (InternalTEAWin32Error "Tried to combine incompatible CCallRequests.")
 
 scheduleCCall :: CCallRequest -> IO ()
