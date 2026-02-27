@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module TEAWin32.GUI.VirtualDOM.Internal (InternalCCallRequest (..)) where
 
