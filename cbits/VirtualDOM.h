@@ -2,6 +2,8 @@
 #define VIRTUALDOM_H
 
 #include "Cache.h"
+#include "DPIAware.h"
+
 
 #include <windows.h>
 
@@ -20,6 +22,7 @@ typedef enum
 
 typedef struct
 {
+    int newWindowParentUniqueId;
     LPCWSTR newWindowClassName;
     DWORD newWindowExStyles;
     DWORD newWindowStyles;
@@ -30,18 +33,19 @@ typedef struct
     BOOL hasNewLocation;
     BOOL hasNewSize;
     BOOL bringComponentToFront;
-    int newX;
-    int newY;
-    int newWidth;
-    int newHeight;
+    CScalableValue newX;
+    CScalableValue newY;
+    CScalableValue newWidth;
+    CScalableValue newHeight;
 } UpdatePosReq;
 
 typedef struct
 {
     RequestType reqType;
-    HWND targetHWND; // Parent HWND if request of creation
+    int targetUniqueId; // New uniqueId if request of creation
     union {
         CreateWindowReq createWindowReq;
+        int newButtonParentUniqueId;
         LPCWSTR newComponentText;
         UpdatePosReq updatePosReq;
         CachedFont newFontCacheKey;

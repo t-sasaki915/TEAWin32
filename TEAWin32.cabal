@@ -55,6 +55,7 @@ library
       TEAWin32.GUI.VirtualDOM.Internal
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
+      TEAWin32.GUI.Intern
       TEAWin32.GUI.Internal
       TEAWin32.GUI.VirtualDOM
       TEAWin32.Internal.Foreign

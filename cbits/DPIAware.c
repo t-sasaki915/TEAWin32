@@ -1,3 +1,5 @@
+#include "DPIAware.h"
+
 #include <windows.h>
 
 typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);
@@ -77,4 +79,26 @@ double GetScaleFactorForHWND(HWND hwnd)
 int ScaleValue(double scaleFactor, int v)
 {
     return ((int)((v * scaleFactor) + 0.5));
+}
+
+int Scale(double scaleFactor, CScalableValue scalable)
+{
+    if (!scalable.isScalable)
+    {
+        return ScaleValue(1.0, scalable.value);
+    }
+
+    return ScaleValue(scaleFactor, scalable.value);
+}
+
+int ResolveScalableValueForHWND(CScalableValue scalableValue, HWND hwnd)
+{
+    if (!scalableValue.isScalable)
+    {
+        return ScaleValue(1.0, scalableValue.value);
+    }
+    else
+    {
+        return (GetScaleFactorForHWND(hwnd), scalableValue.value);
+    }
 }

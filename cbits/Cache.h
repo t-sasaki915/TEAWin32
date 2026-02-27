@@ -1,12 +1,14 @@
 #ifndef CACHE_H
 #define CACHE_H
 
+#include "DPIAware.h"
+
 #include <windows.h>
 
 typedef struct
 {
     LPCWSTR fontName;
-    int fontSize;
+    CScalableValue fontSize;
     double scaleRatio;
     int fontStyle; // 0: Normal, 1: Italic, 2: Bold
 } CachedFont;

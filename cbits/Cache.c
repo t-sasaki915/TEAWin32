@@ -92,9 +92,17 @@ HFONT GetCachedFont(CachedFont fontKey)
     for (int i = 0; i < FONT_CACHE_COUNT; i++)
     {
         CachedFont entry = FONT_CACHE[i].fontCacheKey;
-        if ((fontKey.fontName == entry.fontName || wcscmp(fontKey.fontName, entry.fontName) == 0) &&
-            fontKey.fontSize == entry.fontSize && fontKey.fontStyle == entry.fontStyle &&
-            fontKey.scaleRatio == entry.scaleRatio)
+
+        BOOL matchFontName = fontKey.fontName == entry.fontName || wcscmp(fontKey.fontName, entry.fontName) == 0;
+        BOOL matchFontSize = CScalableValue_Equals(fontKey.fontSize, entry.fontSize);
+        BOOL matchFontStyle = fontKey.fontStyle == entry.fontStyle;
+        BOOL matchScaleRatio = fontKey.scaleRatio == entry.scaleRatio;
+        if (!fontKey.fontSize.isScalable && !entry.fontSize.isScalable)
+        {
+            matchScaleRatio = TRUE;
+        }
+
+        if (matchFontName && matchFontSize && matchFontStyle && matchScaleRatio)
         {
             return FONT_CACHE[i].fontCacheHandle;
         }
@@ -105,7 +113,7 @@ HFONT GetCachedFont(CachedFont fontKey)
         wchar_t *permanentFontName = _wcsdup(fontKey.fontName);
 
         HFONT newFont = CreateFontW(
-            -fontKey.fontSize,
+            -Scale(fontKey.scaleRatio, fontKey.fontSize),
             0,
             0,
             0,

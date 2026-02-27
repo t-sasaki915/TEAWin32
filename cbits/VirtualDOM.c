@@ -1,13 +1,16 @@
 #include "VirtualDOM.h"
 #include "Cache.h"
 
+#include <stdio.h>
 #include <windows.h>
 
 void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 {
-    HWND target = request->targetHWND;
+    // HWND target = request->targetHWND;
 
-    switch (request->reqType)
+    printf("%d, %d\n", request->reqType, request->targetUniqueId);
+
+    /*switch (request->reqType)
     {
         case REQ_CREATE_WINDOW: {
             break;
@@ -82,7 +85,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             break;
         }
-    }
+    }*/
 }
 
 void ExecuteCCallRequests(CCallRequest requests[], int requestSize, int updatePosNumber)

@@ -7,33 +7,29 @@ module TEAWin32.GUI.VirtualDOM
     , flushCCallRequests
     ) where
 
-import           Control.Applicative                      ((<|>))
-import           Control.Monad.Cont                       (ContT (..))
-import           Control.Monad.IO.Class                   (liftIO)
-import           Data.IORef                               (IORef,
-                                                           atomicModifyIORef',
-                                                           newIORef)
-import qualified Data.List                                as List
-import           Data.Maybe                               (fromMaybe, isJust)
-import           Data.Text                                (Text)
-import qualified Data.Text                                as Text
-import           Foreign                                  (Ptr, withArray)
-import           Foreign.C                                (CDouble (..),
-                                                           withCWString)
-import           GHC.IO                                   (unsafePerformIO)
-import qualified Graphics.Win32                           as Win32
-import           TEAWin32.Exception                       (TEAWin32Error (InternalTEAWin32Error),
-                                                           errorTEAWin32)
+import           Control.Applicative              ((<|>))
+import           Control.Monad.Cont               (ContT (..))
+import           Control.Monad.IO.Class           (liftIO)
+import           Data.IORef                       (IORef, atomicModifyIORef',
+                                                   newIORef)
+import qualified Data.List                        as List
+import           Data.Maybe                       (isJust)
+import           Data.Text                        (Text)
+import qualified Data.Text                        as Text
+import           Foreign                          (Ptr, withArray)
+import           Foreign.C                        (withCWString)
+import           GHC.IO                           (unsafePerformIO)
+import qualified Graphics.Win32                   as Win32
+import           TEAWin32.Exception               (TEAWin32Error (InternalTEAWin32Error),
+                                                   errorTEAWin32)
 import           TEAWin32.GUI
-import           TEAWin32.GUI.Component.ComponentRegistry (ComponentRegistryKey (ComponentScaleFactorRegKey),
-                                                           getComponentRegistryEntryValue)
-import           TEAWin32.GUI.VirtualDOM.Internal         (InternalCCallRequest (..))
-import           TEAWin32.Util                            (applyScaleFactor)
+import           TEAWin32.GUI.Intern              (internUniqueId)
+import           TEAWin32.GUI.VirtualDOM.Internal (InternalCCallRequest (..))
 
 foreign import ccall unsafe "ExecuteCCallRequests"
     c_ExecuteCCallRequests :: Ptr InternalCCallRequest -> Int -> Int -> IO ()
 
-cCallScheduleListRef :: IORef [(Maybe Win32.HWND, CCallRequest)]
+cCallScheduleListRef :: IORef [(Maybe UniqueId, CCallRequest)]
 cCallScheduleListRef = unsafePerformIO (newIORef [])
 {-# NOINLINE cCallScheduleListRef #-}
 
@@ -44,47 +40,49 @@ data UpdatePosReq = UpdatePosReq
     } deriving Eq
 
 data CreateWindowReq = CreateWindowReq
-    { newWindowClassName  :: Text
-    , newWindowExStyles   :: Win32.DWORD
-    , newWindowStyles     :: Win32.DWORD
-    , newWindowParentHWND :: Maybe Win32.HWND
+    { newWindowUniqueId       :: UniqueId
+    , newWindowClassName      :: Text
+    , newWindowExStyles       :: Win32.DWORD
+    , newWindowStyles         :: Win32.DWORD
+    , newWindowParentUniqueId :: Maybe UniqueId
     } deriving Eq
 
-newtype CreateButtonReq = CreateButtonReq
-    { newButtonParentHWND :: Win32.HWND
+data CreateButtonReq = CreateButtonReq
+    { newButtonUniqueId       :: UniqueId
+    , newButtonParentUniqueId :: UniqueId
     } deriving Eq
 
 data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | CreateButtonRequest        CreateButtonReq
-                  | DestroyComponentRequest    Win32.HWND
-                  | UpdateTextRequest          Win32.HWND Text
-                  | UpdatePosRequest           Win32.HWND UpdatePosReq
-                  | UpdateFontRequest          Win32.HWND Font
-                  | UpdateIconRequest          Win32.HWND Icon
-                  | UpdateCursorRequest        Win32.HWND Cursor
-                  | InvalidateRectFullyRequest Win32.HWND
+                  | DestroyComponentRequest    UniqueId
+                  | UpdateTextRequest          UniqueId Text
+                  | UpdatePosRequest           UniqueId UpdatePosReq
+                  | UpdateFontRequest          UniqueId Font
+                  | UpdateIconRequest          UniqueId Icon
+                  | UpdateCursorRequest        UniqueId Cursor
+                  | InvalidateRectFullyRequest UniqueId
                   deriving Eq
 
-getHWNDFromReq :: CCallRequest -> Maybe Win32.HWND
-getHWNDFromReq (CreateWindowRequest _)           = Nothing
-getHWNDFromReq (CreateButtonRequest _)           = Nothing
-getHWNDFromReq (DestroyComponentRequest hwnd)    = Just hwnd
-getHWNDFromReq (UpdateTextRequest hwnd _)        = Just hwnd
-getHWNDFromReq (UpdatePosRequest hwnd _)         = Just hwnd
-getHWNDFromReq (UpdateFontRequest hwnd _)        = Just hwnd
-getHWNDFromReq (UpdateIconRequest hwnd _)        = Just hwnd
-getHWNDFromReq (UpdateCursorRequest hwnd _)      = Just hwnd
-getHWNDFromReq (InvalidateRectFullyRequest hwnd) = Just hwnd
+getTargetFromReq :: CCallRequest -> Maybe UniqueId
+getTargetFromReq (CreateWindowRequest _)               = Nothing
+getTargetFromReq (CreateButtonRequest _)               = Nothing
+getTargetFromReq (DestroyComponentRequest uniqueId)    = Just uniqueId
+getTargetFromReq (UpdateTextRequest uniqueId _)        = Just uniqueId
+getTargetFromReq (UpdatePosRequest uniqueId _)         = Just uniqueId
+getTargetFromReq (UpdateFontRequest uniqueId _)        = Just uniqueId
+getTargetFromReq (UpdateIconRequest uniqueId _)        = Just uniqueId
+getTargetFromReq (UpdateCursorRequest uniqueId _)      = Just uniqueId
+getTargetFromReq (InvalidateRectFullyRequest uniqueId) = Just uniqueId
 
 canCombine :: CCallRequest -> CCallRequest -> Bool
-canCombine (DestroyComponentRequest h1)         (DestroyComponentRequest h2)         = h1 == h2
-canCombine (UpdateTextRequest h1 _)             (UpdateTextRequest h2 _)             = h1 == h2
-canCombine (UpdatePosRequest h1 _)              (UpdatePosRequest h2 _)              = h1 == h2
-canCombine (UpdateFontRequest h1 _)             (UpdateFontRequest h2 _)             = h1 == h2
-canCombine (UpdateIconRequest h1 _)             (UpdateIconRequest h2 _)             = h1 == h2
-canCombine (UpdateCursorRequest h1 _)           (UpdateCursorRequest h2 _)           = h1 == h2
-canCombine (InvalidateRectFullyRequest h1)      (InvalidateRectFullyRequest h2)      = h1 == h2
-canCombine _ _                                                                       = False
+canCombine (DestroyComponentRequest u1)         (DestroyComponentRequest u2)    = u1 == u2
+canCombine (UpdateTextRequest u1 _)             (UpdateTextRequest u2 _)        = u1 == u2
+canCombine (UpdatePosRequest u1 _)              (UpdatePosRequest u2 _)         = u1 == u2
+canCombine (UpdateFontRequest u1 _)             (UpdateFontRequest u2 _)        = u1 == u2
+canCombine (UpdateIconRequest u1 _)             (UpdateIconRequest u2 _)        = u1 == u2
+canCombine (UpdateCursorRequest u1 _)           (UpdateCursorRequest u2 _)      = u1 == u2
+canCombine (InvalidateRectFullyRequest u1)      (InvalidateRectFullyRequest u2) = u1 == u2
+canCombine _ _                                                                  = False
 
 isUpdatePosRequest :: CCallRequest -> Bool
 isUpdatePosRequest (UpdatePosRequest _ _) = True
@@ -97,8 +95,8 @@ combineRequests newReq@(UpdateFontRequest _ _)        (UpdateFontRequest _ _)   
 combineRequests newReq@(UpdateIconRequest _ _)        (UpdateIconRequest _ _)        = newReq
 combineRequests newReq@(UpdateCursorRequest _ _)      (UpdateCursorRequest _ _)      = newReq
 combineRequests newReq@(InvalidateRectFullyRequest _) (InvalidateRectFullyRequest _) = newReq
-combineRequests (UpdatePosRequest hwnd newReq) (UpdatePosRequest _ oldReq) =
-    UpdatePosRequest hwnd $
+combineRequests (UpdatePosRequest uniqueId newReq) (UpdatePosRequest _ oldReq) =
+    UpdatePosRequest uniqueId $
         UpdatePosReq
             { newLocation           = newLocation newReq <|> newLocation oldReq
             , newSize               = newSize newReq     <|> newSize oldReq
@@ -109,15 +107,15 @@ combineRequests _ _ = errorTEAWin32 (InternalTEAWin32Error "Tried to combine inc
 scheduleCCall :: CCallRequest -> IO ()
 scheduleCCall newReq =
     atomicModifyIORef' cCallScheduleListRef $ \scheduleList ->
-        case getHWNDFromReq newReq of
-            Just hwnd ->
+        case getTargetFromReq newReq of
+            Just targetUniqueId ->
                 case List.find (\(_, oldReq) -> canCombine newReq oldReq) scheduleList of
                     Just (_, oldReq) ->
                         let filteredList = filter (\(_, req) -> req /= oldReq) scheduleList in
-                            ((Just hwnd, combineRequests newReq oldReq) : filteredList, ())
+                            ((Just targetUniqueId, combineRequests newReq oldReq) : filteredList, ())
 
                     Nothing ->
-                        ((Just hwnd, newReq) : scheduleList, ())
+                        ((Just targetUniqueId, newReq) : scheduleList, ())
 
             Nothing ->
                 ((Nothing, newReq) : scheduleList, ())
@@ -135,64 +133,70 @@ flushCCallRequests = do
 marshallRequest :: CCallRequest -> ContT a IO InternalCCallRequest
 marshallRequest (CreateWindowRequest req) =
     ContT (withCWString (Text.unpack $ newWindowClassName req)) >>= \classNamePtr ->
-        pure $ CreateWindowRequest'
-            (fromMaybe Win32.nullPtr (newWindowParentHWND req))
-            classNamePtr
-            (newWindowExStyles req)
-            (newWindowStyles req)
+        liftIO (internUniqueId (newWindowUniqueId req)) >>= \windowUniqueId ->
+            liftIO (maybe (pure Nothing) (fmap Just . internUniqueId) (newWindowParentUniqueId req)) >>= \parentUniqueId ->
+                pure $ CreateWindowRequest'
+                    windowUniqueId
+                    classNamePtr
+                    (newWindowExStyles req)
+                    (newWindowStyles req)
+                    parentUniqueId
 
 marshallRequest (CreateButtonRequest req) =
-    pure (CreateButtonRequest' (newButtonParentHWND req))
+    liftIO (internUniqueId (newButtonUniqueId req)) >>= \buttonUniqueId ->
+        liftIO (internUniqueId (newButtonParentUniqueId req)) >>= \parentUniqueId ->
+            pure (CreateButtonRequest' buttonUniqueId parentUniqueId)
 
-marshallRequest (DestroyComponentRequest hwnd) =
-    pure (DestroyComponentRequest' hwnd)
+marshallRequest (DestroyComponentRequest target) =
+    liftIO (internUniqueId target) >>= \target' ->
+        pure (DestroyComponentRequest' target')
 
-marshallRequest (UpdateTextRequest hwnd text) =
+marshallRequest (UpdateTextRequest target text) =
     ContT (withCWString (Text.unpack text)) >>= \textPtr ->
-        pure (UpdateTextRequest' hwnd textPtr)
+        liftIO (internUniqueId target) >>= \target' ->
+            pure (UpdateTextRequest' target' textPtr)
 
-marshallRequest (UpdatePosRequest hwnd req) =
-    liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+marshallRequest (UpdatePosRequest target req) =
+    liftIO (internUniqueId target) >>= \target' ->
         pure $ UpdatePosRequest'
-            hwnd
+            target'
             (isJust (newLocation req))
             (isJust (newSize req))
             (bringComponentToFront req)
-            (fromIntegral . (`applyScaleFactor` scaleFactor) . fst <$> newLocation req)
-            (fromIntegral . (`applyScaleFactor` scaleFactor) . snd <$> newLocation req)
-            (fromIntegral . (`applyScaleFactor` scaleFactor) . fst <$> newSize req)
-            (fromIntegral . (`applyScaleFactor` scaleFactor) . snd <$> newSize req)
+            (fst <$> newLocation req)
+            (snd <$> newLocation req)
+            (fst <$> newSize req)
+            (snd <$> newSize req)
 
-marshallRequest (UpdateFontRequest hwnd font) =
+marshallRequest (UpdateFontRequest target font) =
     ContT (withCWString (Text.unpack $ fontName font)) >>= \fontNamePtr ->
-        liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+        liftIO (internUniqueId target) >>= \target' ->
             pure $ UpdateFontRequest'
-                hwnd
+                target'
                 fontNamePtr
-                (fromIntegral $ applyScaleFactor (fontSize font) scaleFactor)
-                (CDouble scaleFactor)
+                (fontSize font)
                 0 -- TODO
 
-marshallRequest (UpdateIconRequest hwnd icon) =
-    liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+marshallRequest (UpdateIconRequest target icon) =
+    liftIO (internUniqueId target) >>= \target' ->
         case getIconType icon of
             ResourceIcon ->
                 pure $ UpdateIconRequest'
-                    hwnd
+                    target'
                     ResourceIcon
-                    (CDouble scaleFactor)
                     Nothing
                     (Just (toWin32Icon' icon))
             StockIcon ->
                 pure $ UpdateIconRequest'
-                    hwnd
+                    target'
                     StockIcon
-                    (CDouble scaleFactor)
                     (Just (toStockIconId icon))
                     Nothing
 
-marshallRequest (UpdateCursorRequest hwnd cursor) =
-    pure (UpdateCursorRequest' hwnd (toWin32Cursor' cursor))
+marshallRequest (UpdateCursorRequest target cursor) =
+    liftIO (internUniqueId target) >>= \target' ->
+        pure (UpdateCursorRequest' target' (toWin32Cursor' cursor))
 
-marshallRequest (InvalidateRectFullyRequest hwnd) =
-    pure (InvalidateRectFullyRequest' hwnd)
+marshallRequest (InvalidateRectFullyRequest target) =
+    liftIO (internUniqueId target) >>= \target' ->
+        pure (InvalidateRectFullyRequest' target')
