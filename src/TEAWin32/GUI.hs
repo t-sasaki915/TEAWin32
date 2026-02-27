@@ -2,14 +2,19 @@
 module TEAWin32.GUI
     ( UniqueId (..)
     , WindowStyle (..)
+    , IconType (..)
     , Icon (..)
     , Cursor (..)
     , Font (..)
     , ScalableValue (..)
     , CanBeRawValue (..)
     , toWin32WindowStyle
+    , getIconType
     , toWin32Icon
+    , toWin32Icon'
+    , toStockIconId
     , toWin32Cursor
+    , toWin32Cursor'
     ) where
 
 import                          Control.Concurrent        (modifyMVar, readMVar)
@@ -46,6 +51,8 @@ toWin32WindowStyle WindowStyleBorderlessChild =
 
 toWin32WindowStyle WindowStyleNormalChild =
     Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
+
+data IconType = ResourceIcon | StockIcon deriving Eq
 
 data Icon = IconDocNoAssoc
           | IconDocAssoc
@@ -142,6 +149,14 @@ data Icon = IconDocNoAssoc
           | IconClusteredDrive
           | IconFromResource Int
           deriving (Show, Eq, Ord)
+
+getIconType :: Icon -> IconType
+getIconType (IconFromResource _) = ResourceIcon
+getIconType _                    = StockIcon
+
+toWin32Icon' :: Icon -> Win32.Icon
+toWin32Icon' (IconFromResource i) = Win32.c_MakeIntResourceW (fromIntegral i)
+toWin32Icon' _                    = errorTEAWin32 (InternalTEAWin32Error "Impossible pattern matching")
 
 toStockIconId :: Icon -> Win32.SHSTOCKICONID
 toStockIconId icon = case icon of
@@ -267,6 +282,17 @@ data Cursor = CursorArrow
             | CursorSizeWE
             | CursorSizeNS
             deriving (Show, Eq, Ord)
+
+toWin32Cursor' :: Cursor -> Win32.Cursor
+toWin32Cursor' CursorArrow    = Win32.iDC_ARROW
+toWin32Cursor' CursorIBeam    = Win32.iDC_IBEAM
+toWin32Cursor' CursorWait     = Win32.iDC_WAIT
+toWin32Cursor' CursorCross    = Win32.iDC_CROSS
+toWin32Cursor' CursorUparrow  = Win32.iDC_UPARROW
+toWin32Cursor' CursorSizeNWSE = Win32.iDC_SIZENWSE
+toWin32Cursor' CursorSizeNESW = Win32.iDC_SIZENESW
+toWin32Cursor' CursorSizeWE   = Win32.iDC_SIZEWE
+toWin32Cursor' CursorSizeNS   = Win32.iDC_SIZENS
 
 toWin32Cursor :: Cursor -> IO Win32.HANDLE
 toWin32Cursor cursor =

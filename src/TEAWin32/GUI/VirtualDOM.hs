@@ -3,28 +3,29 @@ module TEAWin32.GUI.VirtualDOM
     , UpdatePosReq (..)
     , CreateWindowReq (..)
     , CreateButtonReq (..)
-    , CachedIconType (..)
-    , fromHaskellCachedIconType
     , scheduleCCall
     ) where
 
-import                          Control.Applicative                      ((<|>))
-import                          Data.IORef                               (IORef,
-                                                                          atomicModifyIORef',
-                                                                          newIORef)
-import                qualified Data.List                                as List
-import                          Data.Text                                (Text)
-import                          Foreign.C                                (CDouble,
-                                                                          CInt)
-import                          GHC.IO                                   (unsafePerformIO)
-import                qualified Graphics.Win32                           as Win32
-import                          TEAWin32.Exception                       (TEAWin32Error (InternalTEAWin32Error),
-                                                                          errorTEAWin32)
-import                          TEAWin32.GUI                             (Cursor,
-                                                                          Font,
-                                                                          Icon)
-import {-# SOURCE #-}           TEAWin32.GUI.VirtualDOM.StorableInstance ()
-import                qualified TEAWin32.Internal.Foreign                as Win32
+import           Control.Applicative                      ((<|>))
+import           Control.Monad.Cont                       (ContT (..))
+import           Control.Monad.IO.Class                   (liftIO)
+import           Data.IORef                               (IORef,
+                                                           atomicModifyIORef',
+                                                           newIORef)
+import qualified Data.List                                as List
+import           Data.Maybe                               (fromMaybe, isJust)
+import           Data.Text                                (Text)
+import qualified Data.Text                                as Text
+import           Foreign.C                                (CDouble (..),
+                                                           withCWString)
+import           GHC.IO                                   (unsafePerformIO)
+import qualified Graphics.Win32                           as Win32
+import           TEAWin32.Exception                       (TEAWin32Error (InternalTEAWin32Error),
+                                                           errorTEAWin32)
+import           TEAWin32.GUI
+import           TEAWin32.GUI.Component.ComponentRegistry (ComponentRegistryKey (ComponentScaleFactorRegKey),
+                                                           getComponentRegistryEntryValue)
+import           TEAWin32.GUI.VirtualDOM.Internal         (InternalCCallRequest (..))
 
 cCallScheduleListRef :: IORef [(Maybe Win32.HWND, CCallRequest)]
 cCallScheduleListRef = unsafePerformIO (newIORef [])
@@ -47,12 +48,6 @@ newtype CreateButtonReq = CreateButtonReq
     { newButtonParentHWND :: Win32.HWND
     } deriving Eq
 
-data CachedIconType = ResourceIcon | StockIcon deriving Eq
-
-fromHaskellCachedIconType :: CachedIconType -> CInt
-fromHaskellCachedIconType ResourceIcon = 0
-fromHaskellCachedIconType StockIcon    = 1
-
 data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | CreateButtonRequest        CreateButtonReq
                   | DestroyComponentRequest    Win32.HWND
@@ -62,14 +57,6 @@ data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | UpdateIconRequest          Win32.HWND Icon
                   | UpdateCursorRequest        Win32.HWND Cursor
                   | InvalidateRectFullyRequest Win32.HWND
-
-                  | CreateWindowRequest'       Win32.HWND Win32.LPCWSTR Win32.DWORD Win32.DWORD
-                  | CreateButtonRequest'       Win32.HWND
-                  | UpdateTextRequest'         Win32.HWND Win32.LPCWSTR
-                  | UpdatePosRequest'          Win32.HWND Win32.BOOL Win32.BOOL Win32.BOOL (Maybe CInt) (Maybe CInt) (Maybe CInt) (Maybe CInt)
-                  | UpdateFontRequest'         Win32.HWND Win32.LPCWSTR CInt CDouble CInt
-                  | UpdateIconRequest'         Win32.HWND CachedIconType CDouble (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
-                  | UpdateCursorRequest'       Win32.HWND Win32.LPCWSTR
                   deriving Eq
 
 getHWNDFromReq :: CCallRequest -> Maybe Win32.HWND
@@ -82,7 +69,6 @@ getHWNDFromReq (UpdateFontRequest hwnd _)        = Just hwnd
 getHWNDFromReq (UpdateIconRequest hwnd _)        = Just hwnd
 getHWNDFromReq (UpdateCursorRequest hwnd _)      = Just hwnd
 getHWNDFromReq (InvalidateRectFullyRequest hwnd) = Just hwnd
-getHWNDFromReq _                                 = Nothing
 
 canCombine :: CCallRequest -> CCallRequest -> Bool
 canCombine (DestroyComponentRequest h1)         (DestroyComponentRequest h2)         = h1 == h2
@@ -125,3 +111,61 @@ scheduleCCall newReq =
 
             Nothing ->
                 ((Nothing, newReq) : scheduleList, ())
+
+marshallRequest :: CCallRequest -> ContT a IO InternalCCallRequest
+marshallRequest (CreateWindowRequest req) =
+    ContT (withCWString (Text.unpack $ newWindowClassName req)) >>= \classNamePtr ->
+        pure $ CreateWindowRequest'
+            (fromMaybe Win32.nullPtr (newWindowParentHWND req))
+            classNamePtr
+            (newWindowExStyles req)
+            (newWindowStyles req)
+
+marshallRequest (CreateButtonRequest req) =
+    pure (CreateButtonRequest' (newButtonParentHWND req))
+
+marshallRequest (DestroyComponentRequest hwnd) =
+    pure (DestroyComponentRequest' hwnd)
+
+marshallRequest (UpdateTextRequest hwnd text) =
+    ContT (withCWString (Text.unpack text)) >>= \textPtr ->
+        pure (UpdateTextRequest' hwnd textPtr)
+
+marshallRequest (UpdatePosRequest hwnd req) =
+    pure $ UpdatePosRequest'
+        hwnd
+        (isJust (newLocation req))
+        (isJust (newSize req))
+        (bringComponentToFront req)
+        (fromIntegral . fst <$> newLocation req)
+        (fromIntegral . snd <$> newLocation req)
+        (fromIntegral . fst <$> newSize req)
+        (fromIntegral . snd <$> newSize req)
+
+marshallRequest (UpdateFontRequest hwnd font) =
+    liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+        error ""
+
+marshallRequest (UpdateIconRequest hwnd icon) =
+    liftIO (getComponentRegistryEntryValue ComponentScaleFactorRegKey hwnd) >>= \scaleFactor ->
+        case getIconType icon of
+            ResourceIcon ->
+                pure $ UpdateIconRequest'
+                    hwnd
+                    ResourceIcon
+                    (CDouble scaleFactor)
+                    Nothing
+                    (Just (toWin32Icon' icon))
+            StockIcon ->
+                pure $ UpdateIconRequest'
+                    hwnd
+                    StockIcon
+                    (CDouble scaleFactor)
+                    (Just (toStockIconId icon))
+                    Nothing
+
+marshallRequest (UpdateCursorRequest hwnd cursor) =
+    pure (UpdateCursorRequest' hwnd (toWin32Cursor' cursor))
+
+marshallRequest (InvalidateRectFullyRequest hwnd) =
+    pure (InvalidateRectFullyRequest' hwnd)

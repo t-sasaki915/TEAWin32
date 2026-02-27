@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module TEAWin32.GUI.VirtualDOM.StorableInstance () where
+module TEAWin32.GUI.VirtualDOM.Internal (InternalCCallRequest (..)) where
 
 import                          Control.Monad           (when)
 import                          Data.Maybe              (fromJust)
@@ -9,11 +9,24 @@ import                          Foreign                 (Storable (..), Word32,
                                                          fillBytes, plusPtr)
 import                          TEAWin32.Exception      (TEAWin32Error (..),
                                                          errorTEAWin32)
-import {-# SOURCE #-}           TEAWin32.GUI.VirtualDOM
+import           TEAWin32.GUI (IconType (..))
+import qualified Graphics.Win32 as Win32
+import qualified TEAWin32.Internal.Foreign as Win32
+import Foreign.C (CInt, CDouble)
 
 #include "VirtualDOM.h"
 
-instance Storable CCallRequest where
+data InternalCCallRequest = CreateWindowRequest'        Win32.HWND Win32.LPCWSTR Win32.DWORD Win32.DWORD
+                          | CreateButtonRequest'        Win32.HWND
+                          | DestroyComponentRequest'    Win32.HWND
+                          | UpdateTextRequest'          Win32.HWND Win32.LPCWSTR
+                          | UpdatePosRequest'           Win32.HWND Win32.BOOL Win32.BOOL Win32.BOOL (Maybe CInt) (Maybe CInt) (Maybe CInt) (Maybe CInt)
+                          | UpdateFontRequest'          Win32.HWND Win32.LPCWSTR CInt CDouble CInt
+                          | UpdateIconRequest'          Win32.HWND IconType CDouble (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
+                          | UpdateCursorRequest'        Win32.HWND Win32.LPCWSTR
+                          | InvalidateRectFullyRequest' Win32.HWND
+
+instance Storable InternalCCallRequest where
     sizeOf _ = #{size CCallRequest}
 
     alignment _ = #{alignment CCallRequest}
@@ -38,7 +51,7 @@ instance Storable CCallRequest where
                 #{poke CCallRequest, reqType}    ptr (#{const REQ_CREATE_BUTTON} :: #{type RequestType})
                 #{poke CCallRequest, targetHWND} ptr parentHWND
 
-            (DestroyComponentRequest hwnd) -> do
+            (DestroyComponentRequest' hwnd) -> do
                 #{poke CCallRequest, reqType}    ptr (#{const REQ_DESTROY_COMPONENT} :: #{type RequestType})
                 #{poke CCallRequest, targetHWND} ptr hwnd
 
@@ -82,13 +95,14 @@ instance Storable CCallRequest where
                 
                 let dataPtr = ptr `plusPtr` #{offset CCallRequest, reqData.newIconCacheKey}
 
-                #{poke CachedIcon, iconType}   dataPtr (fromHaskellCachedIconType iconType)
                 #{poke CachedIcon, scaleRatio} dataPtr scaleRatio
 
                 case iconType of
-                    StockIcon ->
+                    StockIcon -> do
+                        #{poke CachedIcon, iconType}           dataPtr (1 :: CInt)
                         #{poke CachedIcon, iconId.stockIconId} dataPtr (fromJust maybeStockIconId)
-                    ResourceIcon ->
+                    ResourceIcon -> do
+                        #{poke CachedIcon, iconType}           dataPtr (0 :: CInt)
                         #{poke CachedIcon, iconId.resourceId}  dataPtr (fromJust maybeResourceId)
 
             (UpdateCursorRequest' hwnd cursorId) -> do
@@ -99,27 +113,6 @@ instance Storable CCallRequest where
 
                 #{poke CachedCursor, cursorKey} dataPtr cursorId
 
-            (InvalidateRectFullyRequest hwnd) -> do
+            (InvalidateRectFullyRequest' hwnd) -> do
                 #{poke CCallRequest, reqType}    ptr (#{const REQ_INVALIDATE_RECT_FULLY} :: #{type RequestType})
                 #{poke CCallRequest, targetHWND} ptr hwnd
-
-            (CreateWindowRequest _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke raw CreateWindowRequest")
-
-            (CreateButtonRequest _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw CreateWindowRequest")
-
-            (UpdateTextRequest _ _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateTextRequest")
-
-            (UpdatePosRequest _ _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdatePosRequest")
-
-            (UpdateFontRequest _ _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateFontRequest")
-
-            (UpdateIconRequest _ _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateIconRequest")
-
-            (UpdateCursorRequest _ _) ->
-                errorTEAWin32 (InternalTEAWin32Error "Tried to poke a raw UpdateCursorRequest")

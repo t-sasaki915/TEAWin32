@@ -1,3 +1,4 @@
+#include "Cache.h"
 #include "TEAWin32.h"
 
 #include <windows.h>

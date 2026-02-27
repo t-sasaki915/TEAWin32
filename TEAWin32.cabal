@@ -52,7 +52,7 @@ library
       TEAWin32.GUI.Component.Property
       TEAWin32.GUI.Component.Window
       TEAWin32.GUI.DSL.Internal
-      TEAWin32.GUI.VirtualDOM.StorableInstance
+      TEAWin32.GUI.VirtualDOM.Internal
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
       TEAWin32.GUI.Internal

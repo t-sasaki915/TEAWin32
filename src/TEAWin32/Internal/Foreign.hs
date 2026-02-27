@@ -6,7 +6,7 @@ module TEAWin32.Internal.Foreign where
 
 import           Data.Int       (Int32)
 import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
-                                 fillBytes)
+                                 fillBytes, intPtrToPtr)
 import           Foreign.C      (CIntPtr (..))
 import qualified Graphics.Win32 as Win32
 
@@ -29,6 +29,9 @@ foreign import ccall unsafe "GetSysColorBrush"
 
 foreign import ccall "wrapper"
     makeWndProc :: WNDPROC -> IO (FunPtr WNDPROC)
+
+c_MakeIntResourceW :: Win32.WORD -> Win32.LPCWSTR
+c_MakeIntResourceW = intPtrToPtr . fromIntegral
 
 gCLP_HICON :: Int32
 gCLP_HICON = -14
