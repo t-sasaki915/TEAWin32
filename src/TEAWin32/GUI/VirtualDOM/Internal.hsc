@@ -3,16 +3,15 @@
 
 module TEAWin32.GUI.VirtualDOM.Internal (InternalCCallRequest (..)) where
 
-import                          Control.Monad           (when)
-import                          Data.Maybe              (fromJust)
-import                          Foreign                 (Storable (..), Word32,
-                                                         fillBytes, plusPtr)
-import                          TEAWin32.Exception      (TEAWin32Error (..),
-                                                         errorTEAWin32)
-import           TEAWin32.GUI (IconType (..))
-import qualified Graphics.Win32 as Win32
+import           Control.Monad             (when)
+import           Data.Maybe                (fromJust)
+import           Foreign                   (Storable (..), Word32, fillBytes,
+                                            plusPtr)
+import           Foreign.C                 (CDouble, CInt)
+import qualified Graphics.Win32            as Win32
+import           TEAWin32.Exception        (TEAWin32Error (..), errorTEAWin32)
+import           TEAWin32.GUI              (IconType (..))
 import qualified TEAWin32.Internal.Foreign as Win32
-import Foreign.C (CInt, CDouble)
 
 #include "VirtualDOM.h"
 
