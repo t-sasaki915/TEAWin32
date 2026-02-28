@@ -29,7 +29,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 req.newWindowExStyles,
                 className,
                 L"",
-                req.newWindowStyles,
+                WS_CLIPCHILDREN | WS_CLIPSIBLINGS | req.newWindowStyles,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 0,
@@ -44,6 +44,21 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
             break;
         }
         case REQ_CREATE_BUTTON: {
+            HWND newButton = CreateWindowW(
+                L"BUTTON",
+                L"",
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
+                0,
+                0,
+                0,
+                0,
+                GetHWNDFromUniqueId(request->reqData.newButtonParentUniqueId),
+                NULL,
+                TEAWIN32_MAIN_INSTANCE,
+                0);
+
+            RegisterHWNDUniqueId(newButton, request->targetUniqueId);
+
             break;
         }
         case REQ_DESTROY_COMPONENT: {
@@ -160,7 +175,6 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_SHOW_WINDOW: {
             if (targetHWND == NULL)
             {
-                printf("!?\n");
                 break;
             }
 

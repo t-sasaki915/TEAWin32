@@ -32,16 +32,16 @@ data WindowStyle = WindowStyleBorderless
 
 toWin32WindowStyle :: WindowStyle -> Win32.WindowStyle
 toWin32WindowStyle WindowStyleBorderless =
-    Win32.wS_POPUP .|. Win32.wS_CLIPCHILDREN
+    Win32.wS_POPUP
 
 toWin32WindowStyle WindowStyleNormal =
-    Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CLIPCHILDREN
+    Win32.wS_OVERLAPPEDWINDOW
 
 toWin32WindowStyle WindowStyleBorderlessChild =
-    Win32.wS_CHILD .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
+    Win32.wS_CHILD
 
 toWin32WindowStyle WindowStyleNormalChild =
-    Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP .|. Win32.wS_CLIPSIBLINGS .|. Win32.wS_CLIPCHILDREN
+    Win32.wS_OVERLAPPEDWINDOW .|. Win32.wS_CHILD .|. Win32.wS_TABSTOP
 
 data IconType = ResourceIcon | StockIcon deriving Eq
 
