@@ -25,6 +25,7 @@ data InternalCCallRequest = CreateWindowRequest'        UniqueId Win32.LPCWSTR W
                           | UpdateIconRequest'          UniqueId IconType (Maybe Win32.SHSTOCKICONID) (Maybe Win32.LPCWSTR)
                           | UpdateCursorRequest'        UniqueId Win32.LPCWSTR
                           | InvalidateRectFullyRequest' UniqueId
+                          | ShowWindowRequest'          UniqueId
 
 instance Storable ScalableValue where
     sizeOf _ = #{size CScalableValue}
@@ -78,7 +79,7 @@ instance Storable InternalCCallRequest where
                         #{poke CreateWindowReq, newWindowParentUniqueId} dataPtr (fromIntegral parent :: CInt)
 
                     Nothing ->
-                        #{poke CreateWindowReq, newWindowParentUniqueId} dataPtr Win32.nullPtr
+                        #{poke CreateWindowReq, newWindowParentUniqueId} dataPtr (0 :: CInt)
 
             (CreateButtonRequest' (UniqueId uniqueId) (UniqueId parentId)) -> do
                 #{poke CCallRequest, reqType}                         ptr (#{const REQ_CREATE_BUTTON} :: #{type RequestType})
@@ -146,4 +147,8 @@ instance Storable InternalCCallRequest where
 
             (InvalidateRectFullyRequest' (UniqueId uniqueId)) -> do
                 #{poke CCallRequest, reqType}        ptr (#{const REQ_INVALIDATE_RECT_FULLY} :: #{type RequestType})
+                #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)
+
+            (ShowWindowRequest' (UniqueId uniqueId)) -> do
+                #{poke CCallRequest, reqType}        ptr (#{const REQ_SHOW_WINDOW} :: #{type RequestType})
                 #{poke CCallRequest, targetUniqueId} ptr (fromIntegral uniqueId :: CInt)

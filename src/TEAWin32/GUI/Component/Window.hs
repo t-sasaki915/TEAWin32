@@ -33,3 +33,7 @@ instance IsGUIComponent Window where
                     }
 
         scheduleCCall createRequest
+
+        -- TODO
+
+        scheduleCCall (ShowWindowRequest windowUniqueId)

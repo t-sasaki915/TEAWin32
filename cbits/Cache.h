@@ -38,11 +38,11 @@ typedef struct
 
 wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass);
 
-HFONT GetCachedFont(CachedFont fontKey);
+HFONT GetCachedFont(CachedFont *fontKey);
 
-HCURSOR GetCachedCursor(CachedCursor cacheKey);
+HCURSOR GetCachedCursor(CachedCursor *cacheKey);
 
-HICON GetCachedIcon(CachedIcon cacheKey);
+HICON GetCachedIcon(CachedIcon *cacheKey);
 
 void FinaliseClassCache(void);
 

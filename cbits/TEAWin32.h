@@ -13,4 +13,10 @@ extern WNDPROC TEAWIN32_WNDPROC;
 
 LRESULT CALLBACK CallHaskellWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam);
 
+void RegisterHWNDUniqueId(HWND hwnd, int uniqueId);
+
+void UnregisterHWNDUniqueId(HWND hwnd);
+
+HWND GetHWNDFromUniqueId(int uniqueId);
+
 #endif

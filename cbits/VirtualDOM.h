@@ -4,7 +4,6 @@
 #include "Cache.h"
 #include "DPIAware.h"
 
-
 #include <windows.h>
 
 typedef enum
@@ -17,7 +16,8 @@ typedef enum
     REQ_UPDATE_FONT,
     REQ_UPDATE_ICON,
     REQ_UPDATE_CURSOR,
-    REQ_INVALIDATE_RECT_FULLY
+    REQ_INVALIDATE_RECT_FULLY,
+    REQ_SHOW_WINDOW
 } RequestType;
 
 typedef struct

@@ -60,6 +60,7 @@ data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | UpdateIconRequest          UniqueId Icon
                   | UpdateCursorRequest        UniqueId Cursor
                   | InvalidateRectFullyRequest UniqueId
+                  | ShowWindowRequest          UniqueId
                   deriving Eq
 
 getTargetFromReq :: CCallRequest -> Maybe UniqueId
@@ -72,16 +73,18 @@ getTargetFromReq (UpdateFontRequest uniqueId _)        = Just uniqueId
 getTargetFromReq (UpdateIconRequest uniqueId _)        = Just uniqueId
 getTargetFromReq (UpdateCursorRequest uniqueId _)      = Just uniqueId
 getTargetFromReq (InvalidateRectFullyRequest uniqueId) = Just uniqueId
+getTargetFromReq (ShowWindowRequest uniqueId)          = Just uniqueId
 
 canCombine :: CCallRequest -> CCallRequest -> Bool
-canCombine (DestroyComponentRequest u1)         (DestroyComponentRequest u2)    = u1 == u2
-canCombine (UpdateTextRequest u1 _)             (UpdateTextRequest u2 _)        = u1 == u2
-canCombine (UpdatePosRequest u1 _)              (UpdatePosRequest u2 _)         = u1 == u2
-canCombine (UpdateFontRequest u1 _)             (UpdateFontRequest u2 _)        = u1 == u2
-canCombine (UpdateIconRequest u1 _)             (UpdateIconRequest u2 _)        = u1 == u2
-canCombine (UpdateCursorRequest u1 _)           (UpdateCursorRequest u2 _)      = u1 == u2
-canCombine (InvalidateRectFullyRequest u1)      (InvalidateRectFullyRequest u2) = u1 == u2
-canCombine _ _                                                                  = False
+canCombine (DestroyComponentRequest u1)    (DestroyComponentRequest u2)    = u1 == u2
+canCombine (UpdateTextRequest u1 _)        (UpdateTextRequest u2 _)        = u1 == u2
+canCombine (UpdatePosRequest u1 _)         (UpdatePosRequest u2 _)         = u1 == u2
+canCombine (UpdateFontRequest u1 _)        (UpdateFontRequest u2 _)        = u1 == u2
+canCombine (UpdateIconRequest u1 _)        (UpdateIconRequest u2 _)        = u1 == u2
+canCombine (UpdateCursorRequest u1 _)      (UpdateCursorRequest u2 _)      = u1 == u2
+canCombine (InvalidateRectFullyRequest u1) (InvalidateRectFullyRequest u2) = u1 == u2
+canCombine (ShowWindowRequest u1)          (ShowWindowRequest u2)          = u1 == u2
+canCombine _ _                                                             = False
 
 isUpdatePosRequest :: CCallRequest -> Bool
 isUpdatePosRequest (UpdatePosRequest _ _) = True
@@ -94,6 +97,7 @@ combineRequests newReq@(UpdateFontRequest _ _)        (UpdateFontRequest _ _)   
 combineRequests newReq@(UpdateIconRequest _ _)        (UpdateIconRequest _ _)        = newReq
 combineRequests newReq@(UpdateCursorRequest _ _)      (UpdateCursorRequest _ _)      = newReq
 combineRequests newReq@(InvalidateRectFullyRequest _) (InvalidateRectFullyRequest _) = newReq
+combineRequests newReq@(ShowWindowRequest _)          (ShowWindowRequest _)          = newReq
 combineRequests (UpdatePosRequest uniqueId newReq) (UpdatePosRequest _ oldReq) =
     UpdatePosRequest uniqueId $
         UpdatePosReq
@@ -188,3 +192,6 @@ marshallRequest (UpdateCursorRequest target cursor) =
 
 marshallRequest (InvalidateRectFullyRequest target) =
     pure (InvalidateRectFullyRequest' target)
+
+marshallRequest (ShowWindowRequest target) =
+    pure (ShowWindowRequest' target)

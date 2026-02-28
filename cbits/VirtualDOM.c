@@ -1,38 +1,84 @@
 #include "VirtualDOM.h"
 #include "Cache.h"
+#include "DPIAware.h"
+#include "TEAWin32.h"
 
 #include <stdio.h>
 #include <windows.h>
 
 void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 {
-    // HWND target = request->targetHWND;
+    HWND targetHWND = GetHWNDFromUniqueId(request->targetUniqueId);
 
     printf("%d, %d\n", request->reqType, request->targetUniqueId);
 
-    /*switch (request->reqType)
+    switch (request->reqType)
     {
         case REQ_CREATE_WINDOW: {
+            CreateWindowReq req = request->reqData.createWindowReq;
+
+            wchar_t *className = CreateTEAWin32WindowClassName(req.newWindowClassName);
+
+            HWND parentHWND = NULL;
+            if (req.newWindowParentUniqueId != 0)
+            {
+                parentHWND = GetHWNDFromUniqueId(req.newWindowParentUniqueId);
+            }
+
+            HWND newWindow = CreateWindowExW(
+                req.newWindowExStyles,
+                className,
+                L"",
+                req.newWindowStyles,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                0,
+                0,
+                parentHWND,
+                NULL,
+                TEAWIN32_MAIN_INSTANCE,
+                0);
+
+            RegisterHWNDUniqueId(newWindow, request->targetUniqueId);
+
             break;
         }
         case REQ_CREATE_BUTTON: {
             break;
         }
         case REQ_DESTROY_COMPONENT: {
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
+            DestroyWindow(targetHWND);
+            UnregisterHWNDUniqueId(targetHWND);
+
             break;
         }
         case REQ_UPDATE_TEXT: {
-            SetWindowTextW(target, request->reqData.newComponentText);
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
+            SetWindowTextW(targetHWND, request->reqData.newComponentText);
 
             break;
         }
         case REQ_UPDATE_POS: {
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
             UpdatePosReq updatePosReq = request->reqData.updatePosReq;
 
-            int x = updatePosReq.hasNewLocation ? updatePosReq.newX : 0;
-            int y = updatePosReq.hasNewLocation ? updatePosReq.newY : 0;
-            int w = updatePosReq.hasNewSize ? updatePosReq.newWidth : 0;
-            int h = updatePosReq.hasNewSize ? updatePosReq.newHeight : 0;
+            int x = updatePosReq.hasNewLocation ? ResolveScalableValueForHWND(updatePosReq.newX, targetHWND) : 0;
+            int y = updatePosReq.hasNewLocation ? ResolveScalableValueForHWND(updatePosReq.newY, targetHWND) : 0;
+            int w = updatePosReq.hasNewSize ? ResolveScalableValueForHWND(updatePosReq.newWidth, targetHWND) : 0;
+            int h = updatePosReq.hasNewSize ? ResolveScalableValueForHWND(updatePosReq.newHeight, targetHWND) : 0;
 
             DWORD flags = SWP_NOACTIVATE;
             if (!updatePosReq.hasNewLocation)
@@ -56,36 +102,72 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             if (hdwp != NULL)
             {
-                *hdwp = DeferWindowPos(*hdwp, target, hwndInsertAfter, x, y, w, h, flags);
+                *hdwp = DeferWindowPos(*hdwp, targetHWND, hwndInsertAfter, x, y, w, h, flags);
             }
             else
             {
-                SetWindowPos(target, hwndInsertAfter, x, y, w, h, flags);
+                SetWindowPos(targetHWND, hwndInsertAfter, x, y, w, h, flags);
             }
 
             break;
         }
         case REQ_UPDATE_FONT: {
-            SendMessageW(target, WM_SETFONT, (WPARAM)GetCachedFont(request->reqData.newFontCacheKey), 1);
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
+            CachedFont cacheKey = request->reqData.newFontCacheKey;
+            cacheKey.scaleRatio = GetScaleFactorForHWND(targetHWND);
+
+            SendMessageW(targetHWND, WM_SETFONT, (WPARAM)GetCachedFont(&cacheKey), 1);
 
             break;
         }
         case REQ_UPDATE_ICON: {
-            SendMessageW(target, WM_SETICON, 1, (LPARAM)GetCachedIcon(request->reqData.newIconCacheKey));
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
+            CachedIcon cacheKey = request->reqData.newIconCacheKey;
+            cacheKey.scaleRatio = GetScaleFactorForHWND(targetHWND);
+
+            SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)GetCachedIcon(&cacheKey));
 
             break;
         }
         case REQ_UPDATE_CURSOR: {
-            SetClassLongPtrW(target, GCLP_HCURSOR, (LONG_PTR)GetCachedCursor(request->reqData.newCursorCacheKey));
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
+            SetClassLongPtrW(targetHWND, GCLP_HCURSOR, (LONG_PTR)GetCachedCursor(&request->reqData.newCursorCacheKey));
 
             break;
         }
         case REQ_INVALIDATE_RECT_FULLY: {
-            InvalidateRect(target, NULL, TRUE);
+            if (targetHWND == NULL)
+            {
+                break;
+            }
+
+            InvalidateRect(targetHWND, NULL, TRUE);
 
             break;
         }
-    }*/
+        case REQ_SHOW_WINDOW: {
+            if (targetHWND == NULL)
+            {
+                printf("!?\n");
+                break;
+            }
+
+            ShowWindow(targetHWND, SW_SHOW);
+            UpdateWindow(targetHWND);
+        }
+    }
 }
 
 void ExecuteCCallRequests(CCallRequest requests[], int requestSize, int updatePosNumber)

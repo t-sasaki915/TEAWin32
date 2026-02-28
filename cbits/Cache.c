@@ -87,17 +87,17 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
     return permanentFullClassName;
 }
 
-HFONT GetCachedFont(CachedFont fontKey)
+HFONT GetCachedFont(CachedFont *fontKey)
 {
     for (int i = 0; i < FONT_CACHE_COUNT; i++)
     {
         CachedFont entry = FONT_CACHE[i].fontCacheKey;
 
-        BOOL matchFontName = fontKey.fontName == entry.fontName || wcscmp(fontKey.fontName, entry.fontName) == 0;
-        BOOL matchFontSize = CScalableValue_Equals(fontKey.fontSize, entry.fontSize);
-        BOOL matchFontStyle = fontKey.fontStyle == entry.fontStyle;
-        BOOL matchScaleRatio = fontKey.scaleRatio == entry.scaleRatio;
-        if (!fontKey.fontSize.isScalable && !entry.fontSize.isScalable)
+        BOOL matchFontName = fontKey->fontName == entry.fontName || wcscmp(fontKey->fontName, entry.fontName) == 0;
+        BOOL matchFontSize = CScalableValue_Equals(fontKey->fontSize, entry.fontSize);
+        BOOL matchFontStyle = fontKey->fontStyle == entry.fontStyle;
+        BOOL matchScaleRatio = fontKey->scaleRatio == entry.scaleRatio;
+        if (!fontKey->fontSize.isScalable && !entry.fontSize.isScalable)
         {
             matchScaleRatio = TRUE;
         }
@@ -110,10 +110,10 @@ HFONT GetCachedFont(CachedFont fontKey)
 
     if (FONT_CACHE_COUNT < FONT_CACHE_MAX)
     {
-        wchar_t *permanentFontName = _wcsdup(fontKey.fontName);
+        wchar_t *permanentFontName = _wcsdup(fontKey->fontName);
 
         HFONT newFont = CreateFontW(
-            -Scale(fontKey.scaleRatio, fontKey.fontSize),
+            -Scale(fontKey->scaleRatio, fontKey->fontSize),
             0,
             0,
             0,
@@ -130,9 +130,9 @@ HFONT GetCachedFont(CachedFont fontKey)
 
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontName = permanentFontName;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontSize = fontKey.fontSize;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontStyle = fontKey.fontStyle;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.scaleRatio = fontKey.scaleRatio;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontSize = fontKey->fontSize;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontStyle = fontKey->fontStyle;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.scaleRatio = fontKey->scaleRatio;
 
         FONT_CACHE_COUNT++;
 
@@ -142,9 +142,9 @@ HFONT GetCachedFont(CachedFont fontKey)
     return (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 }
 
-HCURSOR GetCachedCursor(CachedCursor cacheKey)
+HCURSOR GetCachedCursor(CachedCursor *cacheKey)
 {
-    BOOL isIdGiven = IS_INTRESOURCE(cacheKey.cursorKey);
+    BOOL isIdGiven = IS_INTRESOURCE(cacheKey->cursorKey);
 
     for (int i = 0; i < CURSOR_CACHE_COUNT; i++)
     {
@@ -152,7 +152,7 @@ HCURSOR GetCachedCursor(CachedCursor cacheKey)
 
         if (isIdGiven && entry->cursorCacheKey.isKeyId)
         {
-            if (cacheKey.cursorKey == entry->cursorCacheKey.cursorKey)
+            if (cacheKey->cursorKey == entry->cursorCacheKey.cursorKey)
             {
                 return CURSOR_CACHE[i].cursorCacheHandle;
             }
@@ -160,7 +160,7 @@ HCURSOR GetCachedCursor(CachedCursor cacheKey)
 
         if (!isIdGiven && !entry->cursorCacheKey.isKeyId)
         {
-            if (wcscmp(cacheKey.cursorKey, entry->cursorCacheKey.cursorKey) == 0)
+            if (wcscmp(cacheKey->cursorKey, entry->cursorCacheKey.cursorKey) == 0)
             {
                 return CURSOR_CACHE[i].cursorCacheHandle;
             }
@@ -172,7 +172,7 @@ HCURSOR GetCachedCursor(CachedCursor cacheKey)
         return LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     }
 
-    LPCWSTR permanentNameOrId = isIdGiven ? cacheKey.cursorKey : _wcsdup(cacheKey.cursorKey);
+    LPCWSTR permanentNameOrId = isIdGiven ? cacheKey->cursorKey : _wcsdup(cacheKey->cursorKey);
     HINSTANCE instanceToUse = isIdGiven ? NULL : TEAWIN32_MAIN_INSTANCE;
 
     HCURSOR newCursor = LoadCursorW(instanceToUse, permanentNameOrId);
@@ -196,26 +196,27 @@ HCURSOR GetCachedCursor(CachedCursor cacheKey)
     return newCursor;
 }
 
-HICON GetCachedIcon(CachedIcon cacheKey)
+HICON GetCachedIcon(CachedIcon *cacheKey)
 {
     BOOL isIdGiven = FALSE;
-    if (cacheKey.iconType == RESOURCE_ICON)
+    if (cacheKey->iconType == RESOURCE_ICON)
     {
-        isIdGiven = IS_INTRESOURCE(cacheKey.iconId.resourceId);
+        isIdGiven = IS_INTRESOURCE(cacheKey->iconId.resourceId);
     }
 
     for (int i = 0; i < ICON_CACHE_COUNT; i++)
     {
         IconCacheEntry *entry = &ICON_CACHE[i];
 
-        if (entry->iconCacheKey.iconType != cacheKey.iconType || entry->iconCacheKey.scaleRatio != cacheKey.scaleRatio)
+        if (entry->iconCacheKey.iconType != cacheKey->iconType ||
+            entry->iconCacheKey.scaleRatio != cacheKey->scaleRatio)
         {
             continue;
         }
 
-        if (cacheKey.iconType == STOCK_ICON)
+        if (cacheKey->iconType == STOCK_ICON)
         {
-            if (entry->iconCacheKey.iconId.stockIconId == cacheKey.iconId.stockIconId)
+            if (entry->iconCacheKey.iconId.stockIconId == cacheKey->iconId.stockIconId)
             {
                 return entry->iconCacheHandle;
             }
@@ -223,7 +224,7 @@ HICON GetCachedIcon(CachedIcon cacheKey)
         else
         {
             LPCWSTR entryKey = entry->iconCacheKey.iconId.resourceId;
-            LPCWSTR givenKey = cacheKey.iconId.resourceId;
+            LPCWSTR givenKey = cacheKey->iconId.resourceId;
 
             if (entryKey == givenKey || (!isIdGiven && !entry->iconCacheKey.isKeyId && wcscmp(entryKey, givenKey) == 0))
             {
@@ -240,9 +241,9 @@ HICON GetCachedIcon(CachedIcon cacheKey)
     HICON newIcon;
     LPCWSTR permanentResourceId;
 
-    if (cacheKey.iconType == STOCK_ICON)
+    if (cacheKey->iconType == STOCK_ICON)
     {
-        newIcon = GetHighDPIIcon(cacheKey.iconId.stockIconId);
+        newIcon = GetHighDPIIcon(cacheKey->iconId.stockIconId);
 
         if (newIcon == NULL)
         {
@@ -251,7 +252,7 @@ HICON GetCachedIcon(CachedIcon cacheKey)
     }
     else
     {
-        permanentResourceId = isIdGiven ? cacheKey.iconId.resourceId : _wcsdup(cacheKey.iconId.resourceId);
+        permanentResourceId = isIdGiven ? cacheKey->iconId.resourceId : _wcsdup(cacheKey->iconId.resourceId);
 
         newIcon = LoadIconW(TEAWIN32_MAIN_INSTANCE, permanentResourceId);
 
@@ -264,11 +265,11 @@ HICON GetCachedIcon(CachedIcon cacheKey)
     }
 
     ICON_CACHE[ICON_CACHE_COUNT].iconCacheHandle = newIcon;
-    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconType = cacheKey.iconType;
-    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.scaleRatio = cacheKey.scaleRatio;
-    if (cacheKey.iconType == STOCK_ICON)
+    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconType = cacheKey->iconType;
+    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.scaleRatio = cacheKey->scaleRatio;
+    if (cacheKey->iconType == STOCK_ICON)
     {
-        ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconId.stockIconId = cacheKey.iconId.stockIconId;
+        ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconId.stockIconId = cacheKey->iconId.stockIconId;
     }
     else
     {
