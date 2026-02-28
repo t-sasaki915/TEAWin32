@@ -6,14 +6,14 @@ module TEAWin32.GUI.VirtualDOM.Internal (InternalCCallRequest (..)) where
 import           Control.Monad             (when)
 import           Data.Maybe                (fromJust)
 import           Foreign                   (Storable (..), Word32, fillBytes,
-                                            plusPtr, Int32)
-import           Foreign.C                 (CDouble (..), CInt)
+                                            plusPtr)
+import           Foreign.C                 (CInt)
 import qualified Graphics.Win32            as Win32
 import           TEAWin32.Exception        (TEAWin32Error (..), errorTEAWin32)
 import           TEAWin32.GUI              (IconType (..), ScalableValue (..), UniqueId (..))
+import           TEAWin32.GUI.Instances    ()
 import qualified TEAWin32.Internal.Foreign as Win32
 
-#include "DPIAware.h"
 #include "VirtualDOM.h"
 
 data InternalCCallRequest = CreateWindowRequest'        UniqueId Win32.LPCWSTR Win32.DWORD Win32.DWORD (Maybe UniqueId)
@@ -26,32 +26,6 @@ data InternalCCallRequest = CreateWindowRequest'        UniqueId Win32.LPCWSTR W
                           | UpdateCursorRequest'        UniqueId Win32.LPCWSTR
                           | InvalidateRectFullyRequest' UniqueId
                           | ShowWindowRequest'          UniqueId
-
-instance Storable ScalableValue where
-    sizeOf _ = #{size CScalableValue}
-
-    alignment _ = #{alignment CScalableValue}
-
-    peek ptr = do
-        value      <- #{peek CScalableValue, value}      ptr
-        isScalable <- #{peek CScalableValue, isScalable} ptr
-
-        if (isScalable :: CInt) == 0
-            then pure (RawValue value)
-            else pure (ScalableValue value)
-
-    poke ptr (RawValue v) = do
-        fillBytes ptr 0 #{size CScalableValue}
-
-        #{poke CScalableValue, value}      ptr (CDouble v)
-        #{poke CScalableValue, isScalable} ptr (#{const FALSE} :: #{type BOOL})
-
-    poke ptr (ScalableValue v) = do
-        fillBytes ptr 0 #{size CScalableValue}
-
-        #{poke CScalableValue, value}      ptr (CDouble v)
-        #{poke CScalableValue, isScalable} ptr (#{const TRUE} :: #{type BOOL})
-
 
 instance Storable InternalCCallRequest where
     sizeOf _ = #{size CCallRequest}

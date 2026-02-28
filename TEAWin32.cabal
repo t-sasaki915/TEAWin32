@@ -39,6 +39,7 @@ executable TEAWin32-Experiment
 
 library
   exposed-modules:
+      TEAWin32.Application.WndProc.Instances
       TEAWin32.Application.Internal
       TEAWin32.Application.WndProc
       TEAWin32.Effect.MessageBox
@@ -54,6 +55,7 @@ library
       TEAWin32.GUI.VirtualDOM.Internal
       TEAWin32.GUI.Component
       TEAWin32.GUI.DSL
+      TEAWin32.GUI.Instances
       TEAWin32.GUI.Internal
       TEAWin32.GUI.VirtualDOM
       TEAWin32.Internal.Foreign
@@ -68,7 +70,6 @@ library
       cbits/DPIAware.c
       cbits/ErrorReporter.c
       cbits/GUI.c
-      cbits/GUIComponent.c
       cbits/TEAWin32.c
       cbits/Util.c
       cbits/VirtualDOM.c

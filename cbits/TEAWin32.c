@@ -15,10 +15,12 @@ typedef struct
 DWORD TEAWIN32_INSTANCE_PID;
 wchar_t TEAWIN32_INSTANCE_PID_STR[9];
 HINSTANCE TEAWIN32_MAIN_INSTANCE;
-WNDPROC TEAWIN32_WNDPROC;
-HWNDIDMapEntry TEAWIN32_HWND_ID_MAP[TEAWIN32_HWND_ID_MAP_MAX];
+int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
 
-void InitialiseTEAWin32C(WNDPROC wndProc)
+static HaskellWndProcCallbacks HASKELL_WNDPROC_CALLBACKS;
+static HWNDIDMapEntry HWND_ID_MAP[TEAWIN32_HWND_ID_MAP_MAX];
+
+void InitialiseTEAWin32C(HaskellWndProcCallbacks *haskellWndProcCallbacks)
 {
     TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
 
@@ -26,34 +28,43 @@ void InitialiseTEAWin32C(WNDPROC wndProc)
 
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
 
-    TEAWIN32_WNDPROC = wndProc;
+    HASKELL_WNDPROC_CALLBACKS = *haskellWndProcCallbacks;
 }
 
-LRESULT CALLBACK CallHaskellWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
+HWND GetHWNDFromUniqueId(int uniqueId) // TODO: SLOW
 {
-    if (TEAWIN32_WNDPROC != NULL)
+    for (int i = 0; i < TEAWIN32_HWND_ID_MAP_MAX; i++)
     {
-        switch (wMsg)
+        if (HWND_ID_MAP[i].uniqueId == uniqueId)
         {
-            case WM_DESTROY:
-            case WM_COMMAND:
-            case WM_ERASEBKGND:
-            case WM_DPICHANGED:
-                return TEAWIN32_WNDPROC(hwnd, wMsg, wParam, lParam);
+            return HWND_ID_MAP[i].correspondingHWND;
         }
     }
 
-    return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+    return NULL;
+}
+
+int GetUniqueIdFromHWND(HWND hwnd)
+{
+    for (int i = 0; i < TEAWIN32_HWND_ID_MAP_MAX; i++)
+    {
+        if (HWND_ID_MAP[i].correspondingHWND == hwnd)
+        {
+            return HWND_ID_MAP[i].uniqueId;
+        }
+    }
+
+    return 0;
 }
 
 void RegisterHWNDUniqueId(HWND hwnd, int uniqueId)
 {
     for (int i = 0; i < TEAWIN32_HWND_ID_MAP_MAX; i++)
     {
-        if (TEAWIN32_HWND_ID_MAP[i].correspondingHWND == NULL)
+        if (HWND_ID_MAP[i].correspondingHWND == NULL)
         {
-            TEAWIN32_HWND_ID_MAP[i].uniqueId = uniqueId;
-            TEAWIN32_HWND_ID_MAP[i].correspondingHWND = hwnd;
+            HWND_ID_MAP[i].uniqueId = uniqueId;
+            HWND_ID_MAP[i].correspondingHWND = hwnd;
 
             return;
         }
@@ -64,25 +75,55 @@ void UnregisterHWNDUniqueId(HWND hwnd)
 {
     for (int i = 0; i < TEAWIN32_HWND_ID_MAP_MAX; i++)
     {
-        if (TEAWIN32_HWND_ID_MAP[i].correspondingHWND == hwnd)
+        if (HWND_ID_MAP[i].correspondingHWND == hwnd)
         {
-            TEAWIN32_HWND_ID_MAP[i].uniqueId = 0;
-            TEAWIN32_HWND_ID_MAP[i].correspondingHWND = NULL;
+            HWND_ID_MAP[i].uniqueId = 0;
+            HWND_ID_MAP[i].correspondingHWND = NULL;
         }
     }
 }
 
-HWND GetHWNDFromUniqueId(int uniqueId) // TODO: SLOW
+LRESULT HandleCallbackResult(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam, int result)
 {
-    for (int i = 0; i < TEAWIN32_HWND_ID_MAP_MAX; i++)
+    switch (result)
     {
-        if (TEAWIN32_HWND_ID_MAP[i].uniqueId == uniqueId)
-        {
-            return TEAWIN32_HWND_ID_MAP[i].correspondingHWND;
+        case 0: {
+            return 0;
+        }
+        case 1: {
+            return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+        }
+        default: {
+            return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+        }
+    }
+}
+
+LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
+{
+    int uniqueId = GetUniqueIdFromHWND(hwnd);
+    int callbackResult;
+
+    switch (wMsg)
+    {
+        case WM_DESTROY: {
+            callbackResult = HASKELL_WNDPROC_CALLBACKS.onWindowDestroy(uniqueId);
+
+            TEAWIN32_ACTIVE_WINDOW_COUNT--;
+
+            if (TEAWIN32_ACTIVE_WINDOW_COUNT == 0)
+            {
+                PostQuitMessage(0);
+            }
+
+            break;
+        }
+        default: {
+            return DefWindowProcW(hwnd, wMsg, wParam, lParam);
         }
     }
 
-    return NULL;
+    return HandleCallbackResult(hwnd, wMsg, wParam, lParam, callbackResult);
 }
 
 void FinaliseTEAWin32C(void)

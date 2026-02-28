@@ -8,6 +8,7 @@ module TEAWin32.GUI
     , Font (..)
     , ScalableValue (..)
     , CanBeRawValue (..)
+    , fromCUniqueId
     , toWin32WindowStyle
     , getIconType
     , toWin32Icon
@@ -17,12 +18,16 @@ module TEAWin32.GUI
 
 import           Data.Bits                 ((.|.))
 import           Data.Text                 (Text)
+import           Foreign.C                 (CInt)
 import qualified Graphics.Win32            as Win32
 import           TEAWin32.Exception        (TEAWin32Error (InternalTEAWin32Error),
                                             errorTEAWin32)
 import qualified TEAWin32.Internal.Foreign as Win32
 
 newtype UniqueId = UniqueId Int deriving (Show, Eq, Ord)
+
+fromCUniqueId :: CInt -> UniqueId
+fromCUniqueId = UniqueId . fromIntegral
 
 data WindowStyle = WindowStyleBorderless
                  | WindowStyleNormal

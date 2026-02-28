@@ -41,6 +41,8 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             RegisterHWNDUniqueId(newWindow, request->targetUniqueId);
 
+            TEAWIN32_ACTIVE_WINDOW_COUNT++;
+
             break;
         }
         case REQ_CREATE_BUTTON: {

@@ -1,82 +1,48 @@
-module TEAWin32.Application.WndProc (windowProc) where
+module TEAWin32.Application.WndProc
+    ( HaskellWndProcCallbacks (..)
+    , createHaskellWndProcCallbacks
+    , freeHaskellWndProcCallbacks
+    ) where
 
-import qualified Data.Text                 as Text
-import           GHC.Stack                 (HasCallStack)
-import qualified Graphics.Win32            as Win32
-import           TEAWin32.Exception        (TEAWin32Error (InternalTEAWin32Error),
-                                            errorTEAWin32)
-import qualified TEAWin32.Internal.Foreign as Win32
+import           Foreign      (FunPtr, freeHaskellFunPtr)
+import           Foreign.C    (CInt (..))
+import           GHC.Stack    (HasCallStack)
+import           TEAWin32.GUI (UniqueId, fromCUniqueId)
 
-onWindowDestroy :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-onWindowDestroy hwnd _ _ _ = {-do
-    ComponentInternal.destroyChildren hwnd
+newtype HaskellWndProcCallbacks = HaskellWndProcCallbacks
+    { onWindowDestroyCallback :: FunPtr OnWindowDestroyC
+    }
 
-    unregisterComponentFromRegistry hwnd
+data CallbackResult = Processed
+                    | Ignored
 
-    remainingWindow <- atomicModifyIORef' GUIInternal.activeWindowCountRef $ \n -> (n - 1, n - 1)
+type OnWindowDestroy = UniqueId -> IO CallbackResult
+type OnWindowDestroyC = CInt -> IO CInt
 
-    isUpdateProgressing' <- ApplicationInternal.isUpdateProgressing
-    when (remainingWindow == 0 && not isUpdateProgressing') $
-        Win32.postQuitMessage 0-}
+foreign import ccall "wrapper"
+    makeOnWindowDestroy :: OnWindowDestroyC -> IO (FunPtr OnWindowDestroyC)
 
-    pure 0
+wrapOnWindowDestroy :: OnWindowDestroy -> OnWindowDestroyC
+wrapOnWindowDestroy f a = wrapCallbackResult <$> f (fromCUniqueId a)
 
-onWindowCommand :: HasCallStack => Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-onWindowCommand hwnd wMsg wParam lParam = {-do
-    let notification = Win32.hIWORD (fromIntegral wParam)
-        targetHWND   = intPtrToPtr (fromIntegral lParam)
+onWindowDestroy :: HasCallStack => OnWindowDestroy
+onWindowDestroy uniqueId = do
+    putStrLn $ "DESTROY: " <> show uniqueId
 
-    case notification of
-        0 -> -- BN_CLICKED
-            getComponentRegistryEntryValueMaybe ComponentClickEventHandlerRegKey targetHWND >>= \case
-                Just msg -> ApplicationInternal.issueMsg msg >> pure 0
-                Nothing  -> Win32.defWindowProc (Just hwnd) wMsg wParam lParam
+    pure Processed
 
-        _ ->
-            Win32.defWindowProc (Just hwnd) wMsg wParam lParam-}
-    pure 0
+createHaskellWndProcCallbacks :: IO HaskellWndProcCallbacks
+createHaskellWndProcCallbacks = do
+    onWindowDestroyCallback' <- makeOnWindowDestroy (wrapOnWindowDestroy onWindowDestroy)
 
-onWindowEraseBkgnd :: HasCallStack => Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-onWindowEraseBkgnd hwnd _ wParam _ = {-do
-    let hdc = intPtrToPtr $ fromIntegral wParam
-    rect <- Win32.getClientRect hwnd
+    pure $ HaskellWndProcCallbacks
+        { onWindowDestroyCallback = onWindowDestroyCallback'
+        }
 
-    getComponentRegistryEntryValueMaybe WindowBackgroundColourRegKey hwnd >>= \case
-        Just backgroundColour -> do
-            bracket (Win32.createSolidBrush (toWin32Colour backgroundColour)) Win32.c_DeleteObject $
-                Win32.fillRect hdc rect
+freeHaskellWndProcCallbacks :: HaskellWndProcCallbacks -> IO ()
+freeHaskellWndProcCallbacks callbacks =
+    freeHaskellFunPtr (onWindowDestroyCallback callbacks)
 
-            pure 1
-
-        Nothing -> do
-            Win32.c_GetSysColorBrush Win32.cOLOR_WINDOW >>= \brush ->
-                Win32.fillRect hdc rect brush
-
-            pure 1-}
-    pure 0
-
-onWindowDPIChanged :: Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-onWindowDPIChanged _ _ _ _ = {-do
-    putStrLn "!?"
-    let rectPtr = castPtr $ wordPtrToPtr $ fromIntegral lParam
-    (l, t, r, b) <- peek rectPtr :: IO Win32.RECT
-
-    Win32.c_SetWindowPos hwnd Win32.nullPtr l t (r - l) (b - t) (Win32.sWP_NOZORDER .|. Win32.sWP_NOACTIVATE .|. Win32.sWP_FRAMECHANGED) >>= print
-
-    let newDPI = Win32.lOWORD (fromIntegral wParam)
-    ComponentInternal.updateComponentDPI hwnd (fromIntegral newDPI)-}
-
-    pure 0
-
-windowProc :: HasCallStack => Win32.HWND -> Win32.WindowMessage -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-windowProc hwnd wMsg wParam lParam
-    | wMsg == Win32.wM_DESTROY    = onWindowDestroy hwnd wMsg wParam lParam
-    | wMsg == Win32.wM_COMMAND    = onWindowCommand hwnd wMsg wParam lParam
-    | wMsg == Win32.wM_ERASEBKGND = onWindowEraseBkgnd hwnd wMsg wParam lParam
-    | wMsg == Win32.wM_DPICHANGED = onWindowDPIChanged hwnd wMsg wParam lParam
-    | otherwise = errorTEAWin32 $ InternalTEAWin32Error $
-        "Received an WindowMessage for which Haskell is not responsible: " <> Text.show wMsg
-            <> ", HWND: " <> Text.show hwnd
-            <> ", WPARAM: " <> Text.show wParam
-            <> ", LPARAM: " <> Text.show lParam
-            <> "."
+wrapCallbackResult :: CallbackResult -> CInt
+wrapCallbackResult Processed = 0
+wrapCallbackResult Ignored   = 1

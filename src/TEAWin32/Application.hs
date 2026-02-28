@@ -4,31 +4,34 @@ module TEAWin32.Application
     , runTEA
     ) where
 
-import           Control.Exception             (Exception (displayException))
-import           Control.Monad                 (forM_)
-import           Control.Monad.State.Strict    (evalState)
-import           Control.Monad.Writer.Strict   (execWriterT)
-import           Data.Data                     (Typeable, cast)
-import           Data.IORef                    (atomicModifyIORef')
-import qualified Data.Map                      as Map
-import qualified Data.Text                     as Text
-import           Foreign                       (freeHaskellFunPtr)
-import           GHC.Stack                     (HasCallStack)
-import qualified Graphics.Win32                as Win32
-import           Prelude                       hiding (init)
+import           Control.Exception                      (Exception (displayException))
+import           Control.Monad                          (forM_)
+import           Control.Monad.State.Strict             (evalState)
+import           Control.Monad.Writer.Strict            (execWriterT)
+import           Data.Data                              (Typeable, cast)
+import           Data.IORef                             (atomicModifyIORef')
+import qualified Data.Map                               as Map
+import qualified Data.Text                              as Text
+import           Foreign                                (Ptr, Storable (poke),
+                                                         alloca)
+import           GHC.Stack                              (HasCallStack)
+import qualified Graphics.Win32                         as Win32
+import           Prelude                                hiding (init)
 import           TEAWin32.Application.Internal
-import           TEAWin32.Application.WndProc  (windowProc)
-import           TEAWin32.Exception            (ErrorLocation (..),
-                                                TEAWin32Error (..),
-                                                errorTEAWin32)
-import           TEAWin32.GUI.Component        (IsGUIComponent (scheduleRendering))
-import           TEAWin32.GUI.DSL.Internal     (DSL, DSLState (..),
-                                                UniqueIdInternState (UniqueIdInternState))
-import qualified TEAWin32.GUI.Internal         as GUIInternal
-import           TEAWin32.GUI.VirtualDOM       (flushCCallRequests)
-import qualified TEAWin32.Internal.Foreign     as Win32
-import qualified TEAWin32.Internal.Native      as Native
-import           TEAWin32.Util                 (try_)
+import           TEAWin32.Application.WndProc           (HaskellWndProcCallbacks,
+                                                         createHaskellWndProcCallbacks,
+                                                         freeHaskellWndProcCallbacks)
+import           TEAWin32.Application.WndProc.Instances ()
+import           TEAWin32.Exception                     (ErrorLocation (..),
+                                                         TEAWin32Error (..),
+                                                         errorTEAWin32)
+import           TEAWin32.GUI.Component                 (IsGUIComponent (scheduleRendering))
+import           TEAWin32.GUI.DSL.Internal              (DSL, DSLState (..),
+                                                         UniqueIdInternState (UniqueIdInternState))
+import qualified TEAWin32.GUI.Internal                  as GUIInternal
+import           TEAWin32.GUI.VirtualDOM                (flushCCallRequests)
+import qualified TEAWin32.Internal.Native               as Native
+import           TEAWin32.Util                          (try_)
 
 newtype Settings = Settings
     { useVisualStyles :: Bool
@@ -43,8 +46,10 @@ runTEA :: (HasCallStack, Typeable model, Typeable msg) => Settings -> IO model -
 runTEA settings init update view = do
     Native.enableDPIAware
 
-    wndProcPtr <- Win32.makeWndProc windowProc
-    Native.initialiseTEAWin32C wndProcPtr
+    wndProcCallbacks <- createHaskellWndProcCallbacks
+    alloca $ \callbacksPtr -> do
+        poke callbacksPtr wndProcCallbacks
+        c_InitialiseTEAWin32C callbacksPtr
 
     Native.initialiseDPIAwareFunctions
 
@@ -54,7 +59,7 @@ runTEA settings init update view = do
 
     Native.finaliseTEAWin32C
 
-    freeHaskellFunPtr wndProcPtr
+    freeHaskellWndProcCallbacks wndProcCallbacks
 
 runTEA' :: (HasCallStack, Typeable model, Typeable msg) => IO model -> (msg -> model -> IO model) -> (model -> DSL) -> IO ()
 runTEA' init update view = do
@@ -102,3 +107,6 @@ messagePump msgPtr =
 
         _ ->
             pure ()
+
+foreign import ccall unsafe "InitialiseTEAWin32C"
+    c_InitialiseTEAWin32C :: Ptr HaskellWndProcCallbacks -> IO ()

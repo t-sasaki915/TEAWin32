@@ -1,7 +1,5 @@
 module TEAWin32.Internal.Native
-    ( CreateManagedWindowArgs (..)
-    , initialiseTEAWin32C
-    , initialiseDPIAwareFunctions
+    ( initialiseDPIAwareFunctions
     , getScaleFactorForHWND
     , enableVisualStyles
     , getImmediateChildWindows
@@ -12,7 +10,6 @@ module TEAWin32.Internal.Native
     , showErrorReporter
     , createFontSimple
     , getResourceIcon
-    , createManagedWindow
     , finaliseTEAWin32C
     ) where
 
@@ -20,51 +17,10 @@ import           Control.Monad.Cont        (ContT (..), evalContT)
 import           Control.Monad.IO.Class    (liftIO)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as Text
-import           Foreign                   (FunPtr, Ptr, Storable (..), alloca,
-                                            allocaArray, fillBytes, peekArray)
+import           Foreign                   (Ptr, allocaArray, peekArray)
 import           Foreign.C                 (CWString, withCWString)
 import qualified Graphics.Win32            as Win32
 import qualified TEAWin32.Internal.Foreign as Win32
-
-data CreateManagedWindowArgs = CreateManagedWindowArgs
-    { managedWindowClassName   :: Win32.LPCWSTR
-    , managedWindowClassStyles :: Win32.UINT
-    , managedWindowExStyles    :: Win32.DWORD
-    , managedWindowStyles      :: Win32.DWORD
-    , managedWindowParentHWND  :: Win32.HWND
-    }
-
-instance Storable CreateManagedWindowArgs where
-    sizeOf _ = 32
-
-    alignment _ = 8
-
-    poke ptr args = do
-        fillBytes ptr 0 (sizeOf args)
-
-        pokeByteOff ptr 0 (managedWindowClassName args)
-        pokeByteOff ptr 8 (managedWindowClassStyles args)
-        pokeByteOff ptr 12 (managedWindowExStyles args)
-        pokeByteOff ptr 16 (managedWindowStyles args)
-        pokeByteOff ptr 24 (managedWindowParentHWND args)
-
-    peek ptr = do
-        managedWindowClassName'   <- peekByteOff ptr 0
-        managedWindowClassStyles' <- peekByteOff ptr 8
-        managedWindowExStyles'    <- peekByteOff ptr 12
-        managedWindowStyles'      <- peekByteOff ptr 16
-        managedWindowParentHWND'  <- peekByteOff ptr 24
-
-        pure $ CreateManagedWindowArgs
-            { managedWindowClassName   = managedWindowClassName'
-            , managedWindowClassStyles = managedWindowClassStyles'
-            , managedWindowExStyles    = managedWindowExStyles'
-            , managedWindowStyles      = managedWindowStyles'
-            , managedWindowParentHWND  = managedWindowParentHWND'
-            }
-
-foreign import ccall unsafe "InitialiseTEAWin32C"
-    c_InitialiseTEAWin32C :: FunPtr Win32.WNDPROC -> IO ()
 
 foreign import ccall unsafe "InitialiseDPIAwareFunctions"
     c_InitialiseDPIAwareFunctions :: IO ()
@@ -99,14 +55,8 @@ foreign import ccall unsafe "CreateFontSimple"
 foreign import ccall unsafe "GetResourceIcon"
     c_GetResourceIcon :: Int -> IO Win32.HICON
 
-foreign import ccall unsafe "CreateManagedWindow"
-    c_CreateManagedWindow :: Ptr CreateManagedWindowArgs -> IO Win32.HWND
-
 foreign import ccall unsafe "FinaliseTEAWin32C"
     c_FinaliseTEAWin32C :: IO ()
-
-initialiseTEAWin32C :: FunPtr Win32.WNDPROC -> IO ()
-initialiseTEAWin32C = c_InitialiseTEAWin32C
 
 initialiseDPIAwareFunctions :: IO ()
 initialiseDPIAwareFunctions = c_InitialiseDPIAwareFunctions
@@ -157,12 +107,6 @@ createFontSimple fontSize fontName =
 
 getResourceIcon :: Int -> IO Win32.HICON
 getResourceIcon = c_GetResourceIcon
-
-createManagedWindow :: CreateManagedWindowArgs -> IO Win32.HWND
-createManagedWindow args =
-    alloca $ \argsPtr ->
-        poke argsPtr args >>
-            c_CreateManagedWindow argsPtr
 
 finaliseTEAWin32C :: IO ()
 finaliseTEAWin32C = c_FinaliseTEAWin32C

@@ -80,7 +80,7 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
     wndClass.lpszClassName = permanentFullClassName;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
     wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
-    wndClass.lpfnWndProc = CallHaskellWndProc;
+    wndClass.lpfnWndProc = TEAWin32WndProc;
 
     RegisterClassExW(&wndClass);
 

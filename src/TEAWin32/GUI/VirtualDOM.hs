@@ -9,7 +9,6 @@ module TEAWin32.GUI.VirtualDOM
 
 import           Control.Applicative              ((<|>))
 import           Control.Monad.Cont               (ContT (..))
-import           Control.Monad.IO.Class           (liftIO)
 import           Data.IORef                       (IORef, atomicModifyIORef',
                                                    newIORef)
 import qualified Data.List                        as List
