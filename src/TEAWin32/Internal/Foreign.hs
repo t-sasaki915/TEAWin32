@@ -1,34 +1,10 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
 
 module TEAWin32.Internal.Foreign where
 
 import           Data.Int       (Int32)
-import           Foreign        (FunPtr, Ptr, Storable (..), Word16, Word32,
-                                 fillBytes, intPtrToPtr)
-import           Foreign.C      (CIntPtr (..))
+import           Foreign        (Word16, Word32, intPtrToPtr)
 import qualified Graphics.Win32 as Win32
-
-type WNDPROC = Win32.HWND -> Win32.UINT -> Win32.WPARAM -> Win32.LPARAM -> IO Win32.LRESULT
-
-foreign import ccall unsafe "SetClassLongPtrW"
-    c_SetClassLongPtr :: Win32.HWND -> Int32 -> Ptr () -> IO (Ptr ())
-
-foreign import ccall unsafe "SetWindowPos"
-    c_SetWindowPos :: Win32.HWND -> Win32.HWND -> Int32 -> Int32 -> Int32 -> Int32 -> Win32.UINT -> IO Win32.BOOL
-
-foreign import ccall unsafe "DeleteObject"
-    c_DeleteObject :: Ptr () -> IO Win32.BOOL
-
-foreign import ccall unsafe "ReleaseActCtx"
-    c_ReleaseActCtx :: Win32.HANDLE -> IO ()
-
-foreign import ccall unsafe "GetSysColorBrush"
-    c_GetSysColorBrush :: Word32 -> IO Win32.HBRUSH
-
-foreign import ccall "wrapper"
-    makeWndProc :: WNDPROC -> IO (FunPtr WNDPROC)
 
 c_MakeIntResourceW :: Win32.WORD -> Win32.LPCWSTR
 c_MakeIntResourceW = intPtrToPtr . fromIntegral
@@ -346,24 +322,3 @@ sIID_MEDIABDRE = 139
 
 sIID_CLUSTEREDDRIVE :: SHSTOCKICONID
 sIID_CLUSTEREDDRIVE = 140
-
-instance Storable Win32.RECT where
-    sizeOf _ = sizeOf (0 :: Win32.LONG) * 4
-
-    alignment _ = alignment (0 :: Win32.LONG)
-
-    peek ptr = do
-        left   <- peekByteOff ptr 0
-        top    <- peekByteOff ptr (sizeOf (0 :: Win32.LONG))
-        right  <- peekByteOff ptr (sizeOf (0 :: Win32.LONG) * 2)
-        bottom <- peekByteOff ptr (sizeOf (0 :: Win32.LONG) * 3)
-
-        pure (left, top, right, bottom)
-
-    poke ptr (left, top, right, bottom) = do
-        fillBytes ptr 0 (sizeOf (0 :: Win32.LONG) * 4)
-
-        pokeByteOff ptr 0 left
-        pokeByteOff ptr (sizeOf (0 :: Win32.LONG)) top
-        pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 2) right
-        pokeByteOff ptr (sizeOf (0 :: Win32.LONG) * 3) bottom

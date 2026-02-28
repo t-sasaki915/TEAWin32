@@ -6,7 +6,6 @@ module TEAWin32.Internal.Native
     , getTopLevelWindows
     , isWindowTopLevel
     , getHighDPIIcon
-    , enableDPIAware
     , showErrorReporter
     , createFontSimple
     , getResourceIcon
@@ -42,9 +41,6 @@ foreign import ccall unsafe "IsWindowTopLevel"
 
 foreign import ccall unsafe "GetHighDPIIcon"
     c_GetHighDPIIcon :: Win32.SHSTOCKICONID -> IO Win32.HICON
-
-foreign import ccall unsafe "EnableDPIAware"
-    c_EnableDPIAware :: IO ()
 
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
@@ -86,9 +82,6 @@ isWindowTopLevel = c_IsWindowTopLevel
 
 getHighDPIIcon :: Win32.SHSTOCKICONID -> IO Win32.HICON
 getHighDPIIcon = c_GetHighDPIIcon
-
-enableDPIAware :: IO ()
-enableDPIAware = c_EnableDPIAware
 
 showErrorReporter :: Text -> Text -> Text -> Text -> IO ()
 showErrorReporter dialogTitle shortMsg specificMsgWithStacktrace fullMsg =

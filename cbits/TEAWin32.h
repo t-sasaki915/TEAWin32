@@ -11,6 +11,11 @@ typedef struct
     int (*onWindowDestroy)(int uniqueId);
 } HaskellWndProcCallbacks;
 
+typedef struct
+{
+    BOOL useVisualStyles;
+} Settings;
+
 extern DWORD TEAWIN32_INSTANCE_PID;
 extern wchar_t TEAWIN32_INSTANCE_PID_STR[9];
 extern HINSTANCE TEAWIN32_MAIN_INSTANCE;

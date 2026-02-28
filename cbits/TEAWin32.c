@@ -126,6 +126,22 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
     return HandleCallbackResult(hwnd, wMsg, wParam, lParam, callbackResult);
 }
 
+void StartMessagePump(void)
+{
+    MSG msg;
+    BOOL bRet;
+    while ((bRet = GetMessageW(&msg, NULL, 0, 0)) != 0)
+    {
+        if (bRet == -1)
+        {
+            break;
+        }
+
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
+}
+
 void FinaliseTEAWin32C(void)
 {
     FinaliseClassCache();

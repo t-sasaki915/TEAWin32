@@ -12,38 +12,28 @@ void InitialiseDPIAwareFunctions(void)
     HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
-        return;
-    }
-
-    FARPROC getDpiForWindowAddr = GetProcAddress(user32, "GetDpiForWindow");
-    if (getDpiForWindowAddr == NULL)
-    {
-        return;
-    }
-
-    GET_DPI_FOR_WINDOW_FUNC = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
-}
-
-void EnableDPIAware(void)
-{
-    HMODULE user32 = GetModuleHandleW(L"user32.dll");
-    if (user32 == NULL)
-    {
         SetProcessDPIAware();
         return;
     }
 
     FARPROC setProcessDpiAwarenessContextPtr = GetProcAddress(user32, "SetProcessDpiAwarenessContext");
-    if (setProcessDpiAwarenessContextPtr == NULL)
+    if (setProcessDpiAwarenessContextPtr != NULL)
+    {
+        PSET_PROCESS_DPI_AWARENESS_CONTEXT setProcessDpiAwarenessContextFunc =
+            (PSET_PROCESS_DPI_AWARENESS_CONTEXT)setProcessDpiAwarenessContextPtr;
+
+        setProcessDpiAwarenessContextFunc((void *)-4); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    }
+    else
     {
         SetProcessDPIAware();
-        return;
     }
 
-    PSET_PROCESS_DPI_AWARENESS_CONTEXT setProcessDpiAwarenessContextFunc =
-        (PSET_PROCESS_DPI_AWARENESS_CONTEXT)setProcessDpiAwarenessContextPtr;
-
-    setProcessDpiAwarenessContextFunc((void *)-4); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    FARPROC getDpiForWindowAddr = GetProcAddress(user32, "GetDpiForWindow");
+    if (getDpiForWindowAddr != NULL)
+    {
+        GET_DPI_FOR_WINDOW_FUNC = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
+    }
 }
 
 HICON GetHighDPIIcon(SHSTOCKICONID siid)
@@ -99,6 +89,6 @@ int ResolveScalableValueForHWND(CScalableValue scalableValue, HWND hwnd)
     }
     else
     {
-        return (GetScaleFactorForHWND(hwnd), scalableValue.value);
+        return ScaleValue(GetScaleFactorForHWND(hwnd), scalableValue.value);
     }
 }
