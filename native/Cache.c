@@ -94,15 +94,17 @@ HFONT GetCachedFont(CachedFont *fontKey)
         CachedFont entry = FONT_CACHE[i].fontCacheKey;
 
         BOOL matchFontName = fontKey->fontName == entry.fontName || wcscmp(fontKey->fontName, entry.fontName) == 0;
-        BOOL matchFontSize = CScalableValue_Equals(fontKey->fontSize, entry.fontSize);
-        BOOL matchFontStyle = fontKey->fontStyle == entry.fontStyle;
+        BOOL matchFontSize = ScalableValue_Equals(fontKey->fontSize, entry.fontSize);
+        BOOL matchIsItalic = fontKey->isItalic == entry.isItalic;
+        BOOL matchIsUnderline = fontKey->isUnderline == entry.isUnderline;
+        BOOL matchIsStrikeOut = fontKey->isStrikeOut == entry.isStrikeOut;
         BOOL matchScaleRatio = fontKey->scaleRatio == entry.scaleRatio;
         if (!fontKey->fontSize.isScalable && !entry.fontSize.isScalable)
         {
             matchScaleRatio = TRUE;
         }
 
-        if (matchFontName && matchFontSize && matchFontStyle && matchScaleRatio)
+        if (matchFontName && matchFontSize && matchIsItalic && matchIsUnderline && matchIsStrikeOut && matchScaleRatio)
         {
             return FONT_CACHE[i].fontCacheHandle;
         }
@@ -118,9 +120,9 @@ HFONT GetCachedFont(CachedFont *fontKey)
             0,
             0,
             FW_NORMAL,
-            FALSE, // TODO
-            FALSE, // TODO
-            FALSE, // TODO
+            fontKey->isItalic,
+            fontKey->isUnderline,
+            fontKey->isStrikeOut,
             DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS,
             CLIP_DEFAULT_PRECIS,
@@ -131,7 +133,9 @@ HFONT GetCachedFont(CachedFont *fontKey)
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontName = permanentFontName;
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontSize = fontKey->fontSize;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontStyle = fontKey->fontStyle;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isItalic = fontKey->isItalic;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isUnderline = fontKey->isUnderline;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.scaleRatio = fontKey->scaleRatio;
 
         FONT_CACHE_COUNT++;

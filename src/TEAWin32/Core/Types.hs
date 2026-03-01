@@ -35,6 +35,10 @@ module TEAWin32.Core.Types
     , WindowBackgroundColour (..)
     , ButtonProperty (..)
     , IsButtonProperty
+    , UpdatePosReq (..)
+    , CreateWindowReq (..)
+    , CreateButtonReq (..)
+    , CCallRequest (..)
     ) where
 
 import           Control.Monad.State.Strict     (State)
@@ -42,9 +46,10 @@ import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
 import           Data.Map.Strict                (Map)
 import           Data.Text                      (Text)
-import           Foreign                        (Storable (..), fillBytes)
+import           Foreign                        (Storable (..), Word32,
+                                                 fillBytes)
 import           Foreign.C                      (CInt)
-import qualified TEAWin32.Core.Native.Constants as NativeConstants
+import qualified TEAWin32.Core.Native.Constants as Native
 
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int
@@ -126,29 +131,29 @@ instance Fractional ScalableValue where
     (RawValue a)      / (ScalableValue b) = RawValue      (a / b)
 
 instance Storable ScalableValue where
-    sizeOf _ = NativeConstants.size_ScalableValue
+    sizeOf _ = Native.size_ScalableValue
 
-    alignment _ = NativeConstants.alignment_ScalableValue
+    alignment _ = Native.alignment_ScalableValue
 
     peek ptr = do
-        value <- peekByteOff ptr NativeConstants.offset_ScalableValue_Value
-        isScalable <- peekByteOff ptr NativeConstants.offset_ScalableValue_IsScalable
+        value <- peekByteOff ptr Native.offset_ScalableValue_value
+        isScalable <- peekByteOff ptr Native.offset_ScalableValue_isScalable
 
         if (isScalable :: CInt) == 0
             then pure (RawValue value)
             else pure (ScalableValue value)
 
     poke ptr (RawValue v) = do
-        fillBytes ptr 0 NativeConstants.size_ScalableValue
+        fillBytes ptr 0 Native.size_ScalableValue
 
-        pokeByteOff ptr NativeConstants.offset_ScalableValue_Value      v
-        pokeByteOff ptr NativeConstants.offset_ScalableValue_IsScalable False
+        pokeByteOff ptr Native.offset_ScalableValue_value      v
+        pokeByteOff ptr Native.offset_ScalableValue_isScalable False
 
     poke ptr (ScalableValue v) = do
-        fillBytes ptr 0 NativeConstants.size_ScalableValue
+        fillBytes ptr 0 Native.size_ScalableValue
 
-        pokeByteOff ptr NativeConstants.offset_ScalableValue_Value      v
-        pokeByteOff ptr NativeConstants.offset_ScalableValue_IsScalable True
+        pokeByteOff ptr Native.offset_ScalableValue_value      v
+        pokeByteOff ptr Native.offset_ScalableValue_isScalable True
 
 data WindowStyle = WindowStyleBorderless
                  | WindowStyleNormal
@@ -286,3 +291,34 @@ instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize
 instance IsButtonProperty ComponentPosition
 instance IsButtonProperty ComponentFont
+
+data UpdatePosReq = UpdatePosReq
+    { newLocation           :: Maybe (ScalableValue, ScalableValue)
+    , newSize               :: Maybe (ScalableValue, ScalableValue)
+    , bringComponentToFront :: Bool
+    } deriving Eq
+
+data CreateWindowReq = CreateWindowReq
+    { newWindowUniqueId       :: UniqueId
+    , newWindowClassName      :: Text
+    , newWindowExStyles       :: Word32
+    , newWindowStyles         :: Word32
+    , newWindowParentUniqueId :: Maybe UniqueId
+    } deriving Eq
+
+data CreateButtonReq = CreateButtonReq
+    { newButtonUniqueId       :: UniqueId
+    , newButtonParentUniqueId :: UniqueId
+    } deriving Eq
+
+data CCallRequest = CreateWindowRequest        CreateWindowReq
+                  | CreateButtonRequest        CreateButtonReq
+                  | DestroyComponentRequest    UniqueId
+                  | UpdateTextRequest          UniqueId Text
+                  | UpdatePosRequest           UniqueId UpdatePosReq
+                  | UpdateFontRequest          UniqueId Font
+                  | UpdateIconRequest          UniqueId Icon
+                  | UpdateCursorRequest        UniqueId Cursor
+                  | InvalidateRectFullyRequest UniqueId
+                  | ShowWindowRequest          UniqueId
+                  deriving Eq

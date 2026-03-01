@@ -10,7 +10,9 @@ typedef struct
     LPCWSTR fontName;
     ScalableValue fontSize;
     double scaleRatio;
-    int fontStyle; // 0: Normal, 1: Italic, 2: Bold
+    BOOL isItalic;
+    BOOL isUnderline;
+    BOOL isStrikeOut;
 } CachedFont;
 
 typedef struct
