@@ -1,7 +1,13 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
 
 module TEAWin32.Core.Types
-    ( UniqueId (..)
+    ( UniqueIdInternState (..)
+    , DSLState (..)
+    , DSLT
+    , DSL
+    , UniqueId (..)
     , Colour (..)
     , TEAWin32Settings (..)
     , ScalableValue (..)
@@ -17,6 +23,7 @@ module TEAWin32.Core.Types
     , Button (..)
     , GUIComponentProperty (..)
     , IsGUIComponentProperty
+    , IsPropertyWrapper (..)
     , ComponentTitle (..)
     , ComponentSize (..)
     , ComponentPosition (..)
@@ -30,10 +37,27 @@ module TEAWin32.Core.Types
     , IsButtonProperty
     ) where
 
-import           Data.Data (Typeable, cast)
-import           Data.Text (Text)
-import           Foreign   (Storable (..), fillBytes)
-import           Foreign.C (CInt)
+import           Control.Monad.State.Strict  (State)
+import           Control.Monad.Writer.Strict (WriterT)
+import           Data.Data                   (Typeable, cast)
+import           Data.Map.Strict             (Map)
+import           Data.Text                   (Text)
+import           Foreign                     (Storable (..), fillBytes)
+import           Foreign.C                   (CInt)
+
+data UniqueIdInternState = UniqueIdInternState
+    { internedUserUniqueIdMap      :: Map Text Int
+    , nextUserUniqueIdInternNumber :: Int
+    }
+
+data DSLState = DSLState
+    { nextAutoUniqueId      :: Int
+    , userUniqueIdsAppeared :: [Text]
+    , uniqueIdInternState   :: UniqueIdInternState
+    }
+
+type DSLT a = WriterT [GUIComponent] (State DSLState) a
+type DSL = DSLT ()
 
 newtype UniqueId = UniqueId Int deriving (Show, Eq)
 
@@ -167,6 +191,9 @@ data GUIComponentProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentP
 
 class IsGUIComponentProperty a
 
+class IsPropertyWrapper a b where
+    wrapComponentProperty :: b -> a
+
 newtype ComponentTitle    = ComponentTitle    Text                           deriving (Show, Eq)
 newtype ComponentSize     = ComponentSize     (ScalableValue, ScalableValue) deriving (Show, Eq)
 newtype ComponentPosition = ComponentPosition (ScalableValue, ScalableValue) deriving (Show, Eq)
@@ -189,6 +216,9 @@ instance Eq WindowProperty where
             Nothing -> False
 
 instance IsGUIComponentProperty WindowProperty
+
+instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
+    wrapComponentProperty = WindowProperty
 
 class IsWindowProperty a
 
@@ -220,6 +250,9 @@ instance Eq ButtonProperty where
             Nothing -> False
 
 instance IsGUIComponentProperty ButtonProperty
+
+instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
+    wrapComponentProperty = ButtonProperty
 
 class IsButtonProperty a
 

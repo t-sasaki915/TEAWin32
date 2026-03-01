@@ -39,7 +39,9 @@ executable TEAWin32-Experiment
 
 library
   exposed-modules:
+      TEAWin32.Core.DSL
       TEAWin32.Core.Types
+      TEAWin32
   c-sources:
       native/Cache.c
       native/DPIAware.c
