@@ -3,7 +3,10 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 
 module TEAWin32.Core.Types
-    ( UniqueIdInternState (..)
+    ( SHSTOCKICONID
+    , WORD
+    , LPCWSTR
+    , UniqueIdInternState (..)
     , DSLState (..)
     , DSLT
     , DSL
@@ -46,10 +49,14 @@ import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
 import           Data.Map.Strict                (Map)
 import           Data.Text                      (Text)
-import           Foreign                        (Storable (..), Word32,
-                                                 fillBytes)
-import           Foreign.C                      (CInt)
+import           Foreign                        (Ptr, Storable (..), Word16,
+                                                 Word32, fillBytes)
+import           Foreign.C                      (CInt, CWchar)
 import qualified TEAWin32.Core.Native.Constants as Native
+
+type SHSTOCKICONID = Word32
+type WORD          = Word16
+type LPCWSTR       = Ptr CWchar
 
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int

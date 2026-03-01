@@ -8,7 +8,6 @@ import           Foreign                        (Storable (..), fillBytes,
                                                  fromBool, toBool)
 import           Foreign.C                      (CBool, CInt, CWString)
 import qualified TEAWin32.Core.Native           as Native
-import           TEAWin32.Core.Native           (SHSTOCKICONID)
 import qualified TEAWin32.Core.Native.Constants as Native
 import           TEAWin32.Core.Types
 
