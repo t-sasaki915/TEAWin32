@@ -1,4 +1,4 @@
-module TEAWin32.Core.Translator (marshallCCallRequest) where
+module TEAWin32.Core.Marshall (marshallCCallRequest) where
 
 import           Control.Monad                  (when)
 import           Control.Monad.Cont             (ContT (..))

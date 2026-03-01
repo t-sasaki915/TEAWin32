@@ -41,8 +41,8 @@ library
   exposed-modules:
       TEAWin32.Core.Native.Constants
       TEAWin32.Core.DSL
+      TEAWin32.Core.Marshall
       TEAWin32.Core.Native
-      TEAWin32.Core.Translator
       TEAWin32.Core.Types
       TEAWin32
   c-sources:

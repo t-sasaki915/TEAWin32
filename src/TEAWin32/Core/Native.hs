@@ -1,8 +1,5 @@
 module TEAWin32.Core.Native
-    ( SHSTOCKICONID
-    , WORD
-    , LPCWSTR
-    , withCWText
+    ( withCWText
     , c_MakeIntResourceW
     ) where
 
