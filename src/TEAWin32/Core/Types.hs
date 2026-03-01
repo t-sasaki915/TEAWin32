@@ -11,25 +11,31 @@ module TEAWin32.Core.Types
     , Icon (..)
     , Cursor (..)
     , Font (..)
-    , ComponentProperty (..)
+    , GUIComponent (..)
+    , IsGUIComponent
+    , Window (..)
+    , Button (..)
+    , GUIComponentProperty (..)
+    , IsGUIComponentProperty
     , ComponentTitle (..)
     , ComponentSize (..)
     , ComponentPosition (..)
     , ComponentFont (..)
     , WindowProperty (..)
+    , IsWindowProperty
     , WindowIcon (..)
     , WindowCursor (..)
     , WindowBackgroundColour (..)
     , ButtonProperty (..)
-    , defaultTEAWin32Settings
+    , IsButtonProperty
     ) where
 
-import           Data.Data (Typeable)
+import           Data.Data (Typeable, cast)
 import           Data.Text (Text)
 import           Foreign   (Storable (..), fillBytes)
 import           Foreign.C (CInt)
 
-newtype UniqueId = UniqueId Int
+newtype UniqueId = UniqueId Int deriving (Show, Eq)
 
 instance Storable UniqueId where
     sizeOf _ = sizeOf (0 :: CInt)
@@ -46,11 +52,6 @@ data Colour = RGB Int Int Int deriving (Show, Eq)
 
 newtype TEAWin32Settings = TEAWin32Settings
     { useVisualStyles :: Bool
-    }
-
-defaultTEAWin32Settings :: TEAWin32Settings
-defaultTEAWin32Settings = TEAWin32Settings
-    { useVisualStyles = True
     }
 
 data ScalableValue = ScalableValue Double
@@ -141,23 +142,53 @@ data Font = Font
     , isStrikeOut :: Bool
     } deriving (Show, Eq, Ord)
 
-data ComponentProperty = forall a. (Typeable a, Show a, IsComponentProperty a) => ComponentProperty a
+data GUIComponent = forall a. (Typeable a, Show a, Eq a, IsGUIComponent a) => GUIComponent a
 
-class IsComponentProperty a
+instance Show GUIComponent where
+    show (GUIComponent a) = "GUIComponent " <> show a
+
+instance Eq GUIComponent where
+    (GUIComponent a) == (GUIComponent b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
+
+class IsGUIComponent a
+
+data Window = Window UniqueId Text WindowStyle [WindowProperty] [GUIComponent] deriving (Show, Eq)
+
+instance IsGUIComponent Window
+
+data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
+
+instance IsGUIComponent Button
+
+data GUIComponentProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a) => ComponentProperty a
+
+class IsGUIComponentProperty a
 
 newtype ComponentTitle    = ComponentTitle    Text                           deriving (Show, Eq)
 newtype ComponentSize     = ComponentSize     (ScalableValue, ScalableValue) deriving (Show, Eq)
 newtype ComponentPosition = ComponentPosition (ScalableValue, ScalableValue) deriving (Show, Eq)
 newtype ComponentFont     = ComponentFont     Font                           deriving (Show, Eq)
 
-instance IsComponentProperty ComponentTitle
-instance IsComponentProperty ComponentSize
-instance IsComponentProperty ComponentPosition
-instance IsComponentProperty ComponentFont
+instance IsGUIComponentProperty ComponentTitle
+instance IsGUIComponentProperty ComponentSize
+instance IsGUIComponentProperty ComponentPosition
+instance IsGUIComponentProperty ComponentFont
 
-data WindowProperty = forall a. (Typeable a, Show a, IsComponentProperty a, IsWindowProperty a) => WindowProperty a
+data WindowProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
-instance IsComponentProperty WindowProperty
+instance Show WindowProperty where
+    show (WindowProperty a) = "WindowProperty " <> show a
+
+instance Eq WindowProperty where
+    (WindowProperty a) == (WindowProperty b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
+
+instance IsGUIComponentProperty WindowProperty
 
 class IsWindowProperty a
 
@@ -165,9 +196,9 @@ newtype WindowIcon             = WindowIcon             Icon   deriving (Show, E
 newtype WindowCursor           = WindowCursor           Cursor deriving (Show, Eq)
 newtype WindowBackgroundColour = WindowBackgroundColour Colour deriving (Show, Eq)
 
-instance IsComponentProperty WindowIcon
-instance IsComponentProperty WindowCursor
-instance IsComponentProperty WindowBackgroundColour
+instance IsGUIComponentProperty WindowIcon
+instance IsGUIComponentProperty WindowCursor
+instance IsGUIComponentProperty WindowBackgroundColour
 
 instance IsWindowProperty WindowIcon
 instance IsWindowProperty WindowCursor
@@ -177,9 +208,18 @@ instance IsWindowProperty ComponentSize
 instance IsWindowProperty ComponentPosition
 instance IsWindowProperty ComponentFont
 
-data ButtonProperty = forall a. (Typeable a, Show a, IsComponentProperty a, IsButtonProperty a) => ButtonProperty a
+data ButtonProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
 
-instance IsComponentProperty ButtonProperty
+instance Show ButtonProperty where
+    show (ButtonProperty a) = "ButtonProperty " <> show a
+
+instance Eq ButtonProperty where
+    (ButtonProperty a) == (ButtonProperty b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
+
+instance IsGUIComponentProperty ButtonProperty
 
 class IsButtonProperty a
 
