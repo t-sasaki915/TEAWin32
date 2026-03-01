@@ -1,6 +1,6 @@
 module Main (main) where
 
-import           Control.Lens               (over, (^.))
+{-import           Control.Lens               (over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
 import           Model
@@ -105,4 +105,7 @@ main =
     let settings = Settings
             { useVisualStyles = True
             }
-        in runTEA settings init update view
+        in runTEA settings init update view-}
+
+main :: IO ()
+main = putStrLn "under construction"

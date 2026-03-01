@@ -39,39 +39,15 @@ executable TEAWin32-Experiment
 
 library
   exposed-modules:
-      TEAWin32.Application.Instances
-      TEAWin32.Application.Internal
-      TEAWin32.Application.WndProc
-      TEAWin32.Effect.MessageBox
-      TEAWin32.GUI.Component.Button.DSL
-      TEAWin32.GUI.Component.Button.Property
-      TEAWin32.GUI.Component.Window.DSL
-      TEAWin32.GUI.Component.Window.Property
-      TEAWin32.GUI.Component.Button
-      TEAWin32.GUI.Component.ComponentRegistry
-      TEAWin32.GUI.Component.Property
-      TEAWin32.GUI.Component.Window
-      TEAWin32.GUI.DSL.Internal
-      TEAWin32.GUI.VirtualDOM.Internal
-      TEAWin32.GUI.Component
-      TEAWin32.GUI.DSL
-      TEAWin32.GUI.Instances
-      TEAWin32.GUI.VirtualDOM
-      TEAWin32.Internal.Foreign
-      TEAWin32.Internal.Native
-      TEAWin32.Application
-      TEAWin32.Drawing
-      TEAWin32.Exception
-      TEAWin32.GUI
-      TEAWin32.Util
+      TEAWin32.Core.Types
   c-sources:
-      cbits/Cache.c
-      cbits/DPIAware.c
-      cbits/ErrorReporter.c
-      cbits/GUI.c
-      cbits/TEAWin32.c
-      cbits/Util.c
-      cbits/VirtualDOM.c
+      native/Cache.c
+      native/DPIAware.c
+      native/ErrorReporter.c
+      native/GUI.c
+      native/TEAWin32.c
+      native/Util.c
+      native/VirtualDOM.c
   install-includes:
       Cache.h
       DPIAware.h
@@ -80,7 +56,7 @@ library
       Util.h
       VirtualDOM.h
   include-dirs:
-      cbits
+      native
   other-modules:
       Paths_TEAWin32
   autogen-modules:
@@ -93,26 +69,8 @@ library
   cc-options: -Wall -Wextra -Wpedantic -O2
   build-depends:
       base >=4.7 && <5
-    , Win32 >=2.14 && <2.15
     , mtl >= 2.3 && <2.4
     , text >=2.1 && <2.2
     , containers >=0.7 && <0.8
-  default-language: Haskell2010
-  default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
-
-
-test-suite TEAWin32-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_TEAWin32
-  autogen-modules:
-      Paths_TEAWin32
-  hs-source-dirs:
-      test
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      TEAWin32
-    , base >=4.7 && <5
   default-language: Haskell2010
   default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
