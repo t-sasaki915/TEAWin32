@@ -7,9 +7,9 @@ typedef struct
 {
     double value;
     BOOL isScalable;
-} CScalableValue;
+} ScalableValue;
 
-inline int CScalableValue_Equals(CScalableValue a, CScalableValue b)
+inline int ScalableValue_Equals(ScalableValue a, ScalableValue b)
 {
     return a.isScalable == b.isScalable && a.value == a.value;
 }
@@ -22,8 +22,8 @@ double GetScaleFactorForHWND(HWND hwnd);
 
 int ScaleValue(double scaleFactor, int v);
 
-int Scale(double scaleFactor, CScalableValue scalable);
+int Scale(double scaleFactor, ScalableValue scalable);
 
-int ResolveScalableValueForHWND(CScalableValue scalableValue, HWND hwnd);
+int ResolveScalableValueForHWND(ScalableValue scalableValue, HWND hwnd);
 
 #endif

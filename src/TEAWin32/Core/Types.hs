@@ -37,13 +37,14 @@ module TEAWin32.Core.Types
     , IsButtonProperty
     ) where
 
-import           Control.Monad.State.Strict  (State)
-import           Control.Monad.Writer.Strict (WriterT)
-import           Data.Data                   (Typeable, cast)
-import           Data.Map.Strict             (Map)
-import           Data.Text                   (Text)
-import           Foreign                     (Storable (..), fillBytes)
-import           Foreign.C                   (CInt)
+import           Control.Monad.State.Strict     (State)
+import           Control.Monad.Writer.Strict    (WriterT)
+import           Data.Data                      (Typeable, cast)
+import           Data.Map.Strict                (Map)
+import           Data.Text                      (Text)
+import           Foreign                        (Storable (..), fillBytes)
+import           Foreign.C                      (CInt)
+import qualified TEAWin32.Core.Native.Constants as NativeConstants
 
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int
@@ -123,6 +124,31 @@ instance Fractional ScalableValue where
     (RawValue a)      / (RawValue b)      = RawValue      (a / b)
     (ScalableValue a) / (RawValue b)      = ScalableValue (a / b)
     (RawValue a)      / (ScalableValue b) = RawValue      (a / b)
+
+instance Storable ScalableValue where
+    sizeOf _ = NativeConstants.size_ScalableValue
+
+    alignment _ = NativeConstants.alignment_ScalableValue
+
+    peek ptr = do
+        value <- peekByteOff ptr NativeConstants.offset_ScalableValue_Value
+        isScalable <- peekByteOff ptr NativeConstants.offset_ScalableValue_IsScalable
+
+        if (isScalable :: CInt) == 0
+            then pure (RawValue value)
+            else pure (ScalableValue value)
+
+    poke ptr (RawValue v) = do
+        fillBytes ptr 0 NativeConstants.size_ScalableValue
+
+        pokeByteOff ptr NativeConstants.offset_ScalableValue_Value      v
+        pokeByteOff ptr NativeConstants.offset_ScalableValue_IsScalable False
+
+    poke ptr (ScalableValue v) = do
+        fillBytes ptr 0 NativeConstants.size_ScalableValue
+
+        pokeByteOff ptr NativeConstants.offset_ScalableValue_Value      v
+        pokeByteOff ptr NativeConstants.offset_ScalableValue_IsScalable True
 
 data WindowStyle = WindowStyleBorderless
                  | WindowStyleNormal

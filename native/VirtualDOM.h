@@ -33,10 +33,10 @@ typedef struct
     BOOL hasNewLocation;
     BOOL hasNewSize;
     BOOL bringComponentToFront;
-    CScalableValue newX;
-    CScalableValue newY;
-    CScalableValue newWidth;
-    CScalableValue newHeight;
+    ScalableValue newX;
+    ScalableValue newY;
+    ScalableValue newWidth;
+    ScalableValue newHeight;
 } UpdatePosReq;
 
 typedef struct

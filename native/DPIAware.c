@@ -71,7 +71,7 @@ int ScaleValue(double scaleFactor, int v)
     return ((int)((v * scaleFactor) + 0.5));
 }
 
-int Scale(double scaleFactor, CScalableValue scalable)
+int Scale(double scaleFactor, ScalableValue scalable)
 {
     if (!scalable.isScalable)
     {
@@ -81,7 +81,7 @@ int Scale(double scaleFactor, CScalableValue scalable)
     return ScaleValue(scaleFactor, scalable.value);
 }
 
-int ResolveScalableValueForHWND(CScalableValue scalableValue, HWND hwnd)
+int ResolveScalableValueForHWND(ScalableValue scalableValue, HWND hwnd)
 {
     if (!scalableValue.isScalable)
     {
