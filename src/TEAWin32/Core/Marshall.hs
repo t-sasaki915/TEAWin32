@@ -2,6 +2,7 @@ module TEAWin32.Core.Marshall (marshallCCallRequest) where
 
 import           Control.Monad                  (when)
 import           Control.Monad.Cont             (ContT (..))
+import           Data.Bits                      ((.|.))
 import           Data.Maybe                     (fromJust, isJust)
 import           Data.Word                      (Word32)
 import           Foreign                        (Storable (..), fillBytes,
@@ -14,13 +15,14 @@ import           TEAWin32.Core.Types
 marshallCCallRequest :: CCallRequest -> ContT a IO InternalCCallRequest
 marshallCCallRequest (CreateWindowRequest req) =
     ContT (Native.withCWText (newWindowClassName req)) >>= \classNamePtr ->
-        pure $ CreateWindowRequest' (newWindowUniqueId req) $
-            InternalCreateWindowReq
-                { newWindowParentUniqueId' = newWindowParentUniqueId req
-                , newWindowClassName'      = classNamePtr
-                , newWindowExStyles'       = newWindowExStyles req
-                , newWindowStyles'         = newWindowStyles req
-                }
+        let (exStyles, styles) = marshallWindowStyle (newWindowStyles req) in
+            pure $ CreateWindowRequest' (newWindowUniqueId req) $
+                InternalCreateWindowReq
+                    { newWindowParentUniqueId' = newWindowParentUniqueId req
+                    , newWindowClassName'      = classNamePtr
+                    , newWindowExStyles'       = exStyles
+                    , newWindowStyles'         = styles
+                    }
 
 marshallCCallRequest (CreateButtonRequest req) =
     pure (CreateButtonRequest' (newButtonUniqueId req) (newButtonParentUniqueId req))
@@ -59,6 +61,13 @@ marshallCCallRequest (InvalidateRectFullyRequest target) =
 
 marshallCCallRequest (ShowWindowRequest target) =
     pure (ShowWindowRequest' target)
+
+marshallWindowStyle :: WindowStyle -> (Word32, Word32)
+marshallWindowStyle WindowStyleBorderless      = (0, Native.const_WS_POPUP)
+marshallWindowStyle WindowStyleNormal          = (0, Native.const_WS_OVERLAPPEDWINDOW)
+marshallWindowStyle WindowStyleBorderlessChild = (0, Native.const_WS_CHILD)
+marshallWindowStyle WindowStyleNormalChild     = (0, Native.const_WS_OVERLAPPEDWINDOW .|. Native.const_WS_CHILD)
+
 
 marshallFont :: Font -> (InternalCachedFont -> IO a) -> IO a
 marshallFont DefaultGUIFont func =

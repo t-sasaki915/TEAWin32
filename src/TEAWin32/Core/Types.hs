@@ -346,8 +346,7 @@ data UpdatePosReq = UpdatePosReq
 data CreateWindowReq = CreateWindowReq
     { newWindowUniqueId       :: UniqueId
     , newWindowClassName      :: Text
-    , newWindowExStyles       :: Word32
-    , newWindowStyles         :: Word32
+    , newWindowStyles         :: WindowStyle
     , newWindowParentUniqueId :: Maybe UniqueId
     } deriving (Show, Eq)
 

@@ -38,8 +38,7 @@ renderGUIComponent (GUIComponent c) maybeParent
         let createWindowReq = CreateWindowRequest $ CreateWindowReq
                 { newWindowUniqueId       = uniqueId
                 , newWindowClassName      = className
-                , newWindowExStyles       = 0 -- TODO
-                , newWindowStyles         = 0 -- TODO
+                , newWindowStyles         = windowStyles
                 , newWindowParentUniqueId = maybeParent
                 }
 

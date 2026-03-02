@@ -494,3 +494,12 @@ const_IDC_SIZENS = #const IDC_SIZENS
 
 const_CW_USEDEFAULT :: CInt
 const_CW_USEDEFAULT = #const CW_USEDEFAULT
+
+const_WS_POPUP :: Word32
+const_WS_POPUP = #const WS_POPUP
+
+const_WS_OVERLAPPEDWINDOW :: Word32
+const_WS_OVERLAPPEDWINDOW = #const WS_OVERLAPPEDWINDOW
+
+const_WS_CHILD :: Word32
+const_WS_CHILD = #const WS_CHILD
