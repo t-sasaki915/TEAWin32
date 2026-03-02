@@ -126,8 +126,8 @@ unapplyGUIComponentProperty (GUIComponentProperty p) componentUniqueId
         in
         [UpdatePosRequest componentUniqueId req]
 
-    | Just (ComponentFont font) <- cast p =
-        [UpdateFontRequest componentUniqueId font] -- TODO
+    | Just (ComponentFont _) <- cast p =
+        [UpdateFontRequest componentUniqueId DefaultGUIFont]
 
     | Just (WindowIcon _) <- cast p =
         [UpdateIconRequest componentUniqueId IconApplication]

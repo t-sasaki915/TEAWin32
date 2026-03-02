@@ -45,15 +45,8 @@ marshallCCallRequest (UpdatePosRequest target req) =
             }
 
 marshallCCallRequest (UpdateFontRequest target font) =
-    ContT (Native.withCWText (fontName font)) >>= \fontNamePtr ->
-        pure $ UpdateFontRequest' target $
-            InternalCachedFont
-                { fontName'    = fontNamePtr
-                , fontSize'    = fontSize font
-                , isItalic'    = fromBool $ isItalic font
-                , isUnderline' = fromBool $ isUnderline font
-                , isStrikeOut' = fromBool $ isStrikeOut font
-                }
+    ContT (marshallFont font) >>= \font' ->
+        pure (UpdateFontRequest' target font')
 
 marshallCCallRequest (UpdateIconRequest target icon) =
     pure (UpdateIconRequest' target (marshallIcon icon))
@@ -66,6 +59,37 @@ marshallCCallRequest (InvalidateRectFullyRequest target) =
 
 marshallCCallRequest (ShowWindowRequest target) =
     pure (ShowWindowRequest' target)
+
+marshallFont :: Font -> (InternalCachedFont -> IO a) -> IO a
+marshallFont DefaultGUIFont func =
+    Native.withCWText "MS Shell Dlg" $ \fontNamePtr ->
+        func $ InternalCachedFont
+            { fontName'    = fontNamePtr
+            , fontSize'    = 9
+            , isItalic'    = fromBool False
+            , isUnderline' = fromBool False
+            , isStrikeOut' = fromBool False
+            }
+
+marshallFont (Font fontName fontSize) func =
+    Native.withCWText fontName $ \fontNamePtr ->
+        func $ InternalCachedFont
+            { fontName'    = fontNamePtr
+            , fontSize'    = fontSize
+            , isItalic'    = fromBool False
+            , isUnderline' = fromBool False
+            , isStrikeOut' = fromBool False
+            }
+
+marshallFont (Font' fontName fontSize fontSettings) func =
+    Native.withCWText fontName $ \fontNamePtr ->
+        func $ InternalCachedFont
+            { fontName'    = fontNamePtr
+            , fontSize'    = fontSize
+            , isItalic'    = fromBool $ isItalic fontSettings
+            , isUnderline' = fromBool $ isUnderline fontSettings
+            , isStrikeOut' = fromBool $ isStrikeOut fontSettings
+            }
 
 marshallIcon :: Icon -> InternalCachedIcon
 marshallIcon (IconFromResourceFile iconId) =

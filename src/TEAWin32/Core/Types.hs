@@ -20,6 +20,7 @@ module TEAWin32.Core.Types
     , Icon (..)
     , Cursor (..)
     , Font (..)
+    , FontSettings (..)
     , GUIComponent (..)
     , IsGUIComponent (..)
     , Window (..)
@@ -199,10 +200,13 @@ data Cursor = CursorArrow
             | CursorSizeNS
             deriving (Show, Eq, Ord)
 
-data Font = Font
-    { fontName    :: Text
-    , fontSize    :: ScalableValue
-    , isItalic    :: Bool
+data Font = DefaultGUIFont
+          | Font Text ScalableValue
+          | Font' Text ScalableValue FontSettings
+          deriving (Show, Eq, Ord)
+
+data FontSettings = FontSettings
+    { isItalic    :: Bool
     , isUnderline :: Bool
     , isStrikeOut :: Bool
     } deriving (Show, Eq, Ord)
