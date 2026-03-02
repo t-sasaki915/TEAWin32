@@ -303,7 +303,7 @@ data UpdatePosReq = UpdatePosReq
     { newLocation           :: Maybe (ScalableValue, ScalableValue)
     , newSize               :: Maybe (ScalableValue, ScalableValue)
     , bringComponentToFront :: Bool
-    } deriving Eq
+    } deriving (Show, Eq)
 
 data CreateWindowReq = CreateWindowReq
     { newWindowUniqueId       :: UniqueId
@@ -311,12 +311,12 @@ data CreateWindowReq = CreateWindowReq
     , newWindowExStyles       :: Word32
     , newWindowStyles         :: Word32
     , newWindowParentUniqueId :: Maybe UniqueId
-    } deriving Eq
+    } deriving (Show, Eq)
 
 data CreateButtonReq = CreateButtonReq
     { newButtonUniqueId       :: UniqueId
     , newButtonParentUniqueId :: UniqueId
-    } deriving Eq
+    } deriving (Show, Eq)
 
 data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | CreateButtonRequest        CreateButtonReq
@@ -328,4 +328,4 @@ data CCallRequest = CreateWindowRequest        CreateWindowReq
                   | UpdateCursorRequest        UniqueId Cursor
                   | InvalidateRectFullyRequest UniqueId
                   | ShowWindowRequest          UniqueId
-                  deriving Eq
+                  deriving (Show, Eq)
