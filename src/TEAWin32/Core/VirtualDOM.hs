@@ -105,7 +105,7 @@ applyGUIComponentProperty (GUIComponentProperty p) componentUniqueId
 
 unapplyGUIComponentProperty :: GUIComponentProperty -> UniqueId -> [CCallRequest]
 unapplyGUIComponentProperty (GUIComponentProperty p) componentUniqueId
-    | Just (ComponentTitle "") <- cast p =
+    | Just (ComponentTitle _) <- cast p =
         [UpdateTextRequest componentUniqueId ""]
 
     | Just (ComponentSize _) <- cast p =
@@ -127,7 +127,7 @@ unapplyGUIComponentProperty (GUIComponentProperty p) componentUniqueId
         [UpdatePosRequest componentUniqueId req]
 
     | Just (ComponentFont font) <- cast p =
-        [UpdateFontRequest componentUniqueId font]
+        [UpdateFontRequest componentUniqueId font] -- TODO
 
     | Just (WindowIcon _) <- cast p =
         [UpdateIconRequest componentUniqueId IconApplication]
