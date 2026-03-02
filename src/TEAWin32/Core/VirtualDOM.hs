@@ -29,7 +29,7 @@ diffGUIComponent Nothing Nothing _                                   = []
 diffGUIComponentProperty :: Maybe GUIComponentProperty -> Maybe GUIComponentProperty -> UniqueId -> [CCallRequest]
 diffGUIComponentProperty (Just newProperty) Nothing parent            = applyGUIComponentProperty newProperty parent
 diffGUIComponentProperty Nothing (Just oldProperty) parent            = unapplyGUIComponentProperty oldProperty parent
-diffGUIComponentProperty (Just newProperty) (Just oldProperty) parent = []
+diffGUIComponentProperty (Just newProperty) (Just oldProperty) parent = updateGUIComponentProperty newProperty oldProperty parent
 diffGUIComponentProperty Nothing Nothing _                            = []
 
 renderGUIComponent :: GUIComponent -> Maybe UniqueId -> [CCallRequest]
@@ -102,6 +102,11 @@ applyGUIComponentProperty (GUIComponentProperty p) componentUniqueId
 
     | otherwise =
         []
+
+updateGUIComponentProperty :: GUIComponentProperty -> GUIComponentProperty -> UniqueId -> [CCallRequest]
+updateGUIComponentProperty newProperty oldProperty parent
+    | newProperty == oldProperty = []
+    | otherwise                  = applyGUIComponentProperty newProperty parent
 
 unapplyGUIComponentProperty :: GUIComponentProperty -> UniqueId -> [CCallRequest]
 unapplyGUIComponentProperty (GUIComponentProperty p) componentUniqueId

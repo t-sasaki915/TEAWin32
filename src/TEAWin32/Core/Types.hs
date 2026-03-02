@@ -256,6 +256,15 @@ instance IsGUIComponent Button where
 
 data GUIComponentProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a) => GUIComponentProperty a
 
+instance Show GUIComponentProperty where
+    show (GUIComponentProperty a) = "GUIComponentProperty " <> show a
+
+instance Eq GUIComponentProperty where
+    (GUIComponentProperty a) == (GUIComponentProperty b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
+
 class IsGUIComponentProperty a
 
 class IsPropertyWrapper a b where
