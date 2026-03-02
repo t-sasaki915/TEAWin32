@@ -21,7 +21,7 @@ module TEAWin32.Core.Types
     , Cursor (..)
     , Font (..)
     , GUIComponent (..)
-    , IsGUIComponent
+    , IsGUIComponent (..)
     , Window (..)
     , Button (..)
     , GUIComponentProperty (..)
@@ -102,6 +102,9 @@ instance RawValue Integer where
     raw = RawValue . fromIntegral
 
 instance RawValue Int where
+    raw = RawValue . fromIntegral
+
+instance RawValue CInt where
     raw = RawValue . fromIntegral
 
 instance RawValue Double where
@@ -215,17 +218,39 @@ instance Eq GUIComponent where
             Just b' -> a == b'
             Nothing -> False
 
-class IsGUIComponent a
+class IsGUIComponent a where
+    getUniqueId :: a -> UniqueId
+
+    getChildren :: a -> Maybe [GUIComponent]
+
+    hasWndProc :: a -> Bool
+
+instance IsGUIComponent GUIComponent where
+    getUniqueId (GUIComponent a) = getUniqueId a
+
+    getChildren (GUIComponent a) = getChildren a
+
+    hasWndProc (GUIComponent a) = hasWndProc a
 
 data Window = Window UniqueId Text WindowStyle [WindowProperty] [GUIComponent] deriving (Show, Eq)
 
-instance IsGUIComponent Window
+instance IsGUIComponent Window where
+    getUniqueId (Window uniqueId _ _ _ _) = uniqueId
+
+    getChildren (Window _ _ _ _ children) = Just children
+
+    hasWndProc _ = True
 
 data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
-instance IsGUIComponent Button
+instance IsGUIComponent Button where
+    getUniqueId (Button uniqueId _) = uniqueId
 
-data GUIComponentProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a) => ComponentProperty a
+    getChildren _ = Nothing
+
+    hasWndProc _ = False
+
+data GUIComponentProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a) => GUIComponentProperty a
 
 class IsGUIComponentProperty a
 

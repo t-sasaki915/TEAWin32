@@ -491,3 +491,6 @@ const_IDC_SIZEWE = #const IDC_SIZEWE
 
 const_IDC_SIZENS :: Word16
 const_IDC_SIZENS = #const IDC_SIZENS
+
+const_CW_USEDEFAULT :: CInt
+const_CW_USEDEFAULT = #const CW_USEDEFAULT
