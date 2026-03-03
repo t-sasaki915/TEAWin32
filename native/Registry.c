@@ -114,15 +114,19 @@ void UnregisterHWNDFromRegistry(HWND hwnd)
     }
 
     int uniqueId = regEntry->uniqueId;
-    free(regEntry);
 
     int pageIdx;
     int offset;
     UniqueIdHWNDMapEntry **pageTable;
-    if (!CalculatePageIdxAndOffset(uniqueId, &pageIdx, &offset, &pageTable))
+    if (CalculatePageIdxAndOffset(uniqueId, &pageIdx, &offset, &pageTable))
     {
-        return;
+        if (pageTable[pageIdx] != NULL)
+        {
+            pageTable[pageIdx][offset].uniqueId = 0;
+            pageTable[pageIdx][offset].correspondingHWND = NULL;
+        }
     }
 
-    pageTable[pageIdx] = NULL;
+    free(regEntry);
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)NULL);
 }
