@@ -23,10 +23,7 @@ extern int TEAWIN32_ACTIVE_WINDOW_COUNT;
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam);
 
-void RegisterHWNDUniqueId(HWND hwnd, int uniqueId);
-
-void UnregisterHWNDUniqueId(HWND hwnd);
-
-HWND GetHWNDFromUniqueId(int uniqueId);
+LRESULT CALLBACK
+SubclassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
 #endif

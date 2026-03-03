@@ -1,8 +1,10 @@
 #include "VirtualDOM.h"
 #include "Cache.h"
 #include "DPIAware.h"
+#include "Registry.h"
 #include "TEAWin32.h"
 
+#include <commctrl.h>
 #include <stdio.h>
 #include <windows.h>
 
@@ -39,7 +41,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
-            RegisterHWNDUniqueId(newWindow, request->targetUniqueId);
+            RegisterHWNDToRegistry(newWindow, request->targetUniqueId, COMPONENT_TYPE_WINDOW);
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
 
@@ -50,16 +52,18 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 L"BUTTON",
                 L"",
                 WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
-                0,
-                0,
-                0,
-                0,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
                 GetHWNDFromUniqueId(request->reqData.newButtonParentUniqueId),
                 NULL,
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
-            RegisterHWNDUniqueId(newButton, request->targetUniqueId);
+            SetWindowSubclass(targetHWND, SubclassWndProc, (UINT_PTR)request->targetUniqueId, 0);
+
+            RegisterHWNDToRegistry(newButton, request->targetUniqueId, COMPONENT_TYPE_BUTTON);
 
             break;
         }
@@ -70,7 +74,6 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
             }
 
             DestroyWindow(targetHWND);
-            UnregisterHWNDUniqueId(targetHWND);
 
             break;
         }
