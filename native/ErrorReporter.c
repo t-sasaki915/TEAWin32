@@ -101,22 +101,21 @@ void InitialiseDPIAware(void)
     }
 }
 
-int GetDPI()
+void GetDPI(void)
 {
     if (GET_DPI_FOR_WINDOW_FUNC == NULL)
     {
         HDC hdc = GetDC(ERROR_REPORTER_WINDOW);
-        int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        DPI = GetDeviceCaps(hdc, LOGPIXELSX);
         ReleaseDC(ERROR_REPORTER_WINDOW, hdc);
-        return dpi;
     }
 
-    return GET_DPI_FOR_WINDOW_FUNC(ERROR_REPORTER_WINDOW);
+    DPI = GET_DPI_FOR_WINDOW_FUNC(ERROR_REPORTER_WINDOW);
 }
 
 void DesignErrorReporter(BOOL setMainWindowPos)
 {
-    DPI = GetDPI();
+    GetDPI();
 
     UI_FONT = CreateFontW(
         -MulDiv(UI_FONT_SIZE, DPI, 72),
@@ -200,14 +199,14 @@ void DesignErrorReporter(BOOL setMainWindowPos)
         SWP_NOZORDER);
 }
 
-HICON GetErrorIcon(void)
+void GetErrorIcon(void)
 {
     SHSTOCKICONINFO iconInfo;
     iconInfo.cbSize = sizeof(SHSTOCKICONID);
 
     SHGetStockIconInfo(SIID_ERROR, SHGSI_ICON, &iconInfo);
 
-    return iconInfo.hIcon;
+    ERROR_ICON = iconInfo.hIcon;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
@@ -358,7 +357,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
             DeleteObject(EDITOR_FONT);
             DestroyIcon(ERROR_ICON);
 
-            ERROR_ICON = GetErrorIcon();
+            GetErrorIcon();
 
             DesignErrorReporter(FALSE);
 
@@ -373,7 +372,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
     }
 }
 
-BOOL CALLBACK MakeWindowTaskModalCallback(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK MakeReporterTaskModalCallback(HWND hwnd, LPARAM lParam)
 {
     DWORD pid;
     GetWindowThreadProcessId(hwnd, &pid);
@@ -387,7 +386,7 @@ BOOL CALLBACK MakeWindowTaskModalCallback(HWND hwnd, LPARAM lParam)
 
 void MakeReporterTaskModal(void)
 {
-    EnumWindows(MakeWindowTaskModalCallback, (LPARAM)GetCurrentProcessId());
+    EnumWindows(MakeReporterTaskModalCallback, (LPARAM)GetCurrentProcessId());
 }
 
 void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMsgWithStacktrace, LPCWSTR fullMsg)
@@ -401,7 +400,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
     SHORT_ERROR_MESSAGE = shortMsg;
     FULL_ERROR_MSG = fullMsg;
 
-    ERROR_ICON = GetErrorIcon();
+    GetErrorIcon();
 
     WNDCLASSEXW wndClass;
     ZeroMemory(&wndClass, sizeof(wndClass));
