@@ -20,12 +20,12 @@ HICON GetHighDPIIcon(SHSTOCKICONID siid);
 
 int GetDPI(HWND hwnd);
 
-double GetScaleFactorForHWND(HWND hwnd);
+int ResolvePixelForDpi(ScalableValue scalable, int dpi);
 
-int ScaleValue(double scaleFactor, int v);
+int ResolvePixelForHWND(ScalableValue scalable, HWND hwnd);
 
-int Scale(double scaleFactor, ScalableValue scalable);
+int ResolvePointForDpi(ScalableValue scalable, int dpi);
 
-int ResolveScalableValueForHWND(ScalableValue scalableValue, HWND hwnd);
+int ResolvePointForHWND(ScalableValue scalable, HWND hwnd);
 
 #endif

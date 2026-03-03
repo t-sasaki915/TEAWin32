@@ -98,13 +98,13 @@ HFONT GetCachedFont(CachedFont *fontKey)
         BOOL matchIsItalic = fontKey->isItalic == entry.isItalic;
         BOOL matchIsUnderline = fontKey->isUnderline == entry.isUnderline;
         BOOL matchIsStrikeOut = fontKey->isStrikeOut == entry.isStrikeOut;
-        BOOL matchScaleRatio = fontKey->scaleRatio == entry.scaleRatio;
+        BOOL matchDpi = fontKey->dpi == entry.dpi;
         if (!fontKey->fontSize.isScalable && !entry.fontSize.isScalable)
         {
-            matchScaleRatio = TRUE;
+            matchDpi = TRUE;
         }
 
-        if (matchFontName && matchFontSize && matchIsItalic && matchIsUnderline && matchIsStrikeOut && matchScaleRatio)
+        if (matchFontName && matchFontSize && matchIsItalic && matchIsUnderline && matchIsStrikeOut && matchDpi)
         {
             return FONT_CACHE[i].fontCacheHandle;
         }
@@ -115,7 +115,7 @@ HFONT GetCachedFont(CachedFont *fontKey)
         wchar_t *permanentFontName = _wcsdup(fontKey->fontName);
 
         HFONT newFont = CreateFontW(
-            -Scale(fontKey->scaleRatio, fontKey->fontSize),
+            ResolvePointForDpi(fontKey->fontSize, fontKey->dpi),
             0,
             0,
             0,
@@ -136,7 +136,7 @@ HFONT GetCachedFont(CachedFont *fontKey)
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isItalic = fontKey->isItalic;
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isUnderline = fontKey->isUnderline;
         FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.scaleRatio = fontKey->scaleRatio;
+        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.dpi = fontKey->dpi;
 
         FONT_CACHE_COUNT++;
 
@@ -212,8 +212,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
     {
         IconCacheEntry *entry = &ICON_CACHE[i];
 
-        if (entry->iconCacheKey.iconType != cacheKey->iconType ||
-            entry->iconCacheKey.scaleRatio != cacheKey->scaleRatio)
+        if (entry->iconCacheKey.iconType != cacheKey->iconType || entry->iconCacheKey.dpi != cacheKey->dpi)
         {
             continue;
         }
@@ -270,7 +269,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
 
     ICON_CACHE[ICON_CACHE_COUNT].iconCacheHandle = newIcon;
     ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconType = cacheKey->iconType;
-    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.scaleRatio = cacheKey->scaleRatio;
+    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.dpi = cacheKey->dpi;
     if (cacheKey->iconType == STOCK_ICON)
     {
         ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconId.stockIconId = cacheKey->iconId.stockIconId;

@@ -41,7 +41,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
-            RegisterHWNDToRegistry(newWindow, request->targetUniqueId, COMPONENT_TYPE_WINDOW);
+            RegisterHWNDToRegistry(newWindow, request->targetUniqueId);
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
 
@@ -63,7 +63,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             SetWindowSubclass(targetHWND, SubclassWndProc, (UINT_PTR)request->targetUniqueId, 0);
 
-            RegisterHWNDToRegistry(newButton, request->targetUniqueId, COMPONENT_TYPE_BUTTON);
+            RegisterHWNDToRegistry(newButton, request->targetUniqueId);
 
             break;
         }
@@ -95,10 +95,10 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             UpdatePosReq updatePosReq = request->reqData.updatePosReq;
 
-            int x = updatePosReq.hasNewLocation ? ResolveScalableValueForHWND(updatePosReq.newX, targetHWND) : 0;
-            int y = updatePosReq.hasNewLocation ? ResolveScalableValueForHWND(updatePosReq.newY, targetHWND) : 0;
-            int w = updatePosReq.hasNewSize ? ResolveScalableValueForHWND(updatePosReq.newWidth, targetHWND) : 0;
-            int h = updatePosReq.hasNewSize ? ResolveScalableValueForHWND(updatePosReq.newHeight, targetHWND) : 0;
+            int x = updatePosReq.hasNewLocation ? ResolvePixelForHWND(updatePosReq.newX, targetHWND) : 0;
+            int y = updatePosReq.hasNewLocation ? ResolvePixelForHWND(updatePosReq.newY, targetHWND) : 0;
+            int w = updatePosReq.hasNewSize ? ResolvePixelForHWND(updatePosReq.newWidth, targetHWND) : 0;
+            int h = updatePosReq.hasNewSize ? ResolvePixelForHWND(updatePosReq.newHeight, targetHWND) : 0;
 
             DWORD flags = SWP_NOACTIVATE;
             if (!updatePosReq.hasNewLocation)
@@ -138,7 +138,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
             }
 
             CachedFont cacheKey = request->reqData.newFontCacheKey;
-            cacheKey.scaleRatio = GetScaleFactorForHWND(targetHWND);
+            cacheKey.dpi = GetDPI(targetHWND);
 
             SendMessageW(targetHWND, WM_SETFONT, (WPARAM)GetCachedFont(&cacheKey), 1);
 
@@ -151,7 +151,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
             }
 
             CachedIcon cacheKey = request->reqData.newIconCacheKey;
-            cacheKey.scaleRatio = GetScaleFactorForHWND(targetHWND);
+            cacheKey.dpi = GetDPI(targetHWND);
 
             SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)GetCachedIcon(&cacheKey));
 

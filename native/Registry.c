@@ -68,7 +68,7 @@ HWND GetHWNDFromUniqueId(int uniqueId)
     return page[offset].correspondingHWND;
 }
 
-void RegisterHWNDToRegistry(HWND hwnd, int uniqueId, ComponentType compType)
+void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 {
     int pageIdx;
     int offset;
@@ -96,7 +96,6 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId, ComponentType compType)
     ZeroMemory(regEntry, sizeof(HWNDRegistryEntry));
     regEntry->uniqueId = uniqueId;
     regEntry->dpi = GetDPI(hwnd);
-    regEntry->componentType = compType;
 
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)regEntry);
 }

@@ -1,4 +1,5 @@
 #include "DPIAware.h"
+#include "Registry.h"
 
 #include <windows.h>
 
@@ -61,47 +62,44 @@ int GetDPI(HWND hwnd)
     return GET_DPI_FOR_WINDOW_FUNC(hwnd);
 }
 
-double GetScaleFactorForHWND(HWND hwnd)
+static inline int GetCachedDpi(HWND hwnd)
 {
-    int dpi;
+    HWNDRegistryEntry *entry = GetHWNDRegistryEntry(hwnd);
 
-    if (GET_DPI_FOR_WINDOW_FUNC != NULL)
+    if (entry == NULL)
     {
-        dpi = GET_DPI_FOR_WINDOW_FUNC(hwnd);
-    }
-    else
-    {
-        HDC hdc = GetDC(hwnd);
-        dpi = GetDeviceCaps(hdc, LOGPIXELSX);
-        ReleaseDC(hwnd, hdc);
+        return 96;
     }
 
-    return ((double)dpi / 96.0);
+    return entry->dpi;
 }
 
-int ScaleValue(double scaleFactor, int v)
-{
-    return ((int)((v * scaleFactor) + 0.5));
-}
-
-int Scale(double scaleFactor, ScalableValue scalable)
+int ResolvePixelForDpi(ScalableValue scalable, int dpi)
 {
     if (!scalable.isScalable)
     {
-        return ScaleValue(1.0, scalable.value);
+        return ((int)scalable.value);
     }
 
-    return ScaleValue(scaleFactor, scalable.value);
+    return MulDiv((int)scalable.value, dpi, 96);
 }
 
-int ResolveScalableValueForHWND(ScalableValue scalableValue, HWND hwnd)
+int ResolvePixelForHWND(ScalableValue scalable, HWND hwnd)
 {
-    if (!scalableValue.isScalable)
+    return ResolvePixelForDpi(scalable, GetCachedDpi(hwnd));
+}
+
+int ResolvePointForDpi(ScalableValue scalable, int dpi)
+{
+    if (!scalable.isScalable)
     {
-        return ScaleValue(1.0, scalableValue.value);
+        return ((int)scalable.value);
     }
-    else
-    {
-        return ScaleValue(GetScaleFactorForHWND(hwnd), scalableValue.value);
-    }
+
+    return -MulDiv((int)scalable.value, dpi, 72);
+}
+
+int ResolvePointForHWND(ScalableValue scalable, HWND hwnd)
+{
+    return ResolvePointForDpi(scalable, GetCachedDpi(hwnd));
 }

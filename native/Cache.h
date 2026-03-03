@@ -9,7 +9,7 @@ typedef struct
 {
     LPCWSTR fontName;
     ScalableValue fontSize;
-    double scaleRatio;
+    int dpi;
     BOOL isItalic;
     BOOL isUnderline;
     BOOL isStrikeOut;
@@ -30,7 +30,7 @@ typedef enum
 typedef struct
 {
     CachedIconType iconType;
-    double scaleRatio;
+    int dpi;
     union {
         SHSTOCKICONID stockIconId;
         LPCWSTR resourceId;
