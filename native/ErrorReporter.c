@@ -2,8 +2,8 @@
 
 #define ERROR_REPORTER_CLASS_NAME L"TEAWin32-ErrorReporter"
 
-#define UI_FONT_SIZE 14
-#define EDITOR_FONT_SIZE 12
+#define UI_FONT_SIZE 11
+#define EDITOR_FONT_SIZE 9
 #define UI_FONT_NAME L"Meiryo UI"
 #define EDITOR_FONT_NAME L"Consolas"
 
@@ -101,13 +101,15 @@ void InitialiseDPIAware(void)
     }
 }
 
-void GetDPI(void)
+void SetDPI(void)
 {
     if (GET_DPI_FOR_WINDOW_FUNC == NULL)
     {
         HDC hdc = GetDC(ERROR_REPORTER_WINDOW);
         DPI = GetDeviceCaps(hdc, LOGPIXELSX);
         ReleaseDC(ERROR_REPORTER_WINDOW, hdc);
+
+        return;
     }
 
     DPI = GET_DPI_FOR_WINDOW_FUNC(ERROR_REPORTER_WINDOW);
@@ -115,7 +117,7 @@ void GetDPI(void)
 
 void DesignErrorReporter(BOOL setMainWindowPos)
 {
-    GetDPI();
+    SetDPI();
 
     UI_FONT = CreateFontW(
         -MulDiv(UI_FONT_SIZE, DPI, 72),
@@ -202,7 +204,7 @@ void DesignErrorReporter(BOOL setMainWindowPos)
 void GetErrorIcon(void)
 {
     SHSTOCKICONINFO iconInfo;
-    iconInfo.cbSize = sizeof(SHSTOCKICONID);
+    iconInfo.cbSize = sizeof(iconInfo);
 
     SHGetStockIconInfo(SIID_ERROR, SHGSI_ICON, &iconInfo);
 

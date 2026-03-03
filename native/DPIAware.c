@@ -40,7 +40,7 @@ void InitialiseDPIAwareFunctions(void)
 HICON GetHighDPIIcon(SHSTOCKICONID siid)
 {
     SHSTOCKICONINFO iconInfo;
-    iconInfo.cbSize = sizeof(SHSTOCKICONINFO);
+    iconInfo.cbSize = sizeof(iconInfo);
 
     SHGetStockIconInfo(siid, SHGSI_ICON, &iconInfo);
 

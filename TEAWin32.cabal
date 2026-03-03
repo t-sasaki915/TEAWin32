@@ -74,6 +74,7 @@ library
       src
   build-tool-depends:
       hsc2hs:hsc2hs
+  extra-libraries: comctl32
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   cc-options: -Wall -Wextra -Wpedantic -O2
   build-depends:
