@@ -51,6 +51,7 @@ library
       native/DPIAware.c
       native/ErrorReporter.c
       native/GUI.c
+      native/Registry.c
       native/TEAWin32.c
       native/Util.c
       native/VirtualDOM.c
@@ -58,6 +59,7 @@ library
       Cache.h
       DPIAware.h
       GUI.h
+      Registry.h
       TEAWin32.h
       Util.h
       VirtualDOM.h

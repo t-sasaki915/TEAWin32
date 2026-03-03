@@ -48,6 +48,19 @@ HICON GetHighDPIIcon(SHSTOCKICONID siid)
     return iconInfo.hIcon;
 }
 
+int GetDPI(HWND hwnd)
+{
+    if (GET_DPI_FOR_WINDOW_FUNC == NULL)
+    {
+        HDC hdc = GetDC(hwnd);
+        int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(hwnd, hdc);
+        return dpi;
+    }
+
+    return GET_DPI_FOR_WINDOW_FUNC(hwnd);
+}
+
 double GetScaleFactorForHWND(HWND hwnd)
 {
     int dpi;

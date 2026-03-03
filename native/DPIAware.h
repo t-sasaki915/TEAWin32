@@ -18,6 +18,8 @@ void InitialiseDPIAwareFunctions(void);
 
 HICON GetHighDPIIcon(SHSTOCKICONID siid);
 
+int GetDPI(HWND hwnd);
+
 double GetScaleFactorForHWND(HWND hwnd);
 
 int ScaleValue(double scaleFactor, int v);
