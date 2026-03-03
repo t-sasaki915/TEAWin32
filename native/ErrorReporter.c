@@ -1,8 +1,3 @@
-#include "DPIAware.h"
-#include "GUI.h"
-#include "TEAWin32.h"
-#include "Util.h"
-
 #include <windows.h>
 
 #define ERROR_REPORTER_CLASS_NAME L"TEAWin32-ErrorReporter"
@@ -52,9 +47,12 @@
 #define SHORT_ERROR_MESSAGE_TEXT_Y 24
 #define SHORT_ERROR_MESSAGE_TEXT_COLOUR RGB(0, 0, 0)
 
-#define SCALE(a) ScaleValue(SCALE_FACTOR, a)
+typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);
+typedef BOOL(WINAPI *PSET_PROCESS_DPI_AWARENESS_CONTEXT)(void *);
 
-static double SCALE_FACTOR;
+static HINSTANCE ERROR_REPORTER_INSTANCE;
+
+static int DPI;
 static HICON ERROR_ICON;
 static HFONT UI_FONT;
 static HFONT EDITOR_FONT;
@@ -70,20 +68,93 @@ static BOOL IS_DETAIL_VISIBLE = FALSE;
 static LPCWSTR SHORT_ERROR_MESSAGE;
 static LPCWSTR FULL_ERROR_MSG;
 
-void DesignErrorReporter(BOOL redesign)
-{
-    InitialiseDPIAwareFunctions();
-    SCALE_FACTOR = GetScaleFactorForHWND(ERROR_REPORTER_WINDOW);
+static PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
 
-    UI_FONT = CreateFontSimple(SCALE(UI_FONT_SIZE), UI_FONT_NAME);
-    EDITOR_FONT = CreateFontSimple(SCALE(EDITOR_FONT_SIZE), EDITOR_FONT_NAME);
+#define SCALE(p) MulDiv(p, DPI, 96)
+
+void InitialiseDPIAware(void)
+{
+    HMODULE user32 = GetModuleHandleW(L"user32.dll");
+    if (user32 == NULL)
+    {
+        SetProcessDPIAware();
+        return;
+    }
+
+    FARPROC setProcessDpiAwarenessContextPtr = GetProcAddress(user32, "SetProcessDpiAwarenessContext");
+    if (setProcessDpiAwarenessContextPtr != NULL)
+    {
+        PSET_PROCESS_DPI_AWARENESS_CONTEXT setProcessDpiAwarenessContextFunc =
+            (PSET_PROCESS_DPI_AWARENESS_CONTEXT)setProcessDpiAwarenessContextPtr;
+
+        setProcessDpiAwarenessContextFunc((void *)-4); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    }
+    else
+    {
+        SetProcessDPIAware();
+    }
+
+    FARPROC getDpiForWindowAddr = GetProcAddress(user32, "GetDpiForWindow");
+    if (getDpiForWindowAddr != NULL)
+    {
+        GET_DPI_FOR_WINDOW_FUNC = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
+    }
+}
+
+int GetDPI()
+{
+    if (GET_DPI_FOR_WINDOW_FUNC == NULL)
+    {
+        HDC hdc = GetDC(ERROR_REPORTER_WINDOW);
+        int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(ERROR_REPORTER_WINDOW, hdc);
+        return dpi;
+    }
+
+    return GET_DPI_FOR_WINDOW_FUNC(ERROR_REPORTER_WINDOW);
+}
+
+void DesignErrorReporter(BOOL setMainWindowPos)
+{
+    DPI = GetDPI();
+
+    UI_FONT = CreateFontW(
+        -MulDiv(UI_FONT_SIZE, DPI, 72),
+        0,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        UI_FONT_NAME);
+    EDITOR_FONT = CreateFontW(
+        -MulDiv(EDITOR_FONT_SIZE, DPI, 72),
+        0,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        EDITOR_FONT_NAME);
 
     SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
     SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
     SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
     SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
 
-    if (!redesign)
+    if (setMainWindowPos)
     {
         SetWindowPos(
             ERROR_REPORTER_WINDOW,
@@ -127,6 +198,16 @@ void DesignErrorReporter(BOOL redesign)
         SCALE(DETAIL_BOX_WIDTH),
         SCALE(DETAIL_BOX_HEIGHT),
         SWP_NOZORDER);
+}
+
+HICON GetErrorIcon(void)
+{
+    SHSTOCKICONINFO iconInfo;
+    iconInfo.cbSize = sizeof(SHSTOCKICONID);
+
+    SHGetStockIconInfo(SIID_ERROR, SHGSI_ICON, &iconInfo);
+
+    return iconInfo.hIcon;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
@@ -266,8 +347,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
         }
 
         case WM_DPICHANGED: {
-            SCALE_FACTOR = GetScaleFactorForHWND(hwnd);
-
             RECT *rect = (RECT *)lParam;
             LONG l = rect->left;
             LONG t = rect->top;
@@ -277,8 +356,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
             DeleteObject(UI_FONT);
             DeleteObject(EDITOR_FONT);
+            DestroyIcon(ERROR_ICON);
 
-            DesignErrorReporter(TRUE);
+            ERROR_ICON = GetErrorIcon();
+
+            DesignErrorReporter(FALSE);
 
             InvalidateRect(hwnd, NULL, TRUE);
 
@@ -291,21 +373,42 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
     }
 }
 
+BOOL CALLBACK MakeWindowTaskModalCallback(HWND hwnd, LPARAM lParam)
+{
+    DWORD pid;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid == (DWORD)lParam && hwnd != ERROR_REPORTER_WINDOW)
+    {
+        EnableWindow(hwnd, FALSE);
+    }
+
+    return TRUE;
+}
+
+void MakeReporterTaskModal(void)
+{
+    EnumWindows(MakeWindowTaskModalCallback, (LPARAM)GetCurrentProcessId());
+}
+
 void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMsgWithStacktrace, LPCWSTR fullMsg)
 {
-    MakeWindowTaskModal(ERROR_REPORTER_WINDOW);
+    MakeReporterTaskModal();
+
+    InitialiseDPIAware();
+
+    ERROR_REPORTER_INSTANCE = GetModuleHandleW(NULL);
 
     SHORT_ERROR_MESSAGE = shortMsg;
     FULL_ERROR_MSG = fullMsg;
 
-    ERROR_ICON = GetHighDPIIcon(SIID_ERROR);
+    ERROR_ICON = GetErrorIcon();
 
     WNDCLASSEXW wndClass;
     ZeroMemory(&wndClass, sizeof(wndClass));
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = ERROR_REPORTER_CLASS_NAME;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
-    wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
+    wndClass.hInstance = ERROR_REPORTER_INSTANCE;
     wndClass.hIcon = ERROR_ICON;
     wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wndClass.lpfnWndProc = WndProc;
@@ -323,7 +426,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         NULL,
         NULL,
-        TEAWIN32_MAIN_INSTANCE,
+        ERROR_REPORTER_INSTANCE,
         0);
 
     CLOSE_BUTTON = CreateWindowW(
@@ -336,7 +439,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         (HMENU)CLOSE_BUTTON_ID,
-        TEAWIN32_MAIN_INSTANCE,
+        ERROR_REPORTER_INSTANCE,
         NULL);
 
     COPY_BUTTON = CreateWindowW(
@@ -349,7 +452,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         (HMENU)COPY_BUTTON_ID,
-        TEAWIN32_MAIN_INSTANCE,
+        ERROR_REPORTER_INSTANCE,
         NULL);
 
     DETAIL_BUTTON = CreateWindowW(
@@ -362,7 +465,7 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         (HMENU)DETAIL_BUTTON_ID,
-        TEAWIN32_MAIN_INSTANCE,
+        ERROR_REPORTER_INSTANCE,
         NULL);
 
     DETAIL_BOX = CreateWindowW(
@@ -375,12 +478,12 @@ void ShowErrorReporter(LPCWSTR dialogTitle, LPCWSTR shortMsg, LPCWSTR specificMs
         0,
         ERROR_REPORTER_WINDOW,
         NULL,
-        TEAWIN32_MAIN_INSTANCE,
+        ERROR_REPORTER_INSTANCE,
         NULL);
 
     MessageBeep(MB_ICONHAND);
 
-    DesignErrorReporter(FALSE);
+    DesignErrorReporter(TRUE);
 
     ShowWindow(ERROR_REPORTER_WINDOW, SW_SHOWNORMAL);
     UpdateWindow(ERROR_REPORTER_WINDOW);

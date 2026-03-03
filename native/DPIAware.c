@@ -6,7 +6,7 @@
 typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);
 typedef BOOL(WINAPI *PSET_PROCESS_DPI_AWARENESS_CONTEXT)(void *);
 
-PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
+static PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
 
 void InitialiseDPIAwareFunctions(void)
 {
@@ -39,10 +39,8 @@ void InitialiseDPIAwareFunctions(void)
 
 HICON GetHighDPIIcon(SHSTOCKICONID siid)
 {
-    DWORD structSize = 544;
-
     SHSTOCKICONINFO iconInfo;
-    iconInfo.cbSize = structSize;
+    iconInfo.cbSize = sizeof(SHSTOCKICONINFO);
 
     SHGetStockIconInfo(siid, SHGSI_ICON, &iconInfo);
 

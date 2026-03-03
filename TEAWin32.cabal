@@ -58,6 +58,7 @@ library
   install-includes:
       Cache.h
       DPIAware.h
+      ErrorReporter.h
       GUI.h
       Registry.h
       TEAWin32.h
