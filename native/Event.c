@@ -11,5 +11,5 @@ void InitialiseEvent(PEVENTENQUEUER eventEnqueuerPtr)
 
 void QueueEvent(EventQueueEntry *newEvent)
 {
-    EVENT_ENQUEUER_PTR(*newEvent);
+    EVENT_ENQUEUER_PTR(newEvent);
 }

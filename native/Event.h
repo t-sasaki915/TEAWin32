@@ -11,7 +11,7 @@ typedef struct
     EventType eventType;
 } EventQueueEntry;
 
-typedef void (*PEVENTENQUEUER)(EventQueueEntry);
+typedef void (*PEVENTENQUEUER)(const EventQueueEntry *);
 
 void InitialiseEvent(PEVENTENQUEUER eventEnqueuer);
 

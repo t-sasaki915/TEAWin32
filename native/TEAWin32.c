@@ -30,6 +30,11 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
 
     InitialiseEvent(eventEnqueuerPtr);
+
+    EventQueueEntry testEntry;
+    ZeroMemory(&testEntry, sizeof(testEntry));
+    testEntry.eventType = EVENT_TYPE_TEST_EVENT;
+    QueueEvent(&testEntry);
 }
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
