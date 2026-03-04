@@ -1,5 +1,6 @@
 module TEAWin32.Core.Native
     ( withCWText
+    , makeEventEnqueuerFunPtr
     , c_MakeIntResourceW
     , c_InitialiseTEAWin32C
     , c_FinaliseTEAWin32C
@@ -8,8 +9,8 @@ module TEAWin32.Core.Native
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
 import qualified Data.Text.Foreign   as TForeign
-import           Foreign             (Ptr, allocaArray, castPtr, intPtrToPtr,
-                                      pokeElemOff)
+import           Foreign             (FunPtr, Ptr, allocaArray, castPtr,
+                                      intPtrToPtr, pokeElemOff)
 import           Foreign.C           (CWString)
 import           TEAWin32.Core.Types
 
@@ -25,8 +26,11 @@ withCWText text func =
 c_MakeIntResourceW :: WORD -> LPCWSTR
 c_MakeIntResourceW = intPtrToPtr . fromIntegral
 
+foreign import ccall "wrapper"
+    makeEventEnqueuerFunPtr :: EventEnqueuer -> IO (FunPtr EventEnqueuer)
+
 foreign import ccall "InitialiseTEAWin32C"
-    c_InitialiseTEAWin32C :: Ptr TEAWin32Settings -> Ptr () -> IO () -- TODO
+    c_InitialiseTEAWin32C :: Ptr TEAWin32Settings -> FunPtr EventEnqueuer -> IO ()
 
 foreign import ccall "FinaliseTEAWin32C"
     c_FinaliseTEAWin32C :: IO ()

@@ -1,6 +1,7 @@
 #include "TEAWin32.h"
 #include "Cache.h"
 #include "DPIAware.h"
+#include "Event.h"
 #include "Registry.h"
 #include "Util.h"
 
@@ -13,9 +14,7 @@ wchar_t TEAWIN32_INSTANCE_PID_STR[9];
 HINSTANCE TEAWIN32_MAIN_INSTANCE;
 int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
 
-static HaskellWndProcCallbacks HASKELL_WNDPROC_CALLBACKS;
-
-void InitialiseTEAWin32C(TEAWin32Settings *settings, HaskellWndProcCallbacks *haskellWndProcCallbacks)
+void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueuerPtr)
 {
     InitialiseDPIAwareFunctions();
 
@@ -30,38 +29,16 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, HaskellWndProcCallbacks *ha
 
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
 
-    // HASKELL_WNDPROC_CALLBACKS = *haskellWndProcCallbacks;
-}
-
-LRESULT HandleCallbackResult(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam, int result)
-{
-    switch (result)
-    {
-        case 0: {
-            return 0;
-        }
-        case 1: {
-            return DefWindowProcW(hwnd, wMsg, wParam, lParam);
-        }
-        default: {
-            return DefWindowProcW(hwnd, wMsg, wParam, lParam);
-        }
-    }
+    InitialiseEvent(eventEnqueuerPtr);
 }
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-    HWNDRegistryEntry *entry = GetHWNDRegistryEntry(hwnd);
-    int uniqueId = entry->uniqueId;
-    int callbackResult;
+    // HWNDRegistryEntry *entry = GetHWNDRegistryEntry(hwnd);
+    // int uniqueId = entry->uniqueId;
 
     switch (wMsg)
     {
-        case WM_DESTROY: {
-            callbackResult = HASKELL_WNDPROC_CALLBACKS.onWindowDestroy(uniqueId);
-
-            break;
-        }
         case WM_NCDESTROY: {
             UnregisterHWNDFromRegistry(hwnd);
 
@@ -76,8 +53,6 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             return DefWindowProcW(hwnd, wMsg, wParam, lParam);
         }
     }
-
-    return HandleCallbackResult(hwnd, wMsg, wParam, lParam, callbackResult);
 }
 
 LRESULT CALLBACK

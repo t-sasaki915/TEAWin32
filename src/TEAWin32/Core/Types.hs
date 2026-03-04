@@ -9,6 +9,7 @@ module TEAWin32.Core.Types
     , Model (..)
     , Msg (..)
     , InternalState (..)
+    , EventEnqueuer
     , EventQueueEntry (..)
     , UniqueIdInternState (..)
     , DSLState (..)
@@ -49,6 +50,7 @@ module TEAWin32.Core.Types
     , CCallRequest (..)
     ) where
 
+import           Control.Concurrent.STM         (TQueue)
 import           Control.Monad.State.Strict     (State)
 import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
@@ -67,13 +69,16 @@ data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
 
 data InternalState = InternalState
-    { lastGUIComponents :: [GUIComponent]
+    { eventQueue        :: TQueue EventQueueEntry
+    , lastGUIComponents :: [GUIComponent]
     , updateFunction    :: Msg -> Model -> IO Model
     , viewFunction      :: Model -> DSL
     , currentModel      :: Model
     }
 
-data EventQueueEntry = TestEvent
+type EventEnqueuer = Ptr EventQueueEntry -> IO ()
+
+data EventQueueEntry = TestEvent deriving Show
 
 instance Storable EventQueueEntry where
     sizeOf _ = Native.size_EventQueueEntry

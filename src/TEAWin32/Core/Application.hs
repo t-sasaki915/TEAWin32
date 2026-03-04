@@ -4,16 +4,17 @@ module TEAWin32.Core.Application
     ) where
 
 import           Control.Concurrent         (threadDelay)
-import           Control.Concurrent.STM     (STM, TQueue, newTQueue,
-                                             writeTQueue)
+import           Control.Concurrent.STM     (TQueue, atomically, newTQueueIO,
+                                             tryReadTQueue, writeTQueue)
 import           Control.Exception          (bracket, bracket_,
                                              uninterruptibleMask_)
+import           Control.Monad              (unless)
 import           Control.Monad.IO.Class     (liftIO)
-import           Control.Monad.State.Strict (StateT, evalStateT)
+import           Control.Monad.State.Strict (MonadState (get), StateT,
+                                             evalStateT)
 import           Data.Data                  (Typeable, cast)
-import           Foreign                    (Storable (peek), alloca, nullPtr,
-                                             poke)
-import           GHC.Exts                   (Ptr (Ptr))
+import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
+                                             nullPtr, peek, with)
 import           Prelude                    hiding (init)
 import qualified TEAWin32.Core.Native       as Native
 import           TEAWin32.Core.Types
@@ -23,51 +24,65 @@ defaultTEAWin32Settings = TEAWin32Settings
     { useVisualStyles = True
     }
 
+processEvents :: TQueue EventQueueEntry -> StateT InternalState IO ()
+processEvents queue =
+    liftIO (atomically $ tryReadTQueue queue) >>= \case
+        Just event -> do
+            liftIO (putStrLn $ "RECEIVED AN EVENT!!!!!!!!!!!!!! " <> show event)
+
+            processEvents queue
+
+        Nothing ->
+            pure ()
+
 mainLoop :: StateT InternalState IO ()
 mainLoop = do
-    liftIO (threadDelay 16000)
+    currentState <- get
+
+    processEvents (eventQueue currentState)
+
     liftIO (putStrLn "LOOP")
 
+    liftIO (threadDelay 16000)
     mainLoop
 
-withTQueue :: ((TQueue EventQueueEntry, Ptr EventQueueEntry -> STM ()) -> STM a) -> STM a
-withTQueue func = do
-    tQueue <- newTQueue
+withEventEnqueuer :: ((TQueue EventQueueEntry, FunPtr (Ptr EventQueueEntry -> IO ())) -> IO a) -> IO a
+withEventEnqueuer func = do
+    evtQueue <- newTQueueIO
 
-    let enqueuer :: Ptr EventQueueEntry -> STM ()
-        enqueuer entryPtr =
-            liftIO (peek entryPtr) >>= \entry ->
-                writeTQueue tQueue entry
+    let enqueuer entryPtr =
+            unless (entryPtr == nullPtr) $
+                peek entryPtr >>=
+                    atomically . writeTQueue evtQueue
 
-    func (tQueue, enqueuer)
+    bracket (Native.makeEventEnqueuerFunPtr enqueuer)
+            freeHaskellFunPtr
+            (\enqueuerPtr -> func (evtQueue, enqueuerPtr))
 
 runTEAWin32 :: (Typeable model, Typeable msg) => TEAWin32Settings -> IO model -> (msg -> model -> IO model) -> (model -> DSL) -> IO ()
-runTEAWin32 settings init update view = bracket_
-    initialiseC
-    (uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
-    $ do
-        initModel <- init
+runTEAWin32 settings init update view =
+    withEventEnqueuer $ \(evtQueue, eventEnqueuer) ->
+        bracket_
+            (with settings $ \settingsPtr -> Native.c_InitialiseTEAWin32C settingsPtr eventEnqueuer)
+            (uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
+            $ do
+                initModel <- init
 
-        let update' (Msg msg) (Model model) =
-                case (cast msg, cast model) of
-                    (Just msg', Just model') -> Model <$> update msg' model'
-                    _                        -> error "" -- TODO
-            view' (Model model) =
-                case cast model of
-                    Just model' -> view model'
-                    _           -> error "" -- TODO
+                let update' (Msg msg) (Model model) =
+                        case (cast msg, cast model) of
+                            (Just msg', Just model') -> Model <$> update msg' model'
+                            _                        -> error "" -- TODO
+                    view' (Model model) =
+                        case cast model of
+                            Just model' -> view model'
+                            _           -> error "" -- TODO
 
-            internalState = InternalState
-                { lastGUIComponents = []
-                , updateFunction    = update'
-                , viewFunction      = view'
-                , currentModel      = Model initModel
-                }
+                    internalState = InternalState
+                        { eventQueue        = evtQueue
+                        , lastGUIComponents = []
+                        , updateFunction    = update'
+                        , viewFunction      = view'
+                        , currentModel      = Model initModel
+                        }
 
-        evalStateT mainLoop internalState
-
-    where
-        initialiseC =
-            alloca $ \settingsPtr ->
-                poke settingsPtr settings >>
-                    Native.c_InitialiseTEAWin32C settingsPtr nullPtr
+                evalStateT mainLoop internalState
