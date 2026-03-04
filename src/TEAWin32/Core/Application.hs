@@ -4,7 +4,7 @@ module TEAWin32.Core.Application
     ) where
 
 import           Control.Concurrent         (threadDelay)
-import           Control.Exception          (bracket_)
+import           Control.Exception          (bracket_, uninterruptibleMask_)
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.State.Strict (StateT, evalStateT)
 import           Data.Data                  (Typeable, cast)
@@ -21,7 +21,7 @@ defaultTEAWin32Settings = TEAWin32Settings
 runTEAWin32 :: (Typeable model, Typeable msg) => TEAWin32Settings -> IO model -> (msg -> model -> IO model) -> (model -> DSL) -> IO ()
 runTEAWin32 settings init update view = bracket_
     initialiseC
-    Native.c_FinaliseTEAWin32C
+    (uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
     $ do
         initModel <- init
 

@@ -25,8 +25,8 @@ withCWText text func =
 c_MakeIntResourceW :: WORD -> LPCWSTR
 c_MakeIntResourceW = intPtrToPtr . fromIntegral
 
-foreign import ccall unsafe "InitialiseTEAWin32C"
+foreign import ccall "InitialiseTEAWin32C"
     c_InitialiseTEAWin32C :: Ptr TEAWin32Settings -> Ptr () -> IO () -- TODO
 
-foreign import ccall unsafe "FinaliseTEAWin32C"
+foreign import ccall "FinaliseTEAWin32C"
     c_FinaliseTEAWin32C :: IO ()

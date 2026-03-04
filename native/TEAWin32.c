@@ -14,7 +14,6 @@ HINSTANCE TEAWIN32_MAIN_INSTANCE;
 int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
 
 static HaskellWndProcCallbacks HASKELL_WNDPROC_CALLBACKS;
-static HANDLE VISUAL_STYLE_ACTCTX_HANDLE = INVALID_HANDLE_VALUE;
 
 void InitialiseTEAWin32C(TEAWin32Settings *settings, HaskellWndProcCallbacks *haskellWndProcCallbacks)
 {
@@ -22,7 +21,7 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, HaskellWndProcCallbacks *ha
 
     if (settings->useVisualStyles)
     {
-        VISUAL_STYLE_ACTCTX_HANDLE = EnableVisualStyles();
+        EnableVisualStyles();
     }
 
     TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
@@ -96,29 +95,8 @@ SubclassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uId
     return DefSubclassProc(hwnd, uMsg, wParam, lParam);
 }
 
-void StartMessagePump(void)
-{
-    MSG msg;
-    BOOL bRet;
-    while ((bRet = GetMessageW(&msg, NULL, 0, 0)) != 0)
-    {
-        if (bRet == -1)
-        {
-            break;
-        }
-
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
-}
-
 void FinaliseTEAWin32C(void)
 {
-    if (VISUAL_STYLE_ACTCTX_HANDLE != INVALID_HANDLE_VALUE)
-    {
-        ReleaseActCtx(VISUAL_STYLE_ACTCTX_HANDLE);
-    }
-
     FinaliseClassCache();
     FinaliseFontCache();
     FinaliseCursorCache();

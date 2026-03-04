@@ -19,18 +19,18 @@ void MakeWindowTaskModal(HWND hwnd)
     EnumWindows(MakeWindowTaskModalCallback, (LPARAM)hwnd);
 }
 
-HANDLE EnableVisualStyles(void)
+void EnableVisualStyles(void)
 {
     HMODULE hInstance = LoadLibraryW(L"SHLWAPI.DLL");
     if (hInstance == NULL)
     {
-        return INVALID_HANDLE_VALUE;
+        return;
     }
 
     wchar_t szPath[512];
     if (GetModuleFileNameW(hInstance, szPath, ARRAYSIZE(szPath)) == 0)
     {
-        return INVALID_HANDLE_VALUE;
+        return;
     }
 
     ACTCTXW actCtx;
@@ -44,15 +44,13 @@ HANDLE EnableVisualStyles(void)
     HANDLE hActCtx = CreateActCtxW(&actCtx);
     if (hActCtx == INVALID_HANDLE_VALUE)
     {
-        return INVALID_HANDLE_VALUE;
+        return;
     }
 
     ULONG_PTR cookie;
     if (!ActivateActCtx(hActCtx, &cookie))
     {
         ReleaseActCtx(hActCtx);
-        return INVALID_HANDLE_VALUE;
+        return;
     }
-
-    return hActCtx;
 }
