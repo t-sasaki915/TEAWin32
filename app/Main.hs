@@ -1,15 +1,13 @@
 module Main (main) where
 
-{-import           Control.Lens               (over, (^.))
+import           Control.Lens               (over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
 import           Model
 import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
-import           TEAWin32.Application       (Settings (..), runTEA)
-import           TEAWin32.Effect.MessageBox
-import           TEAWin32.GUI.DSL
+import           TEAWin32
 
 data Msg = ButtonClicked
          | ButtonClicked2
@@ -33,7 +31,7 @@ update ButtonClicked model =
         pure (over clickedCount (+1) model)
 
 update ButtonClicked2 model = do
-    msgBoxResult <- showMessageBox defaultMessageBoxSettings
+    {-msgBoxResult <- showMessageBox defaultMessageBoxSettings
             { messageBoxTitle         = "TEAWin32"
             , messageBoxContent       = "!?!?!?"
             , messageBoxButtons       = MessageBoxButtonsYesNo
@@ -49,7 +47,8 @@ update ButtonClicked2 model = do
             error "NO"
 
         _ ->
-            error "!?"
+            error "!?"-}
+    pure model
 
 view :: Model -> DSL
 view model = do
@@ -61,7 +60,7 @@ view model = do
 
     window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
         [title_ "!?", icon_ IconDriveRAM, size_ (400, 200), pos_ (200, 0)] $
-            button_ [title_ "!?!?", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
+            button_ [title_ "!?!?", size_ (100, 50), pos_ (0, 0){-, onClick_ ButtonClicked-}]
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
@@ -69,7 +68,7 @@ view model = do
         , size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
         , bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
         ] ++ [cursor_ CursorIBeam | isCountEven]) $ do
-            button_ [title_ "TEST BUTTON", size_ (100, 50), pos_ (0, 0), onClick_ ButtonClicked]
+            button_ [title_ "TEST BUTTON", size_ (100, 50), pos_ (0, 0){-, onClick_ ButtonClicked-}]
 
             window_ "TEAWin32-Sub" WindowStyleNormalChild
                 [ title_ "HELLO"
@@ -81,7 +80,7 @@ view model = do
                 ] $ do
                     button_ [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), pos_ (20, 50)]
 
-                    button_ [title_ "!?", size_ (50, 50), pos_ (100, 150), onClick_ ButtonClicked2{-, font_ SystemFont-}]
+                    button_ [title_ "!?", size_ (50, 50), pos_ (100, 150){-, onClick_ ButtonClicked2-}{-, font_ SystemFont-}]
 
                     button_
                         [title_ "おはようございます", size_ (200, 50), pos_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else Font "Meiryo" 9)]
@@ -98,14 +97,7 @@ view model = do
                 , bgColour_ (RGB 0 0 255)
                 ] noChildren
 
-            button_ [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), pos_ (150, 100), zIndex_ (-1)]
+            button_ [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), pos_ (150, 100){-, zIndex_ (-1)-}]
 
 main :: IO ()
-main =
-    let settings = Settings
-            { useVisualStyles = True
-            }
-        in runTEA settings init update view-}
-
-main :: IO ()
-main = putStrLn "under construction"
+main = runTEAWin32 defaultTEAWin32Settings init update view

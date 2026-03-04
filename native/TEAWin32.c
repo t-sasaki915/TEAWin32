@@ -1,6 +1,8 @@
 #include "TEAWin32.h"
 #include "Cache.h"
+#include "DPIAware.h"
 #include "Registry.h"
+#include "Util.h"
 
 #include <commctrl.h>
 #include <wchar.h>
@@ -12,16 +14,24 @@ HINSTANCE TEAWIN32_MAIN_INSTANCE;
 int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
 
 static HaskellWndProcCallbacks HASKELL_WNDPROC_CALLBACKS;
+static HANDLE VISUAL_STYLE_ACTCTX_HANDLE = INVALID_HANDLE_VALUE;
 
-void InitialiseTEAWin32C(HaskellWndProcCallbacks *haskellWndProcCallbacks)
+void InitialiseTEAWin32C(TEAWin32Settings *settings, HaskellWndProcCallbacks *haskellWndProcCallbacks)
 {
+    InitialiseDPIAwareFunctions();
+
+    if (settings->useVisualStyles)
+    {
+        VISUAL_STYLE_ACTCTX_HANDLE = EnableVisualStyles();
+    }
+
     TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
 
     swprintf(TEAWIN32_INSTANCE_PID_STR, 9, L"%08X", TEAWIN32_INSTANCE_PID);
 
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
 
-    HASKELL_WNDPROC_CALLBACKS = *haskellWndProcCallbacks;
+    // HASKELL_WNDPROC_CALLBACKS = *haskellWndProcCallbacks;
 }
 
 LRESULT HandleCallbackResult(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam, int result)
@@ -104,6 +114,11 @@ void StartMessagePump(void)
 
 void FinaliseTEAWin32C(void)
 {
+    if (VISUAL_STYLE_ACTCTX_HANDLE != INVALID_HANDLE_VALUE)
+    {
+        ReleaseActCtx(VISUAL_STYLE_ACTCTX_HANDLE);
+    }
+
     FinaliseClassCache();
     FinaliseFontCache();
     FinaliseCursorCache();

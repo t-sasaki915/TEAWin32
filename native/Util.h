@@ -5,4 +5,6 @@
 
 void MakeWindowTaskModal(HWND hwnd);
 
+HANDLE EnableVisualStyles(void);
+
 #endif

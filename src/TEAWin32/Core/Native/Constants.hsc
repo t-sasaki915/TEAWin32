@@ -8,9 +8,19 @@ import           Foreign.C (CInt)
 
 #include "Cache.h"
 #include "DPIAware.h"
+#include "TEAWin32.h"
 #include "VirtualDOM.h"
 
 #include <windows.h>
+
+size_TEAWin32Settings :: Int
+size_TEAWin32Settings = #size TEAWin32Settings
+
+alignment_TEAWin32Settings :: Int
+alignment_TEAWin32Settings = #alignment TEAWin32Settings
+
+offset_TEAWin32Settings_useVisualStyles :: Int
+offset_TEAWin32Settings_useVisualStyles = #offset TEAWin32Settings, useVisualStyles
 
 size_ScalableValue :: Int
 size_ScalableValue = #size ScalableValue

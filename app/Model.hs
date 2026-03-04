@@ -1,13 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Model
-    ( {-Model (..)
+    ( Model (..)
     , displayWidth
     , displayHeight
-    , clickedCount-}
+    , clickedCount
     ) where
 
-{-import           Control.Lens (makeLenses)
+import           Control.Lens (makeLenses)
 
 data Model = Model
     { _displayWidth  :: Int
@@ -15,4 +15,4 @@ data Model = Model
     , _clickedCount  :: Int
     } deriving Show
 
-makeLenses ''Model-}
+makeLenses ''Model

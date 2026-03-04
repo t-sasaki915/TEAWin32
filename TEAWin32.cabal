@@ -40,6 +40,7 @@ executable TEAWin32-Experiment
 library
   exposed-modules:
       TEAWin32.Core.Native.Constants
+      TEAWin32.Core.Application
       TEAWin32.Core.DSL
       TEAWin32.Core.Marshall
       TEAWin32.Core.Native
@@ -50,7 +51,6 @@ library
       native/Cache.c
       native/DPIAware.c
       native/ErrorReporter.c
-      native/GUI.c
       native/Registry.c
       native/TEAWin32.c
       native/Util.c
@@ -59,7 +59,6 @@ library
       Cache.h
       DPIAware.h
       ErrorReporter.h
-      GUI.h
       Registry.h
       TEAWin32.h
       Util.h

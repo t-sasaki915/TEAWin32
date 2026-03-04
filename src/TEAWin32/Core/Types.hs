@@ -6,6 +6,9 @@ module TEAWin32.Core.Types
     ( SHSTOCKICONID
     , WORD
     , LPCWSTR
+    , Model (..)
+    , Msg (..)
+    , InternalState (..)
     , UniqueIdInternState (..)
     , DSLState (..)
     , DSLT
@@ -59,6 +62,16 @@ type SHSTOCKICONID = Word32
 type WORD          = Word16
 type LPCWSTR       = Ptr CWchar
 
+data Model = forall a. Typeable a => Model a
+data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
+
+data InternalState = InternalState
+    { lastGUIComponents :: [GUIComponent]
+    , updateFunction    :: Msg -> Model -> IO Model
+    , viewFunction      :: Model -> DSL
+    , currentModel      :: Model
+    }
+
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int
     , nextUserUniqueIdInternNumber :: Int
@@ -91,6 +104,23 @@ data Colour = RGB Int Int Int deriving (Show, Eq)
 newtype TEAWin32Settings = TEAWin32Settings
     { useVisualStyles :: Bool
     }
+
+instance Storable TEAWin32Settings where
+    sizeOf _ = Native.size_TEAWin32Settings
+
+    alignment _ = Native.alignment_TEAWin32Settings
+
+    peek ptr = do
+        useVisualStyles' <- peekByteOff ptr Native.offset_TEAWin32Settings_useVisualStyles
+
+        pure $ TEAWin32Settings
+            { useVisualStyles = useVisualStyles'
+            }
+
+    poke ptr val = do
+        fillBytes ptr 0 Native.size_TEAWin32Settings
+
+        pokeByteOff ptr Native.offset_TEAWin32Settings_useVisualStyles (useVisualStyles val)
 
 data ScalableValue = ScalableValue Double
                    | RawValue      Double
