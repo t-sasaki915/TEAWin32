@@ -1,5 +1,6 @@
 #include "Registry.h"
 #include "DPIAware.h"
+#include "Event.h"
 
 #include <windows.h>
 
@@ -85,6 +86,7 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 
         if (pageTable[pageIdx] == NULL)
         {
+            NotifyFatalError(L"calloc Failed", L"RegisterHWNDToRegistry (Registry.c)");
             return;
         }
     }

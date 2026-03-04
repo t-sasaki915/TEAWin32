@@ -16,6 +16,8 @@ int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
 
 void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueuerPtr)
 {
+    InitialiseEvent(eventEnqueuerPtr);
+
     InitialiseDPIAwareFunctions();
 
     if (settings->useVisualStyles)
@@ -28,8 +30,6 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     swprintf(TEAWIN32_INSTANCE_PID_STR, 9, L"%08X", TEAWIN32_INSTANCE_PID);
 
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
-
-    InitialiseEvent(eventEnqueuerPtr);
 
     EventQueueEntry testEntry;
     ZeroMemory(&testEntry, sizeof(testEntry));

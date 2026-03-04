@@ -9,13 +9,15 @@ import           Control.Concurrent.STM     (TQueue, atomically, newTQueueIO,
 import           Control.Exception          (bracket, bracket_,
                                              uninterruptibleMask_)
 import           Control.Monad              (unless)
+import           Control.Monad.Cont         (ContT (..), evalContT)
 import           Control.Monad.IO.Class     (liftIO)
-import           Control.Monad.State.Strict (MonadState (get), StateT,
-                                             evalStateT)
+import           Control.Monad.State.Strict (StateT, evalStateT, get)
 import           Data.Data                  (Typeable, cast)
+import qualified Data.Text                  as Text
 import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
                                              nullPtr, peek, with)
 import           Prelude                    hiding (init)
+import           System.Exit                (exitFailure)
 import qualified TEAWin32.Core.Native       as Native
 import           TEAWin32.Core.Types
 
@@ -27,6 +29,22 @@ defaultTEAWin32Settings = TEAWin32Settings
 processEvents :: TQueue EventQueueEntry -> StateT InternalState IO ()
 processEvents queue =
     liftIO (atomically $ tryReadTQueue queue) >>= \case
+        Just (FatalErrorEvent errorType errorCode errorLocation) -> do
+            let dialogTitle        = "Internal Framework Error"
+                shortMsg           = "An internal error has occurred in native C programme."
+                specificMsgWithLoc = errorType <> ": " <> Text.show errorCode <> "\r\n" <> "Location: " <> errorLocation
+                fullMsg            = dialogTitle <> "\r\n\r\n" <> shortMsg <> "\r\n" <> specificMsgWithLoc
+
+            liftIO $ evalContT $ do
+                dialogTitle'        <- ContT $ Native.withCWText dialogTitle
+                shortMsg'           <- ContT $ Native.withCWText shortMsg
+                specificMsgWithLoc' <- ContT $ Native.withCWText specificMsgWithLoc
+                fullMsg'            <- ContT $ Native.withCWText fullMsg
+
+                liftIO (Native.c_ShowErrorReporter dialogTitle' shortMsg' specificMsgWithLoc' fullMsg')
+
+            liftIO exitFailure
+
         Just event -> do
             liftIO (putStrLn $ "RECEIVED AN EVENT!!!!!!!!!!!!!! " <> show event)
 

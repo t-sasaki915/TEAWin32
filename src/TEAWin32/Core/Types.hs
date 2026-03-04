@@ -56,9 +56,10 @@ import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
 import           Data.Map.Strict                (Map)
 import           Data.Text                      (Text)
+import qualified Data.Text                      as Text
 import           Foreign                        (Ptr, Storable (..), Word16,
                                                  Word32, fillBytes)
-import           Foreign.C                      (CInt, CWchar)
+import           Foreign.C                      (CInt, CWchar, peekCWString)
 import qualified TEAWin32.Core.Native.Constants as Native
 
 type SHSTOCKICONID = Word32
@@ -78,7 +79,9 @@ data InternalState = InternalState
 
 type EventEnqueuer = Ptr EventQueueEntry -> IO ()
 
-data EventQueueEntry = TestEvent deriving Show
+data EventQueueEntry = TestEvent
+                     | FatalErrorEvent Text Word32 Text
+                     deriving Show
 
 instance Storable EventQueueEntry where
     sizeOf _ = Native.size_EventQueueEntry
@@ -90,10 +93,14 @@ instance Storable EventQueueEntry where
             Native.EventTypeTestEvent ->
                 pure TestEvent
 
-    poke ptr TestEvent = do
-        fillBytes ptr 0 Native.size_EventQueueEntry
+            Native.EventTypeFatalError -> do
+                errorType     <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorType >>= peekCWString
+                errorCode     <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorCode
+                errorLocation <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorLocation >>= peekCWString
 
-        pokeByteOff ptr Native.offset_EventQueueEntry_eventType Native.EventTypeTestEvent
+                pure (FatalErrorEvent (Text.pack errorType) errorCode (Text.pack errorLocation))
+
+    poke = undefined
 
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int

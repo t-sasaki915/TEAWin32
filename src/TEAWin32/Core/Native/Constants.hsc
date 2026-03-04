@@ -168,6 +168,15 @@ alignment_EventQueueEntry = #alignment EventQueueEntry
 offset_EventQueueEntry_eventType :: Int
 offset_EventQueueEntry_eventType = #offset EventQueueEntry, eventType
 
+offset_EventQueueEntry_eventData_fatalErrorEventData_errorType :: Int
+offset_EventQueueEntry_eventData_fatalErrorEventData_errorType = #offset EventQueueEntry, eventData.fatalErrorEventData.errorType
+
+offset_EventQueueEntry_eventData_fatalErrorEventData_errorCode :: Int
+offset_EventQueueEntry_eventData_fatalErrorEventData_errorCode = #offset EventQueueEntry, eventData.fatalErrorEventData.errorCode
+
+offset_EventQueueEntry_eventData_fatalErrorEventData_errorLocation :: Int
+offset_EventQueueEntry_eventData_fatalErrorEventData_errorLocation = #offset EventQueueEntry, eventData.fatalErrorEventData.errorLocation
+
 const_RESOURCE_ICON :: CInt
 const_RESOURCE_ICON = #const RESOURCE_ICON
 
@@ -528,4 +537,7 @@ const_WS_CHILD = #const WS_CHILD
 pattern EventTypeTestEvent :: CInt
 pattern EventTypeTestEvent = #const EVENT_TYPE_TEST_EVENT
 
-{-# COMPLETE EventTypeTestEvent #-}
+pattern EventTypeFatalError :: CInt
+pattern EventTypeFatalError = #const EVENT_TYPE_FATAL_ERROR
+
+{-# COMPLETE EventTypeTestEvent, EventTypeFatalError #-}

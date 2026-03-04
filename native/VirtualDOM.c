@@ -1,6 +1,7 @@
 #include "VirtualDOM.h"
 #include "Cache.h"
 #include "DPIAware.h"
+#include "Event.h"
 #include "Registry.h"
 #include "TEAWin32.h"
 
@@ -70,6 +71,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_DESTROY_COMPONENT: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -80,6 +82,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_UPDATE_TEXT: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -90,6 +93,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_UPDATE_POS: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -120,20 +124,20 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 hwndInsertAfter = HWND_TOP;
             }
 
-            if (hdwp != NULL)
+            if (hdwp == NULL)
             {
-                *hdwp = DeferWindowPos(*hdwp, targetHWND, hwndInsertAfter, x, y, w, h, flags);
+                NotifyFatalError(L"hdwp was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                break;
             }
-            else
-            {
-                SetWindowPos(targetHWND, hwndInsertAfter, x, y, w, h, flags);
-            }
+
+            *hdwp = DeferWindowPos(*hdwp, targetHWND, hwndInsertAfter, x, y, w, h, flags);
 
             break;
         }
         case REQ_UPDATE_FONT: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -147,6 +151,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_UPDATE_ICON: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -160,6 +165,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_UPDATE_CURSOR: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -170,6 +176,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_INVALIDATE_RECT_FULLY: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
@@ -180,6 +187,7 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
         case REQ_SHOW_WINDOW: {
             if (targetHWND == NULL)
             {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 

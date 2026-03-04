@@ -1,5 +1,6 @@
 #include "Cache.h"
 #include "DPIAware.h"
+#include "Event.h"
 #include "TEAWin32.h"
 
 #include <windows.h>
@@ -67,12 +68,15 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
     wchar_t *permanentUserClassName = _wcsdup(userClass);
     wchar_t *permanentFullClassName = _wcsdup(fullClassName);
 
-    if (CLASS_CACHE_COUNT < CLASS_CACHE_MAX)
+    if (CLASS_CACHE_COUNT >= CLASS_CACHE_MAX)
     {
-        CLASS_CACHE[CLASS_CACHE_COUNT].userClassName = permanentUserClassName;
-        CLASS_CACHE[CLASS_CACHE_COUNT].fullClassNamePtr = permanentFullClassName;
-        CLASS_CACHE_COUNT++;
+        NotifyFatalError(L"CLASS_CACHE Overflow", L"CreateTEAWin32WindowClassName (Cache.c)");
+        return NULL;
     }
+
+    CLASS_CACHE[CLASS_CACHE_COUNT].userClassName = permanentUserClassName;
+    CLASS_CACHE[CLASS_CACHE_COUNT].fullClassNamePtr = permanentFullClassName;
+    CLASS_CACHE_COUNT++;
 
     WNDCLASSEXW wndClass;
     ZeroMemory(&wndClass, sizeof(wndClass));
@@ -82,7 +86,11 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
     wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
     wndClass.lpfnWndProc = TEAWin32WndProc;
 
-    RegisterClassExW(&wndClass);
+    if (!RegisterClassExW(&wndClass))
+    {
+        NotifyFatalError(L"RegisterClassExW Failed", L"CreateTEAWin32WindowClassName (Cache.c)");
+        return NULL;
+    }
 
     return permanentFullClassName;
 }
@@ -110,40 +118,47 @@ HFONT GetCachedFont(CachedFont *fontKey)
         }
     }
 
-    if (FONT_CACHE_COUNT < FONT_CACHE_MAX)
+    if (FONT_CACHE_COUNT >= FONT_CACHE_MAX)
     {
-        wchar_t *permanentFontName = _wcsdup(fontKey->fontName);
-
-        HFONT newFont = CreateFontW(
-            ResolvePointForDpi(fontKey->fontSize, fontKey->dpi),
-            0,
-            0,
-            0,
-            FW_NORMAL,
-            fontKey->isItalic,
-            fontKey->isUnderline,
-            fontKey->isStrikeOut,
-            DEFAULT_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
-            DEFAULT_PITCH | FF_DONTCARE,
-            permanentFontName);
-
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontName = permanentFontName;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontSize = fontKey->fontSize;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isItalic = fontKey->isItalic;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isUnderline = fontKey->isUnderline;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
-        FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.dpi = fontKey->dpi;
-
-        FONT_CACHE_COUNT++;
-
-        return newFont;
+        NotifyFatalError(L"FONT_CACHE Overflow", L"GetCachedFont (Cache.c)");
+        return (HFONT)GetStockObject(DEFAULT_GUI_FONT);
     }
 
-    return (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    wchar_t *permanentFontName = _wcsdup(fontKey->fontName);
+
+    HFONT newFont = CreateFontW(
+        ResolvePointForDpi(fontKey->fontSize, fontKey->dpi),
+        0,
+        0,
+        0,
+        FW_NORMAL,
+        fontKey->isItalic,
+        fontKey->isUnderline,
+        fontKey->isStrikeOut,
+        DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        permanentFontName);
+
+    if (newFont == NULL)
+    {
+        NotifyFatalError(L"CreateFontW Failed", L"GetCachedFont (Cache.c)");
+        return (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontName = permanentFontName;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontSize = fontKey->fontSize;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isItalic = fontKey->isItalic;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isUnderline = fontKey->isUnderline;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.dpi = fontKey->dpi;
+
+    FONT_CACHE_COUNT++;
+
+    return newFont;
 }
 
 HCURSOR GetCachedCursor(CachedCursor *cacheKey)
@@ -173,6 +188,7 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
 
     if (CURSOR_CACHE_COUNT >= CURSOR_CACHE_MAX)
     {
+        NotifyFatalError(L"CURSOR_CACHE Overflow", L"GetCachedCursor (Cache.c)");
         return LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     }
 
@@ -188,6 +204,7 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
             free((void *)permanentNameOrId);
         }
 
+        NotifyFatalError(L"LoadCursorW Failed", L"GetCachedCursor (Cache.c)");
         return LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     }
 
@@ -238,6 +255,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
 
     if (ICON_CACHE_COUNT >= ICON_CACHE_MAX)
     {
+        NotifyFatalError(L"ICON_CACHE Overflow", L"GetCachedIcon (Cache.c)");
         return LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
     }
 
@@ -250,6 +268,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
 
         if (newIcon == NULL)
         {
+            NotifyFatalError(L"GetHighDPIIcon Failed", L"GetCachedIcon (Cache.c)");
             return LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
         }
     }
@@ -263,6 +282,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
         {
             free((void *)permanentResourceId);
 
+            NotifyFatalError(L"LoadIconW Failed", L"GetCachedIcon (Cache.c)");
             return LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
         }
     }

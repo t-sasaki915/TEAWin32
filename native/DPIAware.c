@@ -1,4 +1,5 @@
 #include "DPIAware.h"
+#include "Event.h"
 #include "Registry.h"
 
 #include <windows.h>
@@ -13,7 +14,7 @@ void InitialiseDPIAwareFunctions(void)
     HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
-        SetProcessDPIAware();
+        NotifyFatalError(L"Failed to load user32.dll", L"InitialiseDPIAwareFunctions (DPIAware.c)");
         return;
     }
 
@@ -66,6 +67,7 @@ static inline int GetCachedDpi(HWND hwnd)
 
     if (entry == NULL)
     {
+        NotifyFatalError(L"HWNDRegistryEntry was NULL", L"GetCachedDpi (DPIAware.c)");
         return 96;
     }
 

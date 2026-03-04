@@ -4,24 +4,17 @@ module TEAWin32.Core.Native
     , c_MakeIntResourceW
     , c_InitialiseTEAWin32C
     , c_FinaliseTEAWin32C
+    , c_ShowErrorReporter
     ) where
 
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
-import qualified Data.Text.Foreign   as TForeign
-import           Foreign             (FunPtr, Ptr, allocaArray, castPtr,
-                                      intPtrToPtr, pokeElemOff)
-import           Foreign.C           (CWString)
+import           Foreign             (FunPtr, Ptr, intPtrToPtr)
+import           Foreign.C           (CWString, withCWString)
 import           TEAWin32.Core.Types
 
 withCWText :: Text -> (CWString -> IO a) -> IO a
-withCWText text func =
-    let len = Text.length text in
-        allocaArray (len + 1) $ \ptr -> do
-            TForeign.unsafeCopyToPtr text ptr
-            pokeElemOff ptr len 0
-
-            func (castPtr ptr)
+withCWText text = withCWString (Text.unpack text)
 
 c_MakeIntResourceW :: WORD -> LPCWSTR
 c_MakeIntResourceW = intPtrToPtr . fromIntegral
@@ -34,3 +27,6 @@ foreign import ccall "InitialiseTEAWin32C"
 
 foreign import ccall "FinaliseTEAWin32C"
     c_FinaliseTEAWin32C :: IO ()
+
+foreign import ccall "ShowErrorReporter"
+    c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
