@@ -51,7 +51,7 @@ runTEAWin32 settings init update view = bracket_
 
 mainLoop :: StateT InternalState IO ()
 mainLoop = do
-    liftIO (threadDelay 1000)
+    liftIO (threadDelay 16000)
     liftIO (putStrLn "LOOP")
 
     mainLoop
