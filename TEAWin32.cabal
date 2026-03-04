@@ -59,6 +59,7 @@ library
       Cache.h
       DPIAware.h
       ErrorReporter.h
+      Event.h
       Registry.h
       TEAWin32.h
       Util.h
@@ -81,5 +82,6 @@ library
     , mtl >= 2.3 && <2.4
     , text >=2.1 && <2.2
     , containers >=0.7 && <0.8
+    , stm >=2.5 && <2.6
   default-language: Haskell2010
   default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes

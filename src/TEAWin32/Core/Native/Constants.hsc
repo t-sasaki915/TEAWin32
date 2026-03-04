@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP             #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
 
 module TEAWin32.Core.Native.Constants where
@@ -8,6 +9,7 @@ import           Foreign.C (CInt)
 
 #include "Cache.h"
 #include "DPIAware.h"
+#include "Event.h"
 #include "TEAWin32.h"
 #include "VirtualDOM.h"
 
@@ -156,6 +158,15 @@ offset_CCallRequest_reqData_newIconCacheKey = #offset CCallRequest, reqData.newI
 
 offset_CCallRequest_reqData_newCursorCacheKey :: Int
 offset_CCallRequest_reqData_newCursorCacheKey = #offset CCallRequest, reqData.newCursorCacheKey
+
+size_EventQueueEntry :: Int
+size_EventQueueEntry = #size EventQueueEntry
+
+alignment_EventQueueEntry :: Int
+alignment_EventQueueEntry = #alignment EventQueueEntry
+
+offset_EventQueueEntry_eventType :: Int
+offset_EventQueueEntry_eventType = #offset EventQueueEntry, eventType
 
 const_RESOURCE_ICON :: CInt
 const_RESOURCE_ICON = #const RESOURCE_ICON
@@ -513,3 +524,8 @@ const_WS_OVERLAPPEDWINDOW = #const WS_OVERLAPPEDWINDOW
 
 const_WS_CHILD :: Word32
 const_WS_CHILD = #const WS_CHILD
+
+pattern EventTypeTestEvent :: CInt
+pattern EventTypeTestEvent = #const EVENT_TYPE_TEST_EVENT
+
+{-# COMPLETE EventTypeTestEvent #-}

@@ -9,6 +9,7 @@ module TEAWin32.Core.Types
     , Model (..)
     , Msg (..)
     , InternalState (..)
+    , EventQueueEntry (..)
     , UniqueIdInternState (..)
     , DSLState (..)
     , DSLT
@@ -71,6 +72,23 @@ data InternalState = InternalState
     , viewFunction      :: Model -> DSL
     , currentModel      :: Model
     }
+
+data EventQueueEntry = TestEvent
+
+instance Storable EventQueueEntry where
+    sizeOf _ = Native.size_EventQueueEntry
+
+    alignment _ = Native.alignment_EventQueueEntry
+
+    peek ptr =
+        peekByteOff ptr Native.offset_EventQueueEntry_eventType >>= \case
+            Native.EventTypeTestEvent ->
+                pure TestEvent
+
+    poke ptr TestEvent = do
+        fillBytes ptr 0 Native.size_EventQueueEntry
+
+        pokeByteOff ptr Native.offset_EventQueueEntry_eventType Native.EventTypeTestEvent
 
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int
