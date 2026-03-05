@@ -13,19 +13,19 @@ import qualified TEAWin32.Core.Native.Constants as Native
 import           TEAWin32.Core.Types
 
 marshallRenderProcedure :: UniqueId -> RenderProcedure -> ContT a IO CCallRequest
-marshallRenderProcedure target (CreateWindow className windowStyle) =
+marshallRenderProcedure target (CreateWindow className windowStyle maybeParent) =
     ContT (Native.withCWText className) >>= \classNamePtr ->
         let (exStyles, styles) = marshallWindowStyle windowStyle in
             pure $ CreateWindowRequest target $
                 CreateWindowReq
-                    { newWindowParentUniqueId' = Nothing
+                    { newWindowParentUniqueId' = maybeParent
                     , newWindowClassName'      = classNamePtr
                     , newWindowExStyles'       = exStyles
                     , newWindowStyles'         = styles
                     }
 
-marshallRenderProcedure target CreateButton =
-    pure (CreateButtonRequest target (UniqueId 0))
+marshallRenderProcedure target (CreateButton parentUid) =
+    pure (CreateButtonRequest target parentUid)
 
 marshallRenderProcedure target DestroyComponent =
     pure (DestroyComponentRequest target)

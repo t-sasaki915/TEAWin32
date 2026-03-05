@@ -112,6 +112,7 @@ data DSLState = DSLState
     { nextAutoUniqueId      :: Int
     , userUniqueIdsAppeared :: [Text]
     , uniqueIdInternState   :: UniqueIdInternState
+    , parentUniqueId        :: Maybe UniqueId
     }
 
 type DSL a b = WriterT [(a, (UniqueId, RenderProcedure))] (State DSLState) b
@@ -270,8 +271,8 @@ data FontSettings = FontSettings
     , isStrikeOut :: Bool
     } deriving (Show, Eq, Ord)
 
-data RenderProcedure = CreateWindow                 Text WindowStyle
-                     | CreateButton
+data RenderProcedure = CreateWindow                 Text WindowStyle (Maybe UniqueId)
+                     | CreateButton                 UniqueId
                      | SetComponentText             Text
                      | SetComponentSize             (ScalableValue, ScalableValue)
                      | SetComponentPosition         (ScalableValue, ScalableValue)

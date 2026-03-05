@@ -17,15 +17,17 @@ module TEAWin32.Core.DSL
     ) where
 
 import           Control.Monad.Reader        (ask, runReader)
-import           Control.Monad.State.Strict  (lift, runState, state)
+import           Control.Monad.State.Strict  (gets, lift, modify', runState,
+                                              state)
 import           Control.Monad.Writer.Strict (execWriterT, tell)
 import qualified Data.Map                    as Map
+import           Data.Maybe                  (fromJust)
 import           Data.Text                   (Text)
 import           TEAWin32.Core.Types
 
 runDSL :: DSL a () -> UniqueIdInternState -> ([(UniqueId, RenderProcedure)], UniqueIdInternState)
 runDSL dsl internState =
-    let dslState = DSLState { nextAutoUniqueId = 1, userUniqueIdsAppeared = [], uniqueIdInternState = internState }
+    let dslState = DSLState { nextAutoUniqueId = 1, userUniqueIdsAppeared = [], parentUniqueId = Nothing, uniqueIdInternState = internState }
         (result, dslState') = runState (execWriterT dsl) dslState in
             (snd <$> result, uniqueIdInternState dslState')
 
@@ -34,75 +36,85 @@ noChildren = pure ()
 
 title_ :: (IsPropertyWrapper a ComponentTitle) => Text -> PropertyDSL a ()
 title_ text =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentTitle, (parentUniqueId, SetComponentText text))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentTitle, (parentUid, SetComponentText text))]
 
 size_ :: (IsPropertyWrapper a ComponentSize) => (ScalableValue, ScalableValue) -> PropertyDSL a ()
 size_ size =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentSize, (parentUniqueId, SetComponentSize size))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentSize, (parentUid, SetComponentSize size))]
 
 pos_ :: (IsPropertyWrapper a ComponentPosition) => (ScalableValue, ScalableValue) -> PropertyDSL a ()
 pos_ pos =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentPosition, (parentUniqueId, SetComponentPosition pos))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentPosition, (parentUid, SetComponentPosition pos))]
 
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> PropertyDSL a ()
 font_ font =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentFont, (parentUniqueId, SetComponentFont font))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentFont, (parentUid, SetComponentFont font))]
 
 icon_ :: (IsPropertyWrapper a ComponentIcon) => Icon -> PropertyDSL a ()
 icon_ icon =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentIcon, (parentUniqueId, SetComponentIcon icon))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentIcon, (parentUid, SetComponentIcon icon))]
 
 cursor_ :: (IsPropertyWrapper a ComponentCursor) => Cursor -> PropertyDSL a ()
 cursor_ cursor =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentCursor, (parentUniqueId, SetComponentCursor cursor))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentCursor, (parentUid, SetComponentCursor cursor))]
 
 bgColour_ :: (IsPropertyWrapper a ComponentBackgroundColour) => Colour -> PropertyDSL a ()
 bgColour_ colour =
-    ask >>= \parentUniqueId ->
-        tell [(wrapProperty ComponentBackgroundColour, (parentUniqueId, SetComponentBackgroundColour colour))]
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentBackgroundColour, (parentUid, SetComponentBackgroundColour colour))]
 
 window_' :: (IsChildWrapper a Window) => Text -> Text -> WindowStyle -> PropertyDSL WindowProperty () -> DSL WindowChild () -> DSL a ()
 window_' windowUniqueId windowClass windowStyle windowProperties windowChildren =
     internUserUniqueId windowUniqueId >>= \uid ->
-        tell [(wrapChild Window, (uid, CreateWindow windowClass windowStyle))] >>
-            concatProperties uid Window windowProperties >>
-                concatChildren Window windowChildren
+        gets parentUniqueId >>= \parentUid ->
+            tell [(wrapChild Window, (uid, CreateWindow windowClass windowStyle parentUid))] >>
+                concatProperties uid Window windowProperties >>
+                    concatChildren uid Window windowChildren
 
 window_ :: (IsChildWrapper a Window) => Text -> WindowStyle -> PropertyDSL WindowProperty () -> DSL WindowChild () -> DSL a ()
 window_ windowClass windowStyle windowProperties windowChildren =
     nextUniqueId >>= \uid ->
-        tell [(wrapChild Window, (uid, CreateWindow windowClass windowStyle))] >>
-            concatProperties uid Window windowProperties >>
-                concatChildren Window windowChildren
+        gets parentUniqueId >>= \parentUid ->
+            tell [(wrapChild Window, (uid, CreateWindow windowClass windowStyle parentUid))] >>
+                concatProperties uid Window windowProperties >>
+                    concatChildren uid Window windowChildren
 
 button_' :: (IsChildWrapper a Button) => Text -> PropertyDSL ButtonProperty () -> DSL a ()
 button_' uniqueId properties =
     internUserUniqueId uniqueId >>= \uid ->
-        tell [(wrapChild Button, (uid, CreateButton))] >>
-            concatProperties uid Button properties
+        gets parentUniqueId >>= \parentUid ->
+            tell [(wrapChild Button, (uid, CreateButton (fromJust parentUid)))] >>
+                concatProperties uid Button properties
 
 button_ :: (IsChildWrapper a Button) => PropertyDSL ButtonProperty () -> DSL a ()
 button_ properties =
     nextUniqueId >>= \uid ->
-        tell [(wrapChild Button, (uid, CreateButton))] >>
-            concatProperties uid Button properties
+        gets parentUniqueId >>= \parentUid ->
+            tell [(wrapChild Button, (uid, CreateButton (fromJust parentUid)))] >>
+                concatProperties uid Button properties
 
 concatProperties :: (IsChildWrapper b a) => UniqueId -> a -> PropertyDSL c () -> DSL b ()
 concatProperties uniqueId dummyVal propDSL =
     let properties = map (\(_, a) -> (wrapChild dummyVal, a)) (runReader (execWriterT propDSL) uniqueId) in
         tell properties
 
-concatChildren :: (IsChildWrapper b a) => a -> DSL c () -> DSL b ()
-concatChildren dummyVal childrenDSL =
-    lift (execWriterT childrenDSL) >>= \children ->
-        let children' = map (\(_, a) -> (wrapChild dummyVal, a)) children in
-            tell children'
+concatChildren :: (IsChildWrapper b a) => UniqueId -> a -> DSL c () -> DSL b ()
+concatChildren parentUid dummyVal childrenDSL = do
+    oldParentUniqueId <- gets parentUniqueId
+    modify' $ \s -> s { parentUniqueId = Just parentUid }
+
+    children <- lift (execWriterT childrenDSL)
+
+    modify' $ \s -> s { parentUniqueId = oldParentUniqueId }
+
+    let children' = map (\(_, a) -> (wrapChild dummyVal, a)) children
+    tell children'
 
 nextUniqueId :: DSL a UniqueId
 nextUniqueId =
