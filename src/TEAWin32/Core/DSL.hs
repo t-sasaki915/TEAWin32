@@ -25,25 +25,25 @@ noChildren :: DSL a ()
 noChildren = pure ()
 
 title_ :: (IsPropertyWrapper a ComponentTitle) => Text -> a
-title_ = wrapComponentProperty . ComponentTitle
+title_ = wrapProperty . ComponentTitle
 
 size_ :: (IsPropertyWrapper a ComponentSize) => (ScalableValue, ScalableValue) -> a
-size_ = wrapComponentProperty . ComponentSize
+size_ = wrapProperty . ComponentSize
 
 pos_ :: (IsPropertyWrapper a ComponentPosition) => (ScalableValue, ScalableValue) -> a
-pos_ = wrapComponentProperty . ComponentPosition
+pos_ = wrapProperty . ComponentPosition
 
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> a
-font_ = wrapComponentProperty . ComponentFont
+font_ = wrapProperty . ComponentFont
 
 icon_ :: (IsPropertyWrapper a ComponentIcon) => Icon -> a
-icon_ = wrapComponentProperty . ComponentIcon
+icon_ = wrapProperty . ComponentIcon
 
 cursor_ :: (IsPropertyWrapper a ComponentCursor) => Cursor -> a
-cursor_ = wrapComponentProperty . ComponentCursor
+cursor_ = wrapProperty . ComponentCursor
 
 bgColour_ :: (IsPropertyWrapper a ComponentBackgroundColour) => Colour -> a
-bgColour_ = wrapComponentProperty . ComponentBackgroundColour
+bgColour_ = wrapProperty . ComponentBackgroundColour
 
 window_' :: (IsChildWrapper a Window) => Text -> Text -> WindowStyle -> [WindowProperty] -> DSL WindowChild () -> DSL a ()
 window_' windowUniqueId windowClass windowStyle windowProperties windowChildren =
@@ -71,9 +71,8 @@ nextUniqueId :: DSL a UniqueId
 nextUniqueId =
     state $ \dState ->
         let autoUniqueId = nextAutoUniqueId dState
-            newDSLState = dState { nextAutoUniqueId = autoUniqueId + 1 }
-        in
-        (UniqueId autoUniqueId, newDSLState)
+            newDSLState = dState { nextAutoUniqueId = autoUniqueId + 1 } in
+                (UniqueId autoUniqueId, newDSLState)
 
 internUserUniqueId :: Text -> DSL a UniqueId
 internUserUniqueId userUniqueId = state $ \dState ->

@@ -146,12 +146,7 @@ instance Storable TEAWin32Settings where
 
     alignment _ = Native.alignment_TEAWin32Settings
 
-    peek ptr = do
-        useVisualStyles' <- peekByteOff ptr Native.offset_TEAWin32Settings_useVisualStyles
-
-        pure $ TEAWin32Settings
-            { useVisualStyles = useVisualStyles'
-            }
+    peek = undefined
 
     poke ptr val = do
         fillBytes ptr 0 Native.size_TEAWin32Settings
@@ -376,7 +371,7 @@ instance IsGUIComponentProperty ComponentCursor
 instance IsGUIComponentProperty ComponentBackgroundColour
 
 class IsPropertyWrapper a b where
-    wrapComponentProperty :: b -> a
+    wrapProperty :: b -> a
 
 data WindowProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
@@ -401,7 +396,7 @@ instance IsWindowProperty ComponentCursor
 instance IsWindowProperty ComponentBackgroundColour
 
 instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
-    wrapComponentProperty = WindowProperty
+    wrapProperty = WindowProperty
 
 data ButtonProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
 
@@ -424,7 +419,7 @@ instance IsButtonProperty ComponentPosition
 instance IsButtonProperty ComponentFont
 
 instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
-    wrapComponentProperty = ButtonProperty
+    wrapProperty = ButtonProperty
 
 data UpdatePosReq = UpdatePosReq
     { newLocation           :: Maybe (ScalableValue, ScalableValue)
