@@ -77,7 +77,7 @@ withEventEnqueuer func = do
             freeHaskellFunPtr
             (\enqueuerPtr -> func (evtQueue, enqueuerPtr))
 
-runTEAWin32 :: (Typeable model, Typeable msg) => TEAWin32Settings -> IO model -> (msg -> model -> IO model) -> (model -> DSL) -> IO ()
+runTEAWin32 :: (Typeable model, Typeable msg) => TEAWin32Settings -> IO model -> (msg -> model -> IO model) -> (model -> View) -> IO ()
 runTEAWin32 settings init update view =
     withEventEnqueuer $ \(evtQueue, eventEnqueuer) ->
         bracket_

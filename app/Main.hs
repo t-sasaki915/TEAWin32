@@ -50,7 +50,7 @@ update ButtonClicked2 model = do
             error "!?"-}
     pure model
 
-view :: Model -> DSL
+view :: Model -> View
 view model = do
     let isCountEven = even (model ^. clickedCount)
 

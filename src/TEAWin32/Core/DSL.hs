@@ -21,7 +21,7 @@ import qualified Data.Map                    as Map
 import           Data.Text                   (Text)
 import           TEAWin32.Core.Types
 
-noChildren :: DSL
+noChildren :: DSL a ()
 noChildren = pure ()
 
 title_ :: (IsPropertyWrapper a ComponentTitle) => Text -> a
@@ -36,38 +36,38 @@ pos_ = wrapComponentProperty . ComponentPosition
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> a
 font_ = wrapComponentProperty . ComponentFont
 
-icon_ :: Icon -> WindowProperty
-icon_ = WindowProperty . WindowIcon
+icon_ :: (IsPropertyWrapper a ComponentIcon) => Icon -> a
+icon_ = wrapComponentProperty . ComponentIcon
 
-cursor_ :: Cursor -> WindowProperty
-cursor_ = WindowProperty . WindowCursor
+cursor_ :: (IsPropertyWrapper a ComponentCursor) => Cursor -> a
+cursor_ = wrapComponentProperty . ComponentCursor
 
-bgColour_ :: Colour -> WindowProperty
-bgColour_ = WindowProperty . WindowBackgroundColour
+bgColour_ :: (IsPropertyWrapper a ComponentBackgroundColour) => Colour -> a
+bgColour_ = wrapComponentProperty . ComponentBackgroundColour
 
-window_' :: Text -> Text -> WindowStyle -> [WindowProperty] -> DSL -> DSL
+window_' :: (IsChildWrapper a Window) => Text -> Text -> WindowStyle -> [WindowProperty] -> DSL WindowChild () -> DSL a ()
 window_' windowUniqueId windowClass windowStyle windowProperties windowChildren =
     internUserUniqueId windowUniqueId >>= \uid ->
         lift (execWriterT windowChildren) >>= \children ->
-            tell [GUIComponent (Window uid windowClass windowStyle windowProperties children)]
+            tell [wrapChild (Window uid windowClass windowStyle windowProperties children)]
 
-window_ :: Text -> WindowStyle -> [WindowProperty] -> DSL -> DSL
+window_ :: (IsChildWrapper a Window) => Text -> WindowStyle -> [WindowProperty] -> DSL WindowChild () -> DSL a ()
 window_ windowClass windowStyle windowProperties windowChildren =
     nextUniqueId >>= \uid ->
         lift (execWriterT windowChildren) >>= \children ->
-            tell [GUIComponent (Window uid windowClass windowStyle windowProperties children)]
+            tell [wrapChild (Window uid windowClass windowStyle windowProperties children)]
 
-button_' :: Text -> [ButtonProperty] -> DSL
+button_' :: (IsChildWrapper a Button) => Text -> [ButtonProperty] -> DSL a ()
 button_' uniqueId properties =
     internUserUniqueId uniqueId >>= \uid ->
-        tell [GUIComponent (Button uid properties)]
+        tell [wrapChild (Button uid properties)]
 
-button_ :: [ButtonProperty] -> DSL
+button_ :: (IsChildWrapper a Button) => [ButtonProperty] -> DSL a ()
 button_ properties =
     nextUniqueId >>= \uid ->
-        tell [GUIComponent (Button uid properties)]
+        tell [wrapChild (Button uid properties)]
 
-nextUniqueId :: DSLT UniqueId
+nextUniqueId :: DSL a UniqueId
 nextUniqueId =
     state $ \dState ->
         let autoUniqueId = nextAutoUniqueId dState
@@ -75,7 +75,7 @@ nextUniqueId =
         in
         (UniqueId autoUniqueId, newDSLState)
 
-internUserUniqueId :: Text -> DSLT UniqueId
+internUserUniqueId :: Text -> DSL a UniqueId
 internUserUniqueId userUniqueId = state $ \dState ->
     case userUniqueId `elem` userUniqueIdsAppeared dState of
         False ->

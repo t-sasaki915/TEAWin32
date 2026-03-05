@@ -5,7 +5,7 @@ import           Data.Typeable                  (cast)
 import qualified TEAWin32.Core.Native.Constants as Native
 import           TEAWin32.Core.Types
 
-getTargetUniqueId :: CCallRequest -> Maybe UniqueId
+{-getTargetUniqueId :: CCallRequest -> Maybe UniqueId
 getTargetUniqueId (CreateWindowRequest _)        = Nothing
 getTargetUniqueId (CreateButtonRequest _)        = Nothing
 getTargetUniqueId (DestroyComponentRequest u)    = Just u
@@ -143,4 +143,4 @@ unapplyGUIComponentProperty (GUIComponentProperty p) componentUniqueId
         [] -- TODO
 
     | otherwise =
-        []
+        []-}

@@ -13,8 +13,8 @@ module TEAWin32.Core.Types
     , EventQueueEntry (..)
     , UniqueIdInternState (..)
     , DSLState (..)
-    , DSLT
     , DSL
+    , View
     , UniqueId (..)
     , Colour (..)
     , TEAWin32Settings (..)
@@ -27,21 +27,26 @@ module TEAWin32.Core.Types
     , Font (..)
     , FontSettings (..)
     , GUIComponent (..)
-    , IsGUIComponent (..)
+    , IsGUIComponent
+    , IsChildWrapper (..)
+    , TopLevelComponent (..)
+    , IsTopLevelComponent
     , Window (..)
+    , WindowChild (..)
+    , IsWindowChild
     , Button (..)
     , GUIComponentProperty (..)
     , IsGUIComponentProperty
-    , IsPropertyWrapper (..)
     , ComponentTitle (..)
     , ComponentSize (..)
     , ComponentPosition (..)
     , ComponentFont (..)
+    , ComponentIcon (..)
+    , ComponentCursor (..)
+    , ComponentBackgroundColour (..)
+    , IsPropertyWrapper (..)
     , WindowProperty (..)
     , IsWindowProperty
-    , WindowIcon (..)
-    , WindowCursor (..)
-    , WindowBackgroundColour (..)
     , ButtonProperty (..)
     , IsButtonProperty
     , UpdatePosReq (..)
@@ -73,7 +78,7 @@ data InternalState = InternalState
     { eventQueue        :: TQueue EventQueueEntry
     , lastGUIComponents :: [GUIComponent]
     , updateFunction    :: Msg -> Model -> IO Model
-    , viewFunction      :: Model -> DSL
+    , viewFunction      :: Model -> View
     , currentModel      :: Model
     }
 
@@ -113,8 +118,9 @@ data DSLState = DSLState
     , uniqueIdInternState   :: UniqueIdInternState
     }
 
-type DSLT a = WriterT [GUIComponent] (State DSLState) a
-type DSL = DSLT ()
+type DSL a b = WriterT [a] (State DSLState) b
+
+type View = DSL TopLevelComponent ()
 
 newtype UniqueId = UniqueId Int deriving (Show, Eq)
 
@@ -271,6 +277,10 @@ data FontSettings = FontSettings
     , isStrikeOut :: Bool
     } deriving (Show, Eq, Ord)
 
+{-data GUIOperation = CreateWindow Text WindowStyle
+                  | CreateButton
+                  | -}
+
 data GUIComponent = forall a. (Typeable a, Show a, Eq a, IsGUIComponent a) => GUIComponent a
 
 instance Show GUIComponent where
@@ -282,37 +292,57 @@ instance Eq GUIComponent where
             Just b' -> a == b'
             Nothing -> False
 
-class IsGUIComponent a where
-    getUniqueId :: a -> UniqueId
+class IsGUIComponent a
 
-    getChildren :: a -> Maybe [GUIComponent]
+instance IsGUIComponent GUIComponent
 
-    hasWndProc :: a -> Bool
+class IsChildWrapper a b where
+    wrapChild :: b -> a
 
-instance IsGUIComponent GUIComponent where
-    getUniqueId (GUIComponent a) = getUniqueId a
+data TopLevelComponent = forall a. (Typeable a, Show a, Eq a, IsGUIComponent a, IsTopLevelComponent a) => TopLevelComponent a
 
-    getChildren (GUIComponent a) = getChildren a
+instance Show TopLevelComponent where
+    show (TopLevelComponent a) = "TopLevelComponent " <> show a
 
-    hasWndProc (GUIComponent a) = hasWndProc a
+instance Eq TopLevelComponent where
+    (TopLevelComponent a) == (TopLevelComponent b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
 
-data Window = Window UniqueId Text WindowStyle [WindowProperty] [GUIComponent] deriving (Show, Eq)
+class IsTopLevelComponent a
 
-instance IsGUIComponent Window where
-    getUniqueId (Window uniqueId _ _ _ _) = uniqueId
+instance IsTopLevelComponent Window
 
-    getChildren (Window _ _ _ _ children) = Just children
+instance (Typeable a, Show a, Eq a, IsGUIComponent a, IsTopLevelComponent a) => IsChildWrapper TopLevelComponent a where
+    wrapChild = TopLevelComponent
 
-    hasWndProc _ = True
+data Window = Window UniqueId Text WindowStyle [WindowProperty] [WindowChild] deriving (Show, Eq)
+
+instance IsGUIComponent Window
+
+data WindowChild = forall a. (Typeable a, Show a, Eq a, IsGUIComponent a, IsWindowChild a) => WindowChild a
+
+instance Show WindowChild where
+    show (WindowChild a) = "WindowChild " <> show a
+
+instance Eq WindowChild where
+    (WindowChild a) == (WindowChild b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
+
+class IsWindowChild a
+
+instance IsWindowChild Window
+instance IsWindowChild Button
+
+instance (Typeable a, Show a, Eq a, IsGUIComponent a, IsWindowChild a) => IsChildWrapper WindowChild a where
+    wrapChild = WindowChild
 
 data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
 
-instance IsGUIComponent Button where
-    getUniqueId (Button uniqueId _) = uniqueId
-
-    getChildren _ = Nothing
-
-    hasWndProc _ = False
+instance IsGUIComponent Button
 
 data GUIComponentProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a) => GUIComponentProperty a
 
@@ -327,18 +357,26 @@ instance Eq GUIComponentProperty where
 
 class IsGUIComponentProperty a
 
-class IsPropertyWrapper a b where
-    wrapComponentProperty :: b -> a
+instance IsGUIComponentProperty GUIComponentProperty
 
-newtype ComponentTitle    = ComponentTitle    Text                           deriving (Show, Eq)
-newtype ComponentSize     = ComponentSize     (ScalableValue, ScalableValue) deriving (Show, Eq)
-newtype ComponentPosition = ComponentPosition (ScalableValue, ScalableValue) deriving (Show, Eq)
-newtype ComponentFont     = ComponentFont     Font                           deriving (Show, Eq)
+newtype ComponentTitle            = ComponentTitle            Text                           deriving (Show, Eq)
+newtype ComponentSize             = ComponentSize             (ScalableValue, ScalableValue) deriving (Show, Eq)
+newtype ComponentPosition         = ComponentPosition         (ScalableValue, ScalableValue) deriving (Show, Eq)
+newtype ComponentFont             = ComponentFont             Font                           deriving (Show, Eq)
+newtype ComponentIcon             = ComponentIcon             Icon                           deriving (Show, Eq)
+newtype ComponentCursor           = ComponentCursor           Cursor                         deriving (Show, Eq)
+newtype ComponentBackgroundColour = ComponentBackgroundColour Colour                         deriving (Show, Eq)
 
 instance IsGUIComponentProperty ComponentTitle
 instance IsGUIComponentProperty ComponentSize
 instance IsGUIComponentProperty ComponentPosition
 instance IsGUIComponentProperty ComponentFont
+instance IsGUIComponentProperty ComponentIcon
+instance IsGUIComponentProperty ComponentCursor
+instance IsGUIComponentProperty ComponentBackgroundColour
+
+class IsPropertyWrapper a b where
+    wrapComponentProperty :: b -> a
 
 data WindowProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => WindowProperty a
 
@@ -353,26 +391,17 @@ instance Eq WindowProperty where
 
 instance IsGUIComponentProperty WindowProperty
 
-instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
-    wrapComponentProperty = WindowProperty
-
 class IsWindowProperty a
 
-newtype WindowIcon             = WindowIcon             Icon   deriving (Show, Eq)
-newtype WindowCursor           = WindowCursor           Cursor deriving (Show, Eq)
-newtype WindowBackgroundColour = WindowBackgroundColour Colour deriving (Show, Eq)
-
-instance IsGUIComponentProperty WindowIcon
-instance IsGUIComponentProperty WindowCursor
-instance IsGUIComponentProperty WindowBackgroundColour
-
-instance IsWindowProperty WindowIcon
-instance IsWindowProperty WindowCursor
-instance IsWindowProperty WindowBackgroundColour
 instance IsWindowProperty ComponentTitle
 instance IsWindowProperty ComponentSize
 instance IsWindowProperty ComponentPosition
-instance IsWindowProperty ComponentFont
+instance IsWindowProperty ComponentIcon
+instance IsWindowProperty ComponentCursor
+instance IsWindowProperty ComponentBackgroundColour
+
+instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
+    wrapComponentProperty = WindowProperty
 
 data ButtonProperty = forall a. (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => ButtonProperty a
 
@@ -387,15 +416,15 @@ instance Eq ButtonProperty where
 
 instance IsGUIComponentProperty ButtonProperty
 
-instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
-    wrapComponentProperty = ButtonProperty
-
 class IsButtonProperty a
 
 instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize
 instance IsButtonProperty ComponentPosition
 instance IsButtonProperty ComponentFont
+
+instance (Typeable a, Show a, Eq a, IsGUIComponentProperty a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
+    wrapComponentProperty = ButtonProperty
 
 data UpdatePosReq = UpdatePosReq
     { newLocation           :: Maybe (ScalableValue, ScalableValue)

@@ -1,6 +1,6 @@
 module TEAWin32
     ( module TEAWin32.Core.DSL
-    , DSL
+    , View
     , Colour (..)
     , TEAWin32Settings (..)
     , WindowStyle (..)
