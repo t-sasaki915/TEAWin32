@@ -1,4 +1,4 @@
-module TEAWin32.Core.Marshall (marshallCCallRequest) where
+module TEAWin32.Core.Marshall () where
 
 import           Control.Monad                  (when)
 import           Control.Monad.Cont             (ContT (..))
@@ -12,55 +12,64 @@ import qualified TEAWin32.Core.Native           as Native
 import qualified TEAWin32.Core.Native.Constants as Native
 import           TEAWin32.Core.Types
 
-marshallCCallRequest :: CCallRequest -> ContT a IO InternalCCallRequest
-marshallCCallRequest (CreateWindowRequest req) =
-    ContT (Native.withCWText (newWindowClassName req)) >>= \classNamePtr ->
-        let (exStyles, styles) = marshallWindowStyle (newWindowStyles req) in
-            pure $ CreateWindowRequest' (newWindowUniqueId req) $
-                InternalCreateWindowReq
-                    { newWindowParentUniqueId' = newWindowParentUniqueId req
+marshallRenderProcedure :: UniqueId -> RenderProcedure -> ContT a IO CCallRequest
+marshallRenderProcedure target (CreateWindow className windowStyle) =
+    ContT (Native.withCWText className) >>= \classNamePtr ->
+        let (exStyles, styles) = marshallWindowStyle windowStyle in
+            pure $ CreateWindowRequest target $
+                CreateWindowReq
+                    { newWindowParentUniqueId' = Nothing
                     , newWindowClassName'      = classNamePtr
                     , newWindowExStyles'       = exStyles
                     , newWindowStyles'         = styles
                     }
 
-marshallCCallRequest (CreateButtonRequest req) =
-    pure (CreateButtonRequest' (newButtonUniqueId req) (newButtonParentUniqueId req))
+marshallRenderProcedure target CreateButton =
+    pure (CreateButtonRequest target (UniqueId 0))
 
-marshallCCallRequest (DestroyComponentRequest target) =
-    pure (DestroyComponentRequest' target)
+marshallRenderProcedure target DestroyComponent =
+    pure (DestroyComponentRequest target)
 
-marshallCCallRequest (UpdateTextRequest target newText) =
+marshallRenderProcedure target (SetComponentText newText) =
     ContT (Native.withCWText newText) >>= \newTextPtr ->
-        pure (UpdateTextRequest' target newTextPtr)
+        pure (UpdateTextRequest target newTextPtr)
 
-marshallCCallRequest (UpdatePosRequest target req) =
-    pure $ UpdatePosRequest' target $
-        InternalUpdatePosReq
-            { hasNewLocation'        = fromBool $ isJust (newLocation req)
-            , hasNewSize'            = fromBool $ isJust (newSize req)
-            , bringComponentToFront' = fromBool $ bringComponentToFront req
-            , maybeNewX'             = fst <$> newLocation req
-            , maybeNewY'             = snd <$> newLocation req
-            , maybeNewWidth'         = fst <$> newSize req
-            , maybeNewHeight'        = snd <$> newSize req
+marshallRenderProcedure target (SetComponentSize (w, h)) =
+    pure $ UpdatePosRequest target $
+        UpdatePosReq
+            { hasNewLocation'        = fromBool False
+            , hasNewSize'            = fromBool True
+            , bringComponentToFront' = fromBool False
+            , maybeNewX'             = Nothing
+            , maybeNewY'             = Nothing
+            , maybeNewWidth'         = Just w
+            , maybeNewHeight'        = Just h
             }
 
-marshallCCallRequest (UpdateFontRequest target font) =
+marshallRenderProcedure target (SetComponentPosition (x, y)) =
+    pure $ UpdatePosRequest target $
+        UpdatePosReq
+            { hasNewLocation'        = fromBool True
+            , hasNewSize'            = fromBool False
+            , bringComponentToFront' = fromBool False
+            , maybeNewX'             = Just x
+            , maybeNewY'             = Just y
+            , maybeNewWidth'         = Nothing
+            , maybeNewHeight'        = Nothing
+            }
+
+marshallRenderProcedure target (SetComponentFont font) =
     ContT (marshallFont font) >>= \font' ->
-        pure (UpdateFontRequest' target font')
+        pure (UpdateFontRequest target font')
 
-marshallCCallRequest (UpdateIconRequest target icon) =
-    pure (UpdateIconRequest' target (marshallIcon icon))
+marshallRenderProcedure target (SetComponentIcon icon) =
+    pure (UpdateIconRequest target (marshallIcon icon))
 
-marshallCCallRequest (UpdateCursorRequest target cursor) =
-    pure (UpdateCursorRequest' target (marshallCursor cursor))
+marshallRenderProcedure target (SetComponentCursor cursor) =
+    pure (UpdateCursorRequest target (marshallCursor cursor))
 
-marshallCCallRequest (InvalidateRectFullyRequest target) =
-    pure (InvalidateRectFullyRequest' target)
-
-marshallCCallRequest (ShowWindowRequest target) =
-    pure (ShowWindowRequest' target)
+marshallRenderProcedure target (SetComponentBackgroundColour colour) =
+    pure (UpdateBackgroundColourRequest target colour)
 
 marshallWindowStyle :: WindowStyle -> (Word32, Word32)
 marshallWindowStyle WindowStyleBorderless      = (0, Native.const_WS_POPUP)
@@ -69,10 +78,10 @@ marshallWindowStyle WindowStyleBorderlessChild = (0, Native.const_WS_CHILD)
 marshallWindowStyle WindowStyleNormalChild     = (0, Native.const_WS_OVERLAPPEDWINDOW .|. Native.const_WS_CHILD)
 
 
-marshallFont :: Font -> (InternalCachedFont -> IO a) -> IO a
+marshallFont :: Font -> (CachedFont -> IO a) -> IO a
 marshallFont DefaultGUIFont func =
     Native.withCWText "MS Shell Dlg" $ \fontNamePtr ->
-        func $ InternalCachedFont
+        func $ CachedFont
             { fontName'    = fontNamePtr
             , fontSize'    = 9
             , isItalic'    = fromBool False
@@ -82,7 +91,7 @@ marshallFont DefaultGUIFont func =
 
 marshallFont (Font fontName fontSize) func =
     Native.withCWText fontName $ \fontNamePtr ->
-        func $ InternalCachedFont
+        func $ CachedFont
             { fontName'    = fontNamePtr
             , fontSize'    = fontSize
             , isItalic'    = fromBool False
@@ -92,7 +101,7 @@ marshallFont (Font fontName fontSize) func =
 
 marshallFont (Font' fontName fontSize fontSettings) func =
     Native.withCWText fontName $ \fontNamePtr ->
-        func $ InternalCachedFont
+        func $ CachedFont
             { fontName'    = fontNamePtr
             , fontSize'    = fontSize
             , isItalic'    = fromBool $ isItalic fontSettings
@@ -100,15 +109,15 @@ marshallFont (Font' fontName fontSize fontSettings) func =
             , isStrikeOut' = fromBool $ isStrikeOut fontSettings
             }
 
-marshallIcon :: Icon -> InternalCachedIcon
+marshallIcon :: Icon -> CachedIcon
 marshallIcon (IconFromResourceFile iconId) =
-    InternalCachedIcon
+    CachedIcon
         { iconType' = ResourceIcon
         , maybeStockIconId = Nothing
         , maybeResourceId = Just (Native.c_MakeIntResourceW $ fromIntegral iconId)
         }
 marshallIcon icon =
-    InternalCachedIcon
+    CachedIcon
         { iconType'        = StockIcon
         , maybeStockIconId = Just stockIconId
         , maybeResourceId  = Nothing
@@ -209,8 +218,8 @@ marshallIcon icon =
             IconMediaBDRE         -> Native.const_SIID_MEDIABDRE
             IconClusteredDrive    -> Native.const_SIID_CLUSTEREDDRIVE
 
-marshallCursor :: Cursor -> InternalCachedCursor
-marshallCursor cursor = InternalCachedCursor { cursorKey' = Native.c_MakeIntResourceW cur }
+marshallCursor :: Cursor -> CachedCursor
+marshallCursor cursor = CachedCursor { cursorKey' = Native.c_MakeIntResourceW cur }
     where
         cur = case cursor of
             CursorArrow    -> Native.const_IDC_ARROW
@@ -223,14 +232,14 @@ marshallCursor cursor = InternalCachedCursor { cursorKey' = Native.c_MakeIntReso
             CursorSizeWE   -> Native.const_IDC_SIZEWE
             CursorSizeNS   -> Native.const_IDC_SIZENS
 
-data InternalCreateWindowReq = InternalCreateWindowReq
+data CreateWindowReq = CreateWindowReq
     { newWindowParentUniqueId' :: Maybe UniqueId
     , newWindowClassName'      :: CWString
     , newWindowExStyles'       :: Word32
     , newWindowStyles'         :: Word32
     }
 
-instance Storable InternalCreateWindowReq where
+instance Storable CreateWindowReq where
     sizeOf _ = Native.size_CreateWindowReq
 
     alignment _ = Native.alignment_CreateWindowReq
@@ -251,7 +260,7 @@ instance Storable InternalCreateWindowReq where
         pokeByteOff ptr Native.offset_CreateWindowReq_newWindowExStyles  (newWindowExStyles' val)
         pokeByteOff ptr Native.offset_CreateWindowReq_newWindowStyles    (newWindowStyles' val)
 
-data InternalUpdatePosReq = InternalUpdatePosReq
+data UpdatePosReq = UpdatePosReq
     { hasNewLocation'        :: CBool
     , hasNewSize'            :: CBool
     , bringComponentToFront' :: CBool
@@ -261,7 +270,7 @@ data InternalUpdatePosReq = InternalUpdatePosReq
     , maybeNewHeight'        :: Maybe ScalableValue
     }
 
-instance Storable InternalUpdatePosReq where
+instance Storable UpdatePosReq where
     sizeOf _ = Native.size_UpdatePosReq
 
     alignment _ = Native.alignment_UpdatePosReq
@@ -283,7 +292,7 @@ instance Storable InternalUpdatePosReq where
             pokeByteOff ptr Native.offset_UpdatePosReq_newWidth  (fromJust $ maybeNewWidth' val)
             pokeByteOff ptr Native.offset_UpdatePosReq_newHeight (fromJust $ maybeNewHeight' val)
 
-data InternalCachedFont = InternalCachedFont
+data CachedFont = CachedFont
     { fontName'    :: CWString
     , fontSize'    :: ScalableValue
     , isItalic'    :: CBool
@@ -291,7 +300,7 @@ data InternalCachedFont = InternalCachedFont
     , isStrikeOut' :: CBool
     }
 
-instance Storable InternalCachedFont where
+instance Storable CachedFont where
     sizeOf _ = Native.size_CachedFont
 
     alignment _ = Native.alignment_CachedFont
@@ -307,13 +316,13 @@ instance Storable InternalCachedFont where
         pokeByteOff ptr Native.offset_CachedFont_isUnderline (isUnderline' val)
         pokeByteOff ptr Native.offset_CachedFont_isStrikeOut (isStrikeOut' val)
 
-data InternalCachedIcon = InternalCachedIcon
+data CachedIcon = CachedIcon
     { iconType'        :: IconType
     , maybeStockIconId :: Maybe SHSTOCKICONID
     , maybeResourceId  :: Maybe CWString
     }
 
-instance Storable InternalCachedIcon where
+instance Storable CachedIcon where
     sizeOf _ = Native.size_CachedIcon
 
     alignment _ = Native.alignment_CachedIcon
@@ -332,11 +341,11 @@ instance Storable InternalCachedIcon where
                 pokeByteOff ptr Native.offset_CachedIcon_iconId_resourceId (fromJust $ maybeResourceId val)
 
 
-newtype InternalCachedCursor = InternalCachedCursor
+newtype CachedCursor = CachedCursor
     { cursorKey' :: CWString
     }
 
-instance Storable InternalCachedCursor where
+instance Storable CachedCursor where
     sizeOf _ = Native.size_CachedCursor
 
     alignment _ = Native.alignment_CachedCursor
@@ -348,18 +357,17 @@ instance Storable InternalCachedCursor where
 
         pokeByteOff ptr Native.offset_CachedCursor_cursorKey (cursorKey' val)
 
-data InternalCCallRequest = CreateWindowRequest'        UniqueId InternalCreateWindowReq
-                          | CreateButtonRequest'        UniqueId UniqueId
-                          | DestroyComponentRequest'    UniqueId
-                          | UpdateTextRequest'          UniqueId CWString
-                          | UpdatePosRequest'           UniqueId InternalUpdatePosReq
-                          | UpdateFontRequest'          UniqueId InternalCachedFont
-                          | UpdateIconRequest'          UniqueId InternalCachedIcon
-                          | UpdateCursorRequest'        UniqueId InternalCachedCursor
-                          | InvalidateRectFullyRequest' UniqueId
-                          | ShowWindowRequest'          UniqueId
+data CCallRequest = CreateWindowRequest           UniqueId CreateWindowReq
+                  | CreateButtonRequest           UniqueId UniqueId
+                  | UpdateTextRequest             UniqueId CWString
+                  | UpdatePosRequest              UniqueId UpdatePosReq
+                  | UpdateFontRequest             UniqueId CachedFont
+                  | UpdateIconRequest             UniqueId CachedIcon
+                  | UpdateCursorRequest           UniqueId CachedCursor
+                  | UpdateBackgroundColourRequest UniqueId Colour
+                  | DestroyComponentRequest       UniqueId
 
-instance Storable InternalCCallRequest where
+instance Storable CCallRequest where
     sizeOf _ = Native.size_CCallRequest
 
     alignment _ = Native.alignment_CCallRequest
@@ -370,57 +378,49 @@ instance Storable InternalCCallRequest where
         fillBytes ptr 0 Native.size_CCallRequest
 
         case val of
-            (CreateWindowRequest' uniqueId req) -> do
+            (CreateWindowRequest uniqueId req) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_CREATE_WINDOW
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_createWindowReq req
 
-            (CreateButtonRequest' uniqueId parentId) -> do
+            (CreateButtonRequest uniqueId parentId) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_CREATE_BUTTON
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_newButtonParentUniqueId parentId
 
-            (DestroyComponentRequest' uniqueId) -> do
-                pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_DESTROY_COMPONENT
-                pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
-
-            (UpdateTextRequest' uniqueId newText) -> do
+            (UpdateTextRequest uniqueId newText) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_UPDATE_TEXT
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_newComponentText newText
 
-            (UpdatePosRequest' uniqueId req) -> do
+            (UpdatePosRequest uniqueId req) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_UPDATE_POS
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_updatePosReq req
 
-            (UpdateFontRequest' uniqueId req) -> do
+            (UpdateFontRequest uniqueId req) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_UPDATE_FONT
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_newFontCacheKey req
 
-            (UpdateIconRequest' uniqueId req) -> do
+            (UpdateIconRequest uniqueId req) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_UPDATE_ICON
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_newIconCacheKey req
 
-            (UpdateCursorRequest' uniqueId req) -> do
+            (UpdateCursorRequest uniqueId req) -> do
                 pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_UPDATE_CURSOR
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 
                 pokeByteOff ptr Native.offset_CCallRequest_reqData_newCursorCacheKey req
 
-            (InvalidateRectFullyRequest' uniqueId) -> do
-                pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_INVALIDATE_RECT_FULLY
-                pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
-
-            (ShowWindowRequest' uniqueId) -> do
-                pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_SHOW_WINDOW
+            (DestroyComponentRequest uniqueId) -> do
+                pokeByteOff ptr Native.offset_CCallRequest_reqType        Native.const_REQ_DESTROY_COMPONENT
                 pokeByteOff ptr Native.offset_CCallRequest_targetUniqueId uniqueId
 

@@ -98,7 +98,7 @@ runTEAWin32 settings init update view =
 
                     internalState = InternalState
                         { eventQueue              = evtQueue
-                        , lastGUIComponents       = []
+                        , lastRenderProcedures    = []
                         , lastUniqueIdInternState = UniqueIdInternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1 }
                         , updateFunction          = update'
                         , viewFunction            = view'
