@@ -18,6 +18,7 @@ import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
                                              nullPtr, peek, with)
 import           Prelude                    hiding (init)
 import           System.Exit                (exitFailure)
+import           TEAWin32.Core.DSL          (runDSL)
 import qualified TEAWin32.Core.Native       as Native
 import           TEAWin32.Core.Types
 
@@ -96,11 +97,17 @@ runTEAWin32 settings init update view =
                             _           -> error "" -- TODO
 
                     internalState = InternalState
-                        { eventQueue        = evtQueue
-                        , lastGUIComponents = []
-                        , updateFunction    = update'
-                        , viewFunction      = view'
-                        , currentModel      = Model initModel
+                        { eventQueue              = evtQueue
+                        , lastGUIComponents       = []
+                        , lastUniqueIdInternState = UniqueIdInternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1 }
+                        , updateFunction          = update'
+                        , viewFunction            = view'
+                        , currentModel            = Model initModel
                         }
+
+                    (test1, test2) = runDSL (view' (currentModel internalState)) (lastUniqueIdInternState internalState)
+
+                liftIO (print test1)
+                liftIO (print test2)
 
                 evalStateT mainLoop internalState

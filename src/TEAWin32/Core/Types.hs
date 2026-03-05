@@ -14,6 +14,7 @@ module TEAWin32.Core.Types
     , UniqueIdInternState (..)
     , DSLState (..)
     , DSL
+    , PropertyDSL
     , View
     , UniqueId (..)
     , Colour (..)
@@ -26,6 +27,7 @@ module TEAWin32.Core.Types
     , Cursor (..)
     , Font (..)
     , FontSettings (..)
+    , RenderProcedure (..)
     , GUIComponent (..)
     , IsGUIComponent
     , IsChildWrapper (..)
@@ -56,6 +58,7 @@ module TEAWin32.Core.Types
     ) where
 
 import           Control.Concurrent.STM         (TQueue)
+import           Control.Monad.Reader           (Reader)
 import           Control.Monad.State.Strict     (State)
 import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
@@ -75,11 +78,12 @@ data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
 
 data InternalState = InternalState
-    { eventQueue        :: TQueue EventQueueEntry
-    , lastGUIComponents :: [GUIComponent]
-    , updateFunction    :: Msg -> Model -> IO Model
-    , viewFunction      :: Model -> View
-    , currentModel      :: Model
+    { eventQueue              :: TQueue EventQueueEntry
+    , lastGUIComponents       :: [GUIComponent]
+    , lastUniqueIdInternState :: UniqueIdInternState
+    , updateFunction          :: Msg -> Model -> IO Model
+    , viewFunction            :: Model -> View
+    , currentModel            :: Model
     }
 
 type EventEnqueuer = Ptr EventQueueEntry -> IO ()
@@ -110,7 +114,7 @@ instance Storable EventQueueEntry where
 data UniqueIdInternState = UniqueIdInternState
     { internedUserUniqueIdMap      :: Map Text Int
     , nextUserUniqueIdInternNumber :: Int
-    }
+    } deriving (Show, Eq)
 
 data DSLState = DSLState
     { nextAutoUniqueId      :: Int
@@ -118,7 +122,9 @@ data DSLState = DSLState
     , uniqueIdInternState   :: UniqueIdInternState
     }
 
-type DSL a b = WriterT [a] (State DSLState) b
+type DSL a b = WriterT [(a, (UniqueId, RenderProcedure))] (State DSLState) b
+
+type PropertyDSL a b = WriterT [(a, (UniqueId, RenderProcedure))] (Reader UniqueId) b
 
 type View = DSL TopLevelComponent ()
 
@@ -272,9 +278,16 @@ data FontSettings = FontSettings
     , isStrikeOut :: Bool
     } deriving (Show, Eq, Ord)
 
-{-data GUIOperation = CreateWindow Text WindowStyle
-                  | CreateButton
-                  | -}
+data RenderProcedure = CreateWindow                 Text WindowStyle
+                     | CreateButton
+                     | SetComponentText             Text
+                     | SetComponentSize             (ScalableValue, ScalableValue)
+                     | SetComponentPosition         (ScalableValue, ScalableValue)
+                     | SetComponentFont             Font
+                     | SetComponentIcon             Icon
+                     | SetComponentCursor           Cursor
+                     | SetComponentBackgroundColour Colour
+                     deriving (Show, Eq)
 
 data GUIComponent = forall a. (Typeable a, Show a, Eq a, IsGUIComponent a) => GUIComponent a
 
@@ -312,7 +325,7 @@ instance IsTopLevelComponent Window
 instance (Typeable a, Show a, Eq a, IsGUIComponent a, IsTopLevelComponent a) => IsChildWrapper TopLevelComponent a where
     wrapChild = TopLevelComponent
 
-data Window = Window UniqueId Text WindowStyle [WindowProperty] [WindowChild] deriving (Show, Eq)
+data Window = Window deriving (Show, Eq)
 
 instance IsGUIComponent Window
 
@@ -335,7 +348,7 @@ instance IsWindowChild Button
 instance (Typeable a, Show a, Eq a, IsGUIComponent a, IsWindowChild a) => IsChildWrapper WindowChild a where
     wrapChild = WindowChild
 
-data Button = Button UniqueId [ButtonProperty] deriving (Show, Eq)
+data Button = Button deriving (Show, Eq)
 
 instance IsGUIComponent Button
 
@@ -354,13 +367,13 @@ class IsGUIComponentProperty a
 
 instance IsGUIComponentProperty GUIComponentProperty
 
-newtype ComponentTitle            = ComponentTitle            Text                           deriving (Show, Eq)
-newtype ComponentSize             = ComponentSize             (ScalableValue, ScalableValue) deriving (Show, Eq)
-newtype ComponentPosition         = ComponentPosition         (ScalableValue, ScalableValue) deriving (Show, Eq)
-newtype ComponentFont             = ComponentFont             Font                           deriving (Show, Eq)
-newtype ComponentIcon             = ComponentIcon             Icon                           deriving (Show, Eq)
-newtype ComponentCursor           = ComponentCursor           Cursor                         deriving (Show, Eq)
-newtype ComponentBackgroundColour = ComponentBackgroundColour Colour                         deriving (Show, Eq)
+data ComponentTitle            = ComponentTitle            deriving (Show, Eq)
+data ComponentSize             = ComponentSize             deriving (Show, Eq)
+data ComponentPosition         = ComponentPosition         deriving (Show, Eq)
+data ComponentFont             = ComponentFont             deriving (Show, Eq)
+data ComponentIcon             = ComponentIcon             deriving (Show, Eq)
+data ComponentCursor           = ComponentCursor           deriving (Show, Eq)
+data ComponentBackgroundColour = ComponentBackgroundColour deriving (Show, Eq)
 
 instance IsGUIComponentProperty ComponentTitle
 instance IsGUIComponentProperty ComponentSize

@@ -1,6 +1,5 @@
 module TEAWin32
-    ( module TEAWin32.Core.DSL
-    , View
+    ( View
     , Colour (..)
     , TEAWin32Settings (..)
     , WindowStyle (..)
@@ -11,6 +10,18 @@ module TEAWin32
     , defaultTEAWin32Settings
     , runTEAWin32
     , raw
+    , noChildren
+    , title_
+    , size_
+    , pos_
+    , font_
+    , icon_
+    , cursor_
+    , bgColour_
+    , window_'
+    , window_
+    , button_'
+    , button_
     ) where
 
 import           TEAWin32.Core.Application

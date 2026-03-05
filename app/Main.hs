@@ -56,48 +56,53 @@ view model = do
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" WindowStyleNormal
-            [title_ "Count is even!", icon_ IconFolder, size_ (400, 10), pos_ (0, 0), bgColour_ (RGB 0 0 255)] noChildren
+            (do { title_ "Count is even!"; icon_ IconFolder; size_ (400, 10); pos_ (0, 0); bgColour_ (RGB 0 0 255) }) noChildren
 
     window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
-        [title_ "!?", icon_ IconDriveRAM, size_ (400, 200), pos_ (200, 0)] $
-            button_ [title_ "!?!?", size_ (100, 50), pos_ (0, 0){-, onClick_ ButtonClicked-}]
+        (do { title_ "!?"; icon_ IconDriveRAM; size_ (400, 200); pos_ (200, 0) }) $
+            button_ (do { title_ "!?!?"; size_ (100, 50); pos_ (0, 0){-; onClick_ ButtonClicked-} })
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
-        ([ title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
-        , icon_ IconImageFiles
-        , size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
-        , bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
-        ] ++ [cursor_ CursorIBeam | isCountEven]) $ do
-            button_ [title_ "TEST BUTTON", size_ (100, 50), pos_ (0, 0){-, onClick_ ButtonClicked-}]
+        ( do
+            title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
+            icon_ IconImageFiles
+            size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
+            bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
+            when isCountEven $
+                cursor_ CursorIBeam
+        ) $ do
+            button_ (do { title_ "TEST BUTTON"; size_ (100, 50); pos_ (0, 0){-; onClick_ ButtonClicked-} })
 
             window_ "TEAWin32-Sub" WindowStyleNormalChild
-                [ title_ "HELLO"
-                , icon_ IconError
-                , cursor_ CursorArrow
-                , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
-                , pos_ (100, 100)
-                , bgColour_ (RGB 255 0 0)
-                ] $ do
-                    button_ [title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)), size_ (150, 100), pos_ (20, 50)]
+                ( do
+                    title_ "HELLO"
+                    icon_ IconError
+                    cursor_ CursorArrow
+                    size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
+                    pos_ (100, 100)
+                    bgColour_ (RGB 255 0 0)
+                ) $ do
+                    button_ (do { title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)); size_ (150, 100); pos_ (20, 50) })
 
-                    button_ [title_ "!?", size_ (50, 50), pos_ (100, 150){-, onClick_ ButtonClicked2-}{-, font_ SystemFont-}]
+                    button_ (do { title_ "!?"; size_ (50, 50); pos_ (100, 150){-; onClick_ ButtonClicked2-}{-; font_ SystemFont-} })
 
                     button_
-                        [title_ "おはようございます", size_ (200, 50), pos_ (300, 0), font_ (if isCountEven then Font "Meiryo" 24 else Font "Meiryo" 9)]
+                        (do { title_ "おはようございます"; size_ (200, 50); pos_ (300, 0); font_ (if isCountEven then Font "Meiryo" 24 else Font "Meiryo" 9) })
 
                     window_ "TEAWin32-Sub-Sub" WindowStyleBorderlessChild
-                        [title_ "GOOD MORNING", cursor_ CursorWait, size_ (50, 50), pos_ (0, 0), bgColour_ (RGB 0 255 0)] noChildren
+                        (do { title_ "GOOD MORNING"; cursor_ CursorWait; size_ (50, 50); pos_ (0, 0); bgColour_ (RGB 0 255 0) }) noChildren
 
             window_ "TEAWin32-SubSubSubSub" WindowStyleNormalChild
-                [ title_ "HELLO 2"
-                , icon_ IconFolder
-                , cursor_ CursorSizeNWSE
-                , size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
-                , pos_ (200, 200)
-                , bgColour_ (RGB 0 0 255)
-                ] noChildren
+                ( do
+                    title_ "HELLO 2"
+                    icon_ IconFolder
+                    cursor_ CursorSizeNWSE
+                    size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
+                    pos_ (200, 200)
+                    bgColour_ (RGB 0 0 255)
+                ) noChildren
 
-            button_ [title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)), size_ (150, 150), pos_ (150, 100){-, zIndex_ (-1)-}]
+            button_ (do { title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)); size_ (150, 150); pos_ (150, 100){-; zIndex_ (-1)-} })
 
 main :: IO ()
 main = runTEAWin32 defaultTEAWin32Settings init update view
