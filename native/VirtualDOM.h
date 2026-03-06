@@ -8,17 +8,15 @@
 
 typedef enum
 {
-    REQ_CREATE_WINDOW = 0,
-    REQ_CREATE_BUTTON,
-    REQ_DESTROY_COMPONENT,
-    REQ_UPDATE_TEXT,
-    REQ_UPDATE_POS,
-    REQ_UPDATE_FONT,
-    REQ_UPDATE_ICON,
-    REQ_UPDATE_CURSOR,
-    REQ_INVALIDATE_RECT_FULLY,
-    REQ_SHOW_WINDOW
-} RequestType;
+    RENDER_PROC_TYPE_CREATE_WINDOW = 0,
+    RENDER_PROC_TYPE_CREATE_BUTTON,
+    RENDER_PROC_TYPE_DESTROY_COMPONENT,
+    RENDER_PROC_TYPE_UPDATE_TEXT,
+    RENDER_PROC_TYPE_UPDATE_POS,
+    RENDER_PROC_TYPE_UPDATE_FONT,
+    RENDER_PROC_TYPE_UPDATE_ICON,
+    RENDER_PROC_TYPE_UPDATE_CURSOR
+} RenderProcedureType;
 
 typedef struct
 {
@@ -26,7 +24,7 @@ typedef struct
     LPCWSTR newWindowClassName;
     DWORD newWindowExStyles;
     DWORD newWindowStyles;
-} CreateWindowReq;
+} CreateWindowData;
 
 typedef struct
 {
@@ -37,21 +35,21 @@ typedef struct
     ScalableValue newY;
     ScalableValue newWidth;
     ScalableValue newHeight;
-} UpdatePosReq;
+} UpdatePosData;
 
 typedef struct
 {
-    RequestType reqType;
+    RenderProcedureType procType;
     int targetUniqueId; // New uniqueId if request of creation
     union {
-        CreateWindowReq createWindowReq;
+        CreateWindowData createWindowData;
         int newButtonParentUniqueId;
         LPCWSTR newComponentText;
-        UpdatePosReq updatePosReq;
+        UpdatePosData updatePosData;
         CachedFont newFontCacheKey;
         CachedIcon newIconCacheKey;
         CachedCursor newCursorCacheKey;
-    } reqData;
-} CCallRequest;
+    } procData;
+} RenderProcedure;
 
 #endif

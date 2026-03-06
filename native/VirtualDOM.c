@@ -9,30 +9,30 @@
 #include <stdio.h>
 #include <windows.h>
 
-void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
+void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 {
-    HWND targetHWND = GetHWNDFromUniqueId(request->targetUniqueId);
+    HWND targetHWND = GetHWNDFromUniqueId(procedure->targetUniqueId);
 
-    printf("%d, %d\n", request->reqType, request->targetUniqueId);
+    printf("%d, %d\n", procedure->procType, procedure->targetUniqueId);
 
-    switch (request->reqType)
+    switch (procedure->procType)
     {
-        case REQ_CREATE_WINDOW: {
-            CreateWindowReq req = request->reqData.createWindowReq;
+        case RENDER_PROC_TYPE_CREATE_WINDOW: {
+            CreateWindowData data = procedure->procData.createWindowData;
 
-            wchar_t *className = CreateTEAWin32WindowClassName(req.newWindowClassName);
+            wchar_t *className = CreateTEAWin32WindowClassName(data.newWindowClassName);
 
             HWND parentHWND = NULL;
-            if (req.newWindowParentUniqueId != 0)
+            if (data.newWindowParentUniqueId != 0)
             {
-                parentHWND = GetHWNDFromUniqueId(req.newWindowParentUniqueId);
+                parentHWND = GetHWNDFromUniqueId(data.newWindowParentUniqueId);
             }
 
             HWND newWindow = CreateWindowExW(
-                req.newWindowExStyles,
+                data.newWindowExStyles,
                 className,
                 L"",
-                WS_CLIPCHILDREN | WS_CLIPSIBLINGS | req.newWindowStyles,
+                WS_CLIPCHILDREN | WS_CLIPSIBLINGS | data.newWindowStyles,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
@@ -42,13 +42,13 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
-            RegisterHWNDToRegistry(newWindow, request->targetUniqueId);
+            RegisterHWNDToRegistry(newWindow, procedure->targetUniqueId);
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
 
             break;
         }
-        case REQ_CREATE_BUTTON: {
+        case RENDER_PROC_TYPE_CREATE_BUTTON: {
             HWND newButton = CreateWindowW(
                 L"BUTTON",
                 L"",
@@ -57,18 +57,18 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
-                GetHWNDFromUniqueId(request->reqData.newButtonParentUniqueId),
+                GetHWNDFromUniqueId(procedure->procData.newButtonParentUniqueId),
                 NULL,
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
-            SetWindowSubclass(targetHWND, SubclassWndProc, (UINT_PTR)request->targetUniqueId, 0);
+            SetWindowSubclass(targetHWND, SubclassWndProc, (UINT_PTR)procedure->targetUniqueId, 0);
 
-            RegisterHWNDToRegistry(newButton, request->targetUniqueId);
+            RegisterHWNDToRegistry(newButton, procedure->targetUniqueId);
 
             break;
         }
-        case REQ_DESTROY_COMPONENT: {
+        case RENDER_PROC_TYPE_DESTROY_COMPONENT: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
@@ -79,47 +79,47 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             break;
         }
-        case REQ_UPDATE_TEXT: {
+        case RENDER_PROC_TYPE_UPDATE_TEXT: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
-            SetWindowTextW(targetHWND, request->reqData.newComponentText);
+            SetWindowTextW(targetHWND, procedure->procData.newComponentText);
 
             break;
         }
-        case REQ_UPDATE_POS: {
+        case RENDER_PROC_TYPE_UPDATE_POS: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
-            UpdatePosReq updatePosReq = request->reqData.updatePosReq;
+            UpdatePosData updatePosData = procedure->procData.updatePosData;
 
-            int x = updatePosReq.hasNewLocation ? ResolvePixelForHWND(updatePosReq.newX, targetHWND) : 0;
-            int y = updatePosReq.hasNewLocation ? ResolvePixelForHWND(updatePosReq.newY, targetHWND) : 0;
-            int w = updatePosReq.hasNewSize ? ResolvePixelForHWND(updatePosReq.newWidth, targetHWND) : 0;
-            int h = updatePosReq.hasNewSize ? ResolvePixelForHWND(updatePosReq.newHeight, targetHWND) : 0;
+            int x = updatePosData.hasNewLocation ? ResolvePixelForHWND(updatePosData.newX, targetHWND) : 0;
+            int y = updatePosData.hasNewLocation ? ResolvePixelForHWND(updatePosData.newY, targetHWND) : 0;
+            int w = updatePosData.hasNewSize ? ResolvePixelForHWND(updatePosData.newWidth, targetHWND) : 0;
+            int h = updatePosData.hasNewSize ? ResolvePixelForHWND(updatePosData.newHeight, targetHWND) : 0;
 
             DWORD flags = SWP_NOACTIVATE;
-            if (!updatePosReq.hasNewLocation)
+            if (!updatePosData.hasNewLocation)
             {
                 flags = flags | SWP_NOMOVE;
             }
-            if (!updatePosReq.hasNewSize)
+            if (!updatePosData.hasNewSize)
             {
                 flags = flags | SWP_NOSIZE;
             }
-            if (!updatePosReq.bringComponentToFront)
+            if (!updatePosData.bringComponentToFront)
             {
                 flags = flags | SWP_NOZORDER;
             }
 
             HWND hwndInsertAfter = NULL;
-            if (updatePosReq.bringComponentToFront)
+            if (updatePosData.bringComponentToFront)
             {
                 hwndInsertAfter = HWND_TOP;
             }
@@ -134,70 +134,52 @@ void ExecuteCCallRequest(CCallRequest *request, HDWP *hdwp)
 
             break;
         }
-        case REQ_UPDATE_FONT: {
+        case RENDER_PROC_TYPE_UPDATE_FONT: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
-            CachedFont cacheKey = request->reqData.newFontCacheKey;
+            CachedFont cacheKey = procedure->procData.newFontCacheKey;
             cacheKey.dpi = GetDPI(targetHWND);
 
             SendMessageW(targetHWND, WM_SETFONT, (WPARAM)GetCachedFont(&cacheKey), 1);
 
             break;
         }
-        case REQ_UPDATE_ICON: {
+        case RENDER_PROC_TYPE_UPDATE_ICON: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
-            CachedIcon cacheKey = request->reqData.newIconCacheKey;
+            CachedIcon cacheKey = procedure->procData.newIconCacheKey;
             cacheKey.dpi = GetDPI(targetHWND);
 
             SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)GetCachedIcon(&cacheKey));
 
             break;
         }
-        case REQ_UPDATE_CURSOR: {
+        case RENDER_PROC_TYPE_UPDATE_CURSOR: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
                 break;
             }
 
-            SetClassLongPtrW(targetHWND, GCLP_HCURSOR, (LONG_PTR)GetCachedCursor(&request->reqData.newCursorCacheKey));
+            SetClassLongPtrW(
+                targetHWND,
+                GCLP_HCURSOR,
+                (LONG_PTR)GetCachedCursor(&procedure->procData.newCursorCacheKey));
 
             break;
-        }
-        case REQ_INVALIDATE_RECT_FULLY: {
-            if (targetHWND == NULL)
-            {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
-                break;
-            }
-
-            InvalidateRect(targetHWND, NULL, TRUE);
-
-            break;
-        }
-        case REQ_SHOW_WINDOW: {
-            if (targetHWND == NULL)
-            {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
-                break;
-            }
-
-            ShowWindow(targetHWND, SW_SHOW);
-            UpdateWindow(targetHWND);
         }
     }
 }
 
-void ExecuteCCallRequests(CCallRequest requests[], int requestSize, int updatePosNumber)
+void ExecuteRenderProcedures(RenderProcedure **procedures, int procedureCount, int updatePosNumber)
 {
     HDWP hdwp = NULL;
     if (updatePosNumber > 0)
@@ -205,10 +187,10 @@ void ExecuteCCallRequests(CCallRequest requests[], int requestSize, int updatePo
         hdwp = BeginDeferWindowPos(updatePosNumber);
     }
 
-    for (int i = 0; i < requestSize; i++)
+    for (int i = 0; i < procedureCount; i++)
     {
-        CCallRequest *req = &requests[i];
-        ExecuteCCallRequest(req, &hdwp);
+        RenderProcedure proc = *procedures[i];
+        ExecuteRenderProcedure(&proc, &hdwp);
     }
 
     if (hdwp != NULL)

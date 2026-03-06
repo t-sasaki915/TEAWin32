@@ -36,128 +36,80 @@ offset_ScalableValue_value = #offset ScalableValue, value
 offset_ScalableValue_isScalable :: Int
 offset_ScalableValue_isScalable = #offset ScalableValue, isScalable
 
-size_CreateWindowReq :: Int
-size_CreateWindowReq = #size CreateWindowReq
+size_RenderProcedure :: Int
+size_RenderProcedure = #size RenderProcedure
 
-alignment_CreateWindowReq :: Int
-alignment_CreateWindowReq = #alignment CreateWindowReq
+offset_RenderProcedure_procType :: Int
+offset_RenderProcedure_procType = #offset RenderProcedure, procType
 
-offset_CreateWindowReq_newWindowParentUniqueId :: Int
-offset_CreateWindowReq_newWindowParentUniqueId = #offset CreateWindowReq, newWindowParentUniqueId
+offset_RenderProcedure_targetUniqueId :: Int
+offset_RenderProcedure_targetUniqueId = #offset RenderProcedure, targetUniqueId
 
-offset_CreateWindowReq_newWindowClassName :: Int
-offset_CreateWindowReq_newWindowClassName = #offset CreateWindowReq, newWindowClassName
+offset_RenderProcedure_procData_createWindowData_newWindowParentUniqueId :: Int
+offset_RenderProcedure_procData_createWindowData_newWindowParentUniqueId = #offset RenderProcedure, procData.createWindowData.newWindowParentUniqueId
 
-offset_CreateWindowReq_newWindowExStyles :: Int
-offset_CreateWindowReq_newWindowExStyles = #offset CreateWindowReq, newWindowExStyles
+offset_RenderProcedure_procData_createWindowData_newWindowClassName :: Int
+offset_RenderProcedure_procData_createWindowData_newWindowClassName = #offset RenderProcedure, procData.createWindowData.newWindowClassName
 
-offset_CreateWindowReq_newWindowStyles :: Int
-offset_CreateWindowReq_newWindowStyles = #offset CreateWindowReq, newWindowStyles
+offset_RenderProcedure_procData_createWindowData_newWindowExStyles :: Int
+offset_RenderProcedure_procData_createWindowData_newWindowExStyles = #offset RenderProcedure, procData.createWindowData.newWindowExStyles
 
-size_UpdatePosReq :: Int
-size_UpdatePosReq = #size UpdatePosReq
+offset_RenderProcedure_procData_createWindowData_newWindowStyles :: Int
+offset_RenderProcedure_procData_createWindowData_newWindowStyles = #offset RenderProcedure, procData.createWindowData.newWindowStyles
 
-alignment_UpdatePosReq :: Int
-alignment_UpdatePosReq = #alignment UpdatePosReq
+offset_RenderProcedure_procData_newButtonParentUniqueId :: Int
+offset_RenderProcedure_procData_newButtonParentUniqueId = #offset RenderProcedure, procData.newButtonParentUniqueId
 
-offset_UpdatePosReq_hasNewLocation :: Int
-offset_UpdatePosReq_hasNewLocation = #offset UpdatePosReq, hasNewLocation
+offset_RenderProcedure_procData_newComponentText :: Int
+offset_RenderProcedure_procData_newComponentText = #offset RenderProcedure, procData.newComponentText
 
-offset_UpdatePosReq_hasNewSize :: Int
-offset_UpdatePosReq_hasNewSize = #offset UpdatePosReq, hasNewSize
+offset_RenderProcedure_procData_updatePosData_hasNewLocation :: Int
+offset_RenderProcedure_procData_updatePosData_hasNewLocation = #offset RenderProcedure, procData.updatePosData.hasNewLocation
 
-offset_UpdatePosReq_bringComponentToFront :: Int
-offset_UpdatePosReq_bringComponentToFront = #offset UpdatePosReq, bringComponentToFront
+offset_RenderProcedure_procData_updatePosData_hasNewSize :: Int
+offset_RenderProcedure_procData_updatePosData_hasNewSize = #offset RenderProcedure, procData.updatePosData.hasNewSize
 
-offset_UpdatePosReq_newX :: Int
-offset_UpdatePosReq_newX = #offset UpdatePosReq, newX
+offset_RenderProcedure_procData_updatePosData_bringComponentToFront :: Int
+offset_RenderProcedure_procData_updatePosData_bringComponentToFront = #offset RenderProcedure, procData.updatePosData.bringComponentToFront
 
-offset_UpdatePosReq_newY :: Int
-offset_UpdatePosReq_newY = #offset UpdatePosReq, newY
+offset_RenderProcedure_procData_updatePosData_newX :: Int
+offset_RenderProcedure_procData_updatePosData_newX = #offset RenderProcedure, procData.updatePosData.newX
 
-offset_UpdatePosReq_newWidth :: Int
-offset_UpdatePosReq_newWidth = #offset UpdatePosReq, newWidth
+offset_RenderProcedure_procData_updatePosData_newY :: Int
+offset_RenderProcedure_procData_updatePosData_newY = #offset RenderProcedure, procData.updatePosData.newY
 
-offset_UpdatePosReq_newHeight :: Int
-offset_UpdatePosReq_newHeight = #offset UpdatePosReq, newHeight
+offset_RenderProcedure_procData_updatePosData_newWidth :: Int
+offset_RenderProcedure_procData_updatePosData_newWidth = #offset RenderProcedure, procData.updatePosData.newWidth
 
-size_CachedFont :: Int
-size_CachedFont = #size CachedFont
+offset_RenderProcedure_procData_updatePosData_newHeight :: Int
+offset_RenderProcedure_procData_updatePosData_newHeight = #offset RenderProcedure, procData.updatePosData.newHeight
 
-alignment_CachedFont :: Int
-alignment_CachedFont = #alignment CachedFont
+offset_RenderProcedure_procData_newFontCacheKey_fontName :: Int
+offset_RenderProcedure_procData_newFontCacheKey_fontName = #offset RenderProcedure, procData.newFontCacheKey.fontName
 
-offset_CachedFont_fontName :: Int
-offset_CachedFont_fontName = #offset CachedFont, fontName
+offset_RenderProcedure_procData_newFontCacheKey_fontSize :: Int
+offset_RenderProcedure_procData_newFontCacheKey_fontSize = #offset RenderProcedure, procData.newFontCacheKey.fontSize
 
-offset_CachedFont_fontSize :: Int
-offset_CachedFont_fontSize = #offset CachedFont, fontSize
+offset_RenderProcedure_procData_newFontCacheKey_isItalic :: Int
+offset_RenderProcedure_procData_newFontCacheKey_isItalic = #offset RenderProcedure, procData.newFontCacheKey.isItalic
 
-offset_CachedFont_isItalic :: Int
-offset_CachedFont_isItalic = #offset CachedFont, isItalic
+offset_RenderProcedure_procData_newFontCacheKey_isUnderline :: Int
+offset_RenderProcedure_procData_newFontCacheKey_isUnderline = #offset RenderProcedure, procData.newFontCacheKey.isUnderline
 
-offset_CachedFont_isUnderline :: Int
-offset_CachedFont_isUnderline = #offset CachedFont, isUnderline
+offset_RenderProcedure_procData_newFontCacheKey_isStrikeOut :: Int
+offset_RenderProcedure_procData_newFontCacheKey_isStrikeOut = #offset RenderProcedure, procData.newFontCacheKey.isStrikeOut
 
-offset_CachedFont_isStrikeOut :: Int
-offset_CachedFont_isStrikeOut = #offset CachedFont, isStrikeOut
+offset_RenderProcedure_procData_newIconCacheKey_iconType :: Int
+offset_RenderProcedure_procData_newIconCacheKey_iconType = #offset RenderProcedure, procData.newIconCacheKey.iconType
 
-size_CachedCursor :: Int
-size_CachedCursor = #size CachedCursor
+offset_RenderProcedure_procData_newIconCacheKey_iconId_stockIconId :: Int
+offset_RenderProcedure_procData_newIconCacheKey_iconId_stockIconId = #offset RenderProcedure, procData.newIconCacheKey.iconId.stockIconId
 
-alignment_CachedCursor :: Int
-alignment_CachedCursor = #alignment CachedCursor
+offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId :: Int
+offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId = #offset RenderProcedure, procData.newIconCacheKey.iconId.resourceId
 
-offset_CachedCursor_cursorKey :: Int
-offset_CachedCursor_cursorKey = #offset CachedCursor, cursorKey
-
-size_CachedIcon :: Int
-size_CachedIcon = #size CachedIcon
-
-alignment_CachedIcon :: Int
-alignment_CachedIcon = #alignment CachedIcon
-
-offset_CachedIcon_iconType :: Int
-offset_CachedIcon_iconType = #offset CachedIcon, iconType
-
-offset_CachedIcon_iconId_stockIconId :: Int
-offset_CachedIcon_iconId_stockIconId = #offset CachedIcon, iconId.stockIconId
-
-offset_CachedIcon_iconId_resourceId :: Int
-offset_CachedIcon_iconId_resourceId = #offset CachedIcon, iconId.resourceId
-
-size_CCallRequest :: Int
-size_CCallRequest = #size CCallRequest
-
-alignment_CCallRequest :: Int
-alignment_CCallRequest = #alignment CCallRequest
-
-offset_CCallRequest_reqType :: Int
-offset_CCallRequest_reqType = #offset CCallRequest, reqType
-
-offset_CCallRequest_targetUniqueId :: Int
-offset_CCallRequest_targetUniqueId = #offset CCallRequest, targetUniqueId
-
-offset_CCallRequest_reqData_createWindowReq :: Int
-offset_CCallRequest_reqData_createWindowReq = #offset CCallRequest, reqData.createWindowReq
-
-offset_CCallRequest_reqData_newButtonParentUniqueId :: Int
-offset_CCallRequest_reqData_newButtonParentUniqueId = #offset CCallRequest, reqData.newButtonParentUniqueId
-
-offset_CCallRequest_reqData_newComponentText :: Int
-offset_CCallRequest_reqData_newComponentText = #offset CCallRequest, reqData.newComponentText
-
-offset_CCallRequest_reqData_updatePosReq :: Int
-offset_CCallRequest_reqData_updatePosReq = #offset CCallRequest, reqData.updatePosReq
-
-offset_CCallRequest_reqData_newFontCacheKey :: Int
-offset_CCallRequest_reqData_newFontCacheKey = #offset CCallRequest, reqData.newFontCacheKey
-
-offset_CCallRequest_reqData_newIconCacheKey :: Int
-offset_CCallRequest_reqData_newIconCacheKey = #offset CCallRequest, reqData.newIconCacheKey
-
-offset_CCallRequest_reqData_newCursorCacheKey :: Int
-offset_CCallRequest_reqData_newCursorCacheKey = #offset CCallRequest, reqData.newCursorCacheKey
+offset_RenderProcedure_procData_newCursorCacheKey_cursorKey :: Int
+offset_RenderProcedure_procData_newCursorCacheKey_cursorKey = #offset RenderProcedure, procData.newCursorCacheKey.cursorKey
 
 size_EventQueueEntry :: Int
 size_EventQueueEntry = #size EventQueueEntry
@@ -183,35 +135,29 @@ const_RESOURCE_ICON = #const RESOURCE_ICON
 const_STOCK_ICON :: CInt
 const_STOCK_ICON = #const STOCK_ICON
 
-const_REQ_CREATE_WINDOW :: CInt
-const_REQ_CREATE_WINDOW = #const REQ_CREATE_WINDOW
+const_RENDER_PROC_TYPE_CREATE_WINDOW :: CInt
+const_RENDER_PROC_TYPE_CREATE_WINDOW = #const RENDER_PROC_TYPE_CREATE_WINDOW
 
-const_REQ_CREATE_BUTTON :: CInt
-const_REQ_CREATE_BUTTON = #const REQ_CREATE_BUTTON
+const_RENDER_PROC_TYPE_CREATE_BUTTON :: CInt
+const_RENDER_PROC_TYPE_CREATE_BUTTON = #const RENDER_PROC_TYPE_CREATE_BUTTON
 
-const_REQ_DESTROY_COMPONENT :: CInt
-const_REQ_DESTROY_COMPONENT = #const REQ_DESTROY_COMPONENT
+const_RENDER_PROC_TYPE_DESTROY_COMPONENT :: CInt
+const_RENDER_PROC_TYPE_DESTROY_COMPONENT = #const RENDER_PROC_TYPE_DESTROY_COMPONENT
 
-const_REQ_UPDATE_TEXT :: CInt
-const_REQ_UPDATE_TEXT = #const REQ_UPDATE_TEXT
+const_RENDER_PROC_TYPE_UPDATE_TEXT :: CInt
+const_RENDER_PROC_TYPE_UPDATE_TEXT = #const RENDER_PROC_TYPE_UPDATE_TEXT
 
-const_REQ_UPDATE_POS :: CInt
-const_REQ_UPDATE_POS = #const REQ_UPDATE_POS
+const_RENDER_PROC_TYPE_UPDATE_POS :: CInt
+const_RENDER_PROC_TYPE_UPDATE_POS = #const RENDER_PROC_TYPE_UPDATE_POS
 
-const_REQ_UPDATE_FONT :: CInt
-const_REQ_UPDATE_FONT = #const REQ_UPDATE_FONT
+const_RENDER_PROC_TYPE_UPDATE_FONT :: CInt
+const_RENDER_PROC_TYPE_UPDATE_FONT = #const RENDER_PROC_TYPE_UPDATE_FONT
 
-const_REQ_UPDATE_ICON :: CInt
-const_REQ_UPDATE_ICON = #const REQ_UPDATE_ICON
+const_RENDER_PROC_TYPE_UPDATE_ICON :: CInt
+const_RENDER_PROC_TYPE_UPDATE_ICON = #const RENDER_PROC_TYPE_UPDATE_ICON
 
-const_REQ_UPDATE_CURSOR :: CInt
-const_REQ_UPDATE_CURSOR = #const REQ_UPDATE_CURSOR
-
-const_REQ_INVALIDATE_RECT_FULLY :: CInt
-const_REQ_INVALIDATE_RECT_FULLY = #const REQ_INVALIDATE_RECT_FULLY
-
-const_REQ_SHOW_WINDOW :: CInt
-const_REQ_SHOW_WINDOW = #const REQ_SHOW_WINDOW
+const_RENDER_PROC_TYPE_UPDATE_CURSOR :: CInt
+const_RENDER_PROC_TYPE_UPDATE_CURSOR = #const RENDER_PROC_TYPE_UPDATE_CURSOR
 
 const_SIID_DOCNOASSOC :: Word32
 const_SIID_DOCNOASSOC = #const SIID_DOCNOASSOC
