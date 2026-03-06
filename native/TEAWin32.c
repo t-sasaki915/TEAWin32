@@ -6,16 +6,18 @@
 #include "Util.h"
 
 #include <commctrl.h>
+#include <stdio.h>
 #include <wchar.h>
 #include <windows.h>
 
 DWORD TEAWIN32_INSTANCE_PID;
-wchar_t TEAWIN32_INSTANCE_PID_STR[9];
 HINSTANCE TEAWIN32_MAIN_INSTANCE;
 int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
 
 void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueuerPtr)
 {
+    DEBUG_LOG(L"Initialising TEAWin32C.");
+
     InitialiseEvent(eventEnqueuerPtr);
 
     InitialiseDPIAwareFunctions();
@@ -27,14 +29,14 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
 
-    swprintf(TEAWIN32_INSTANCE_PID_STR, 9, L"%08X", TEAWIN32_INSTANCE_PID);
-
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
 
     EventQueueEntry testEntry;
     ZeroMemory(&testEntry, sizeof(testEntry));
     testEntry.eventType = EVENT_TYPE_TEST_EVENT;
     QueueEvent(&testEntry);
+
+    DEBUG_LOG(L"Initialised TEAWin32C.");
 }
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
@@ -77,8 +79,12 @@ SubclassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uId
 
 void FinaliseTEAWin32C(void)
 {
+    DEBUG_LOG(L"Finalising TEAWin32C.");
+
     FinaliseClassCache();
     FinaliseFontCache();
     FinaliseCursorCache();
     FinaliseIconCache();
+
+    DEBUG_LOG(L"Finalised TEAWin32C.");
 }

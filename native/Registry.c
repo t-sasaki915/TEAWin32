@@ -1,7 +1,9 @@
 #include "Registry.h"
 #include "DPIAware.h"
 #include "Event.h"
+#include "TEAWin32.h"
 
+#include <stdio.h>
 #include <windows.h>
 
 #define UNIQUEID_HWND_MAP_PAGE_MAX 1024
@@ -21,6 +23,7 @@ static inline BOOL CalculatePageIdxAndOffset(
 {
     if (uniqueId == 0)
     {
+        NotifyFatalError(L"UniqueId 0 is given.", L"CalculatePageIdxAndOffset (Registry.c)");
         return FALSE;
     }
 
@@ -30,6 +33,8 @@ static inline BOOL CalculatePageIdxAndOffset(
 
     if (pageIdx >= UNIQUEID_HWND_MAP_PAGE_MAX)
     {
+        NotifyFatalError(L"UNIQUEID_HWND_MAP_PAGE_TABLE Overflow.", L"CalculatePageIdxAndOffset (Registry.c)");
+
         return FALSE;
     }
 
@@ -63,6 +68,8 @@ HWND GetHWNDFromUniqueId(int uniqueId)
 
     if (page == NULL)
     {
+        NotifyFatalError(L"Page was NULL.", L"GetHWNDFromUniqueId (Registry.c)");
+
         return NULL;
     }
 
@@ -71,6 +78,8 @@ HWND GetHWNDFromUniqueId(int uniqueId)
 
 void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 {
+    DEBUG_LOG(L"Registring HWND %p (UniqueId %d) to Registry.", (void *)hwnd, uniqueId);
+
     int pageIdx;
     int offset;
     UniqueIdHWNDMapEntry **pageTable;
@@ -100,6 +109,8 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
     regEntry->dpi = GetDPI(hwnd);
 
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)regEntry);
+
+    DEBUG_LOG(L"Registered HWND %p (UniqueId %d) to Registry.", (void *)hwnd, uniqueId);
 }
 
 HWNDRegistryEntry *GetHWNDRegistryEntry(HWND hwnd)
@@ -109,9 +120,12 @@ HWNDRegistryEntry *GetHWNDRegistryEntry(HWND hwnd)
 
 void UnregisterHWNDFromRegistry(HWND hwnd)
 {
+    DEBUG_LOG(L"Unregistring HWND %p from Registry.", (void *)hwnd);
+
     HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
     if (regEntry == NULL)
     {
+        NotifyFatalError(L"HWNDRegistry entry was NULL.", L"UnregisterHWNDFromRegistry (Registry.c)");
         return;
     }
 

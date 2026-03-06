@@ -3,6 +3,7 @@
 #include "Event.h"
 #include "TEAWin32.h"
 
+#include <stdio.h>
 #include <windows.h>
 
 #define CLASS_CACHE_MAX 1024
@@ -12,8 +13,7 @@
 
 typedef struct
 {
-    LPCWSTR userClassName;
-    wchar_t *fullClassNamePtr;
+    LPCWSTR className;
 } ClassCacheEntry;
 
 typedef struct
@@ -43,30 +43,21 @@ static int CURSOR_CACHE_COUNT = 0;
 static IconCacheEntry ICON_CACHE[ICON_CACHE_MAX];
 static int ICON_CACHE_COUNT = 0;
 
-wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
+LPCWSTR GetCachedClassName(LPCWSTR className)
 {
+    DEBUG_LOG(L"Searching Class %ls from CLASS_CACHE.", className);
+
     for (int i = 0; i < CLASS_CACHE_COUNT; i++)
     {
-        if (wcscmp(CLASS_CACHE[i].userClassName, userClass) == 0)
+        if (wcscmp(CLASS_CACHE[i].className, className) == 0)
         {
-            return CLASS_CACHE[i].fullClassNamePtr;
+            DEBUG_LOG(L"Class %ls was cached in CLASS_CACHE. Reusing.", className);
+
+            return CLASS_CACHE[i].className;
         }
     }
 
-    wchar_t fullClassName[256];
-    wchar_t *p = fullClassName;
-
-    memcpy(p, TEAWIN32_INSTANCE_PID_STR, 8 * sizeof(wchar_t));
-    p += 8;
-
-    memcpy(p, TEAWIN32_WINDOW_CLASS_IDENTIFIER, TEAWIN32_WINDOW_CLASS_IDENTIFIER_LENGTH * sizeof(wchar_t));
-    p += TEAWIN32_WINDOW_CLASS_IDENTIFIER_LENGTH;
-
-    size_t userClassLength = wcslen(userClass);
-    memcpy(p, userClass, (userClassLength + 1) * sizeof(wchar_t));
-
-    wchar_t *permanentUserClassName = _wcsdup(userClass);
-    wchar_t *permanentFullClassName = _wcsdup(fullClassName);
+    LPCWSTR permanentClassName = _wcsdup(className);
 
     if (CLASS_CACHE_COUNT >= CLASS_CACHE_MAX)
     {
@@ -74,14 +65,13 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
         return NULL;
     }
 
-    CLASS_CACHE[CLASS_CACHE_COUNT].userClassName = permanentUserClassName;
-    CLASS_CACHE[CLASS_CACHE_COUNT].fullClassNamePtr = permanentFullClassName;
+    CLASS_CACHE[CLASS_CACHE_COUNT].className = permanentClassName;
     CLASS_CACHE_COUNT++;
 
     WNDCLASSEXW wndClass;
     ZeroMemory(&wndClass, sizeof(wndClass));
     wndClass.cbSize = sizeof(wndClass);
-    wndClass.lpszClassName = permanentFullClassName;
+    wndClass.lpszClassName = permanentClassName;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
     wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
     wndClass.lpfnWndProc = TEAWin32WndProc;
@@ -92,28 +82,41 @@ wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass)
         return NULL;
     }
 
-    return permanentFullClassName;
+    DEBUG_LOG(L"Class %ls is added to CLASS_CACHE.", className);
+
+    return permanentClassName;
 }
 
 HFONT GetCachedFont(CachedFont *fontKey)
 {
+    DEBUG_LOG(
+        L"Searching Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d) from FONT_CACHE.",
+        fontKey->fontName,
+        fontKey->absoluteFontSize,
+        fontKey->isItalic,
+        fontKey->isUnderline,
+        fontKey->isStrikeOut);
+
     for (int i = 0; i < FONT_CACHE_COUNT; i++)
     {
         CachedFont entry = FONT_CACHE[i].fontCacheKey;
 
         BOOL matchFontName = fontKey->fontName == entry.fontName || wcscmp(fontKey->fontName, entry.fontName) == 0;
-        BOOL matchFontSize = ScalableValue_Equals(fontKey->fontSize, entry.fontSize);
+        BOOL matchFontSize = fontKey->absoluteFontSize == entry.absoluteFontSize;
         BOOL matchIsItalic = fontKey->isItalic == entry.isItalic;
         BOOL matchIsUnderline = fontKey->isUnderline == entry.isUnderline;
         BOOL matchIsStrikeOut = fontKey->isStrikeOut == entry.isStrikeOut;
-        BOOL matchDpi = fontKey->dpi == entry.dpi;
-        if (!fontKey->fontSize.isScalable && !entry.fontSize.isScalable)
-        {
-            matchDpi = TRUE;
-        }
 
-        if (matchFontName && matchFontSize && matchIsItalic && matchIsUnderline && matchIsStrikeOut && matchDpi)
+        if (matchFontName && matchFontSize && matchIsItalic && matchIsUnderline && matchIsStrikeOut)
         {
+            DEBUG_LOG(
+                L"Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d) was cached in FONT_CACHE. Reusing.",
+                fontKey->fontName,
+                fontKey->absoluteFontSize,
+                fontKey->isItalic,
+                fontKey->isUnderline,
+                fontKey->isStrikeOut);
+
             return FONT_CACHE[i].fontCacheHandle;
         }
     }
@@ -127,7 +130,7 @@ HFONT GetCachedFont(CachedFont *fontKey)
     wchar_t *permanentFontName = _wcsdup(fontKey->fontName);
 
     HFONT newFont = CreateFontW(
-        ResolvePointForDpi(fontKey->fontSize, fontKey->dpi),
+        fontKey->absoluteFontSize,
         0,
         0,
         0,
@@ -150,19 +153,28 @@ HFONT GetCachedFont(CachedFont *fontKey)
 
     FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
     FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontName = permanentFontName;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontSize = fontKey->fontSize;
+    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.absoluteFontSize = fontKey->absoluteFontSize;
     FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isItalic = fontKey->isItalic;
     FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isUnderline = fontKey->isUnderline;
     FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.dpi = fontKey->dpi;
 
     FONT_CACHE_COUNT++;
+
+    DEBUG_LOG(
+        L"Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d) is added to FONT_CACHE.",
+        fontKey->fontName,
+        fontKey->absoluteFontSize,
+        fontKey->isItalic,
+        fontKey->isUnderline,
+        fontKey->isStrikeOut);
 
     return newFont;
 }
 
 HCURSOR GetCachedCursor(CachedCursor *cacheKey)
 {
+    DEBUG_LOG(L"Searching for Cursor %ls from CURSOR_CACHE.", cacheKey->cursorKey);
+
     BOOL isIdGiven = IS_INTRESOURCE(cacheKey->cursorKey);
 
     for (int i = 0; i < CURSOR_CACHE_COUNT; i++)
@@ -173,6 +185,8 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
         {
             if (cacheKey->cursorKey == entry->cursorCacheKey.cursorKey)
             {
+                DEBUG_LOG(L"Cursor %ls was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
+
                 return CURSOR_CACHE[i].cursorCacheHandle;
             }
         }
@@ -181,6 +195,8 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
         {
             if (wcscmp(cacheKey->cursorKey, entry->cursorCacheKey.cursorKey) == 0)
             {
+                DEBUG_LOG(L"Cursor %ls was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
+
                 return CURSOR_CACHE[i].cursorCacheHandle;
             }
         }
@@ -214,11 +230,28 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
 
     CURSOR_CACHE_COUNT++;
 
+    DEBUG_LOG(L"Cursor %ls is added to CURSOR_CACHE.", cacheKey->cursorKey);
+
     return newCursor;
 }
 
 HICON GetCachedIcon(CachedIcon *cacheKey)
 {
+    if (cacheKey->iconType == STOCK_ICON)
+    {
+        DEBUG_LOG(
+            L"Searching for Stock Icon %d (DPI: %d) from ICON_CACHE.",
+            cacheKey->iconId.stockIconId,
+            cacheKey->dpi);
+    }
+    else
+    {
+        DEBUG_LOG(
+            L"Searching for Resource Icon %ls (DPI: %d) from ICON_CACHE.",
+            cacheKey->iconId.resourceId,
+            cacheKey->dpi);
+    }
+
     BOOL isIdGiven = FALSE;
     if (cacheKey->iconType == RESOURCE_ICON)
     {
@@ -238,6 +271,11 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
         {
             if (entry->iconCacheKey.iconId.stockIconId == cacheKey->iconId.stockIconId)
             {
+                DEBUG_LOG(
+                    L"Stock Icon %d (DPI: %d) was found in ICON_CACHE. Reusing.",
+                    cacheKey->iconId.stockIconId,
+                    cacheKey->dpi);
+
                 return entry->iconCacheHandle;
             }
         }
@@ -248,6 +286,11 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
 
             if (entryKey == givenKey || (!isIdGiven && !entry->iconCacheKey.isKeyId && wcscmp(entryKey, givenKey) == 0))
             {
+                DEBUG_LOG(
+                    L"Resource Icon %ls (DPI: %d) was found in ICON_CACHE. Reusing.",
+                    cacheKey->iconId.resourceId,
+                    cacheKey->dpi);
+
                 return entry->iconCacheHandle;
             }
         }
@@ -302,29 +345,53 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
 
     ICON_CACHE_COUNT++;
 
+    if (cacheKey->iconType == STOCK_ICON)
+    {
+        DEBUG_LOG(L"Stock Icon %d (DPI: %d) is added to ICON_CACHE.", cacheKey->iconId.stockIconId, cacheKey->dpi);
+    }
+    else
+    {
+        DEBUG_LOG(L"Resource Icon %ls (DPI: %d) is added to ICON_CACHE.", cacheKey->iconId.resourceId, cacheKey->dpi);
+    }
+
     return newIcon;
 }
 
 void FinaliseClassCache(void)
 {
+    DEBUG_LOG(L"Finalising CLASS_CACHE.");
+
     for (int i = 0; i < CLASS_CACHE_COUNT; i++)
     {
         ClassCacheEntry entry = CLASS_CACHE[i];
 
-        UnregisterClassW(entry.fullClassNamePtr, TEAWIN32_MAIN_INSTANCE);
+        DEBUG_LOG(L"Unregistring Class %ls.", entry.className);
 
-        free((void *)entry.userClassName);
-        free(entry.fullClassNamePtr);
+        UnregisterClassW(entry.className, TEAWIN32_MAIN_INSTANCE);
+
+        free((void *)entry.className);
     }
 
     CLASS_CACHE_COUNT = 0;
+
+    DEBUG_LOG(L"Finalised CLASS_CACHE.");
 }
 
 void FinaliseFontCache(void)
 {
+    DEBUG_LOG(L"Finalising FONT_CACHE.");
+
     for (int i = 0; i < FONT_CACHE_COUNT; i++)
     {
         FontCacheEntry entry = FONT_CACHE[i];
+
+        DEBUG_LOG(
+            L"Deleting Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d).",
+            entry.fontCacheKey.fontName,
+            entry.fontCacheKey.absoluteFontSize,
+            entry.fontCacheKey.isItalic,
+            entry.fontCacheKey.isUnderline,
+            entry.fontCacheKey.isStrikeOut);
 
         DeleteObject((HGDIOBJ)entry.fontCacheHandle);
 
@@ -332,41 +399,63 @@ void FinaliseFontCache(void)
     }
 
     FONT_CACHE_COUNT = 0;
+
+    DEBUG_LOG(L"Finalised FONT_CACHE.");
 }
 
 void FinaliseCursorCache(void)
 {
+    DEBUG_LOG(L"Finalising CURSOR_CACHE.");
+
     for (int i = 0; i < CURSOR_CACHE_COUNT; i++)
     {
         CursorCacheEntry entry = CURSOR_CACHE[i];
 
         if (!entry.cursorCacheKey.isKeyId)
         {
+            DEBUG_LOG(L"Releasing cursorKey pointer %ls.", entry.cursorCacheKey.cursorKey);
+
             free((void *)entry.cursorCacheKey.cursorKey);
         }
     }
 
     CURSOR_CACHE_COUNT = 0;
+
+    DEBUG_LOG(L"Finalised CURSOR_CACHE.");
 }
 
 void FinaliseIconCache(void)
 {
+    DEBUG_LOG(L"Finalising ICON_CACHE.");
+
     for (int i = 0; i < ICON_CACHE_COUNT; i++)
     {
         IconCacheEntry entry = ICON_CACHE[i];
 
         if (entry.iconCacheKey.iconType == STOCK_ICON)
         {
+            DEBUG_LOG(
+                L"Destroying Stock Icon %d (DPI: %d).",
+                entry.iconCacheKey.iconId.stockIconId,
+                entry.iconCacheKey.dpi);
+
             DestroyIcon(entry.iconCacheHandle);
         }
         else
         {
             if (!entry.iconCacheKey.isKeyId)
             {
+                DEBUG_LOG(
+                    L"Releasing resourceId pointer %ls (DPI: %d).",
+                    entry.iconCacheKey.iconId.resourceId,
+                    entry.iconCacheKey.dpi);
+
                 free((void *)entry.iconCacheKey.iconId.resourceId);
             }
         }
     }
 
     ICON_CACHE_COUNT = 0;
+
+    DEBUG_LOG(L"Finalised ICON_CACHE.");
 }

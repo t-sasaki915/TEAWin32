@@ -25,7 +25,6 @@ import           TEAWin32.Core.Types
 defaultTEAWin32Settings :: TEAWin32Settings
 defaultTEAWin32Settings = TEAWin32Settings
     { useVisualStyles = True
-    , isDebugMode     = False
     }
 
 processEvents :: TQueue EventQueueEntry -> StateT InternalState IO ()

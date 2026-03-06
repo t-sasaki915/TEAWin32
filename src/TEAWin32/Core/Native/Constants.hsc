@@ -24,9 +24,6 @@ alignment_TEAWin32Settings = #alignment TEAWin32Settings
 offset_TEAWin32Settings_useVisualStyles :: Int
 offset_TEAWin32Settings_useVisualStyles = #offset TEAWin32Settings, useVisualStyles
 
-offset_TEAWin32Settings_isDebugMode :: Int
-offset_TEAWin32Settings_isDebugMode = #offset TEAWin32Settings, isDebugMode
-
 size_ScalableValue :: Int
 size_ScalableValue = #size ScalableValue
 

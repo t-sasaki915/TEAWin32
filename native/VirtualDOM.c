@@ -13,14 +13,18 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 {
     HWND targetHWND = GetHWNDFromUniqueId(procedure->targetUniqueId);
 
-    printf("%d, %d\n", procedure->procType, procedure->targetUniqueId);
+    DEBUG_LOG(
+        L"Processing RenderProcedure for HWND %p (UniqueId %d). ProcedureType: %d.",
+        (void *)targetHWND,
+        procedure->targetUniqueId,
+        procedure->procType);
 
     switch (procedure->procType)
     {
         case RENDER_PROC_TYPE_CREATE_WINDOW: {
             CreateWindowData data = procedure->procData.createWindowData;
 
-            wchar_t *className = CreateTEAWin32WindowClassName(data.newWindowClassName);
+            LPCWSTR className = GetCachedClassName(data.newWindowClassName);
 
             HWND parentHWND = NULL;
             if (data.newWindowParentUniqueId != 0)
@@ -49,6 +53,13 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
             ShowWindow(newWindow, SW_SHOW);
             UpdateWindow(newWindow);
 
+            DEBUG_LOG(
+                L"Created Window. Class: %ls, Parent: %d, ExStyles: %d, Styles: %d.",
+                data.newWindowClassName,
+                data.newWindowParentUniqueId,
+                data.newWindowExStyles,
+                data.newWindowStyles);
+
             break;
         }
         case RENDER_PROC_TYPE_CREATE_BUTTON: {
@@ -69,34 +80,44 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 
             RegisterHWNDToRegistry(newButton, procedure->targetUniqueId);
 
+            DEBUG_LOG(L"Created Button. Parent: %d", procedure->procData.newButtonParentUniqueId);
+
             break;
         }
         case RENDER_PROC_TYPE_DESTROY_COMPONENT: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
             DestroyWindow(targetHWND);
+
+            DEBUG_LOG(L"Destroyed HWND %p (UniqueId %d)", (void *)targetHWND, procedure->targetUniqueId);
 
             break;
         }
         case RENDER_PROC_TYPE_UPDATE_TEXT: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
             SetWindowTextW(targetHWND, procedure->procData.newComponentText);
+
+            DEBUG_LOG(
+                L"Updated Window Text of HWND %p (UniqueId %d): %ls",
+                (void *)targetHWND,
+                procedure->targetUniqueId,
+                procedure->procData.newComponentText);
 
             break;
         }
         case RENDER_PROC_TYPE_UPDATE_POS: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
@@ -129,32 +150,52 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 
             if (hdwp == NULL)
             {
-                NotifyFatalError(L"hdwp was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"hdwp was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
             *hdwp = DeferWindowPos(*hdwp, targetHWND, hwndInsertAfter, x, y, w, h, flags);
+
+            DEBUG_LOG(
+                L"Updated Window Pos of HWND %p (UniqueId %d): X: %d, Y: %d, W: %d, H: %d, Front: %d",
+                (void *)targetHWND,
+                procedure->targetUniqueId,
+                x,
+                y,
+                w,
+                h,
+                updatePosData.bringComponentToFront);
 
             break;
         }
         case RENDER_PROC_TYPE_UPDATE_FONT: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
             CachedFont cacheKey = procedure->procData.newFontCacheKey;
-            cacheKey.dpi = GetDPI(targetHWND);
+            cacheKey.absoluteFontSize = ResolvePointForHWND(cacheKey.fontSize, targetHWND);
 
             SendMessageW(targetHWND, WM_SETFONT, (WPARAM)GetCachedFont(&cacheKey), 1);
+
+            DEBUG_LOG(
+                L"Updated Font of HWND %p (UniqueId %d): Size %d, Italic %d, Underline %d, StrikeOut %d",
+                (void *)targetHWND,
+                procedure->targetUniqueId,
+                cacheKey.fontName,
+                cacheKey.absoluteFontSize,
+                cacheKey.isItalic,
+                cacheKey.isUnderline,
+                cacheKey.isStrikeOut);
 
             break;
         }
         case RENDER_PROC_TYPE_UPDATE_ICON: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
@@ -163,12 +204,31 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 
             SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)GetCachedIcon(&cacheKey));
 
+            if (cacheKey.iconType == STOCK_ICON)
+            {
+                DEBUG_LOG(
+                    L"Updated Icon of HWND %p (UniqueId %d): Stock Icon Id: %d, DPI: %d",
+                    (void *)targetHWND,
+                    procedure->targetUniqueId,
+                    cacheKey.iconId.stockIconId,
+                    cacheKey.dpi);
+            }
+            else
+            {
+                DEBUG_LOG(
+                    L"Updated Icon of HWND %p (UniqueId %d): Resource Icon Id: %ls, DPI: %d",
+                    (void *)targetHWND,
+                    procedure->targetUniqueId,
+                    cacheKey.iconId.stockIconId,
+                    cacheKey.dpi);
+            }
+
             break;
         }
         case RENDER_PROC_TYPE_UPDATE_CURSOR: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteCCallRequest (VirtualDOM.c)");
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
@@ -177,6 +237,12 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
                 GCLP_HCURSOR,
                 (LONG_PTR)GetCachedCursor(&procedure->procData.newCursorCacheKey));
 
+            DEBUG_LOG(
+                L"Updated Cursor of HWND %p (UniqueId %d): %ls",
+                (void *)targetHWND,
+                procedure->targetUniqueId,
+                procedure->procData.newCursorCacheKey);
+
             break;
         }
     }
@@ -184,16 +250,20 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 
 void ExecuteRenderProcedures(RenderProcedure **procedures, int procedureCount, int updatePosNumber)
 {
+    DEBUG_LOG(L"RenderProcedure received.");
+
     HDWP hdwp = NULL;
     if (updatePosNumber > 0)
     {
+        DEBUG_LOG(L"updatePosNumber > 0, using DeferWindowPos.");
+
         hdwp = BeginDeferWindowPos(updatePosNumber);
     }
 
     for (int i = 0; i < procedureCount; i++)
     {
-        RenderProcedure proc = *procedures[i];
-        ExecuteRenderProcedure(&proc, &hdwp);
+        RenderProcedure *proc = procedures[i];
+        ExecuteRenderProcedure(proc, &hdwp);
     }
 
     if (hdwp != NULL)

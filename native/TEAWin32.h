@@ -6,6 +6,21 @@
 #define TEAWIN32_WINDOW_CLASS_IDENTIFIER L"_TEAWIN32_"
 #define TEAWIN32_WINDOW_CLASS_IDENTIFIER_LENGTH 10
 
+#define TEAWIN32_DEBUG_MODE
+
+#ifdef TEAWIN32_DEBUG_MODE
+#define DEBUG_LOG(...)                                                                                                 \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        fwprintf(stdout, L"Debug (C: %hs): ", __func__);                                                               \
+        fwprintf(stdout, __VA_ARGS__);                                                                                 \
+        fwprintf(stdout, L"\n");                                                                                       \
+        fflush(stdout);                                                                                                \
+    } while (0)
+#else
+#define DEBUG_LOG(fmt, ...) ((void)0)
+#endif
+
 typedef struct
 {
     int (*onWindowDestroy)(int uniqueId);
@@ -14,11 +29,9 @@ typedef struct
 typedef struct
 {
     BOOL useVisualStyles;
-    BOOL isDebugMode;
 } TEAWin32Settings;
 
 extern DWORD TEAWIN32_INSTANCE_PID;
-extern wchar_t TEAWIN32_INSTANCE_PID_STR[9];
 extern HINSTANCE TEAWIN32_MAIN_INSTANCE;
 extern int TEAWIN32_ACTIVE_WINDOW_COUNT;
 

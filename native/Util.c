@@ -1,6 +1,7 @@
 #include "Event.h"
 #include "TEAWin32.h"
 
+#include <stdio.h>
 #include <windows.h>
 
 BOOL CALLBACK MakeWindowTaskModalCallback(HWND hwnd, LPARAM lParam)
@@ -22,6 +23,8 @@ void MakeWindowTaskModal(HWND hwnd)
 
 void EnableVisualStyles(void)
 {
+    DEBUG_LOG(L"Enabling Visual Styles.");
+
     HMODULE hInstance = LoadLibraryW(L"SHLWAPI.DLL");
     if (hInstance == NULL)
     {
@@ -58,4 +61,6 @@ void EnableVisualStyles(void)
         ReleaseActCtx(hActCtx);
         return;
     }
+
+    DEBUG_LOG(L"Enabled Visual Styles.");
 }

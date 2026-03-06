@@ -8,8 +8,8 @@
 typedef struct
 {
     LPCWSTR fontName;
+    int absoluteFontSize;
     ScalableValue fontSize;
-    int dpi;
     BOOL isItalic;
     BOOL isUnderline;
     BOOL isStrikeOut;
@@ -38,7 +38,7 @@ typedef struct
     BOOL isKeyId;
 } CachedIcon;
 
-wchar_t *CreateTEAWin32WindowClassName(LPCWSTR userClass);
+LPCWSTR GetCachedClassName(LPCWSTR userClass);
 
 HFONT GetCachedFont(CachedFont *fontKey);
 
