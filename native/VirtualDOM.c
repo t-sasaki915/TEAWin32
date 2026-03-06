@@ -46,6 +46,9 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
 
+            ShowWindow(newWindow, SW_SHOW);
+            UpdateWindow(newWindow);
+
             break;
         }
         case RENDER_PROC_TYPE_CREATE_BUTTON: {

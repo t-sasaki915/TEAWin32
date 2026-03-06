@@ -105,4 +105,4 @@ view model = do
             button_ (do { title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)); size_ (150, 150); pos_ (150, 100){-; zIndex_ (-1)-} })
 
 main :: IO ()
-main = runTEAWin32 defaultTEAWin32Settings init update view
+main = runTEAWin32 (defaultTEAWin32Settings { isDebugMode = True }) init update view

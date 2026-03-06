@@ -136,8 +136,9 @@ instance Storable UniqueId where
 
 data Colour = RGB Int Int Int deriving (Show, Eq)
 
-newtype TEAWin32Settings = TEAWin32Settings
+data TEAWin32Settings = TEAWin32Settings
     { useVisualStyles :: Bool
+    , isDebugMode     :: Bool
     }
 
 instance Storable TEAWin32Settings where
@@ -151,6 +152,7 @@ instance Storable TEAWin32Settings where
         fillBytes ptr 0 Native.size_TEAWin32Settings
 
         pokeByteOff ptr Native.offset_TEAWin32Settings_useVisualStyles (useVisualStyles val)
+        pokeByteOff ptr Native.offset_TEAWin32Settings_isDebugMode     (isDebugMode val)
 
 data ScalableValue = ScalableValue Double
                    | RawValue      Double
@@ -274,8 +276,7 @@ data FontSettings = FontSettings
 data RenderProcedure = CreateWindow                 Text WindowStyle (Maybe UniqueId)
                      | CreateButton                 UniqueId
                      | SetComponentText             Text
-                     | SetComponentSize             (ScalableValue, ScalableValue)
-                     | SetComponentPosition         (ScalableValue, ScalableValue)
+                     | SetComponentPos              (Maybe (ScalableValue, ScalableValue)) (Maybe (ScalableValue, ScalableValue)) Bool
                      | SetComponentFont             Font
                      | SetComponentIcon             Icon
                      | SetComponentCursor           Cursor

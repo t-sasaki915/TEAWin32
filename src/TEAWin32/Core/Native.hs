@@ -5,6 +5,7 @@ module TEAWin32.Core.Native
     , c_InitialiseTEAWin32C
     , c_FinaliseTEAWin32C
     , c_ShowErrorReporter
+    , c_ExecuteRenderProcedures
     ) where
 
 import           Data.Text           (Text)
@@ -30,3 +31,6 @@ foreign import ccall "FinaliseTEAWin32C"
 
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
+
+foreign import ccall "ExecuteRenderProcedures"
+    c_ExecuteRenderProcedures :: Ptr (Ptr ()) -> Int -> Int -> IO ()

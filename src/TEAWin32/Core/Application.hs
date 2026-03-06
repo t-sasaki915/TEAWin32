@@ -25,6 +25,7 @@ import           TEAWin32.Core.Types
 defaultTEAWin32Settings :: TEAWin32Settings
 defaultTEAWin32Settings = TEAWin32Settings
     { useVisualStyles = True
+    , isDebugMode     = False
     }
 
 processEvents :: TQueue EventQueueEntry -> StateT InternalState IO ()
@@ -60,7 +61,7 @@ mainLoop = do
 
     processEvents (eventQueue currentState)
 
-    liftIO (putStrLn "LOOP")
+    --liftIO (putStrLn "LOOP")
 
     liftIO (threadDelay 16000)
     mainLoop

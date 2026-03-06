@@ -45,6 +45,7 @@ library
       TEAWin32.Core.Marshall
       TEAWin32.Core.Native
       TEAWin32.Core.Types
+      TEAWin32.Core.Util
       TEAWin32.Core.VirtualDOM
       TEAWin32
   c-sources:

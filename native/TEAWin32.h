@@ -14,6 +14,7 @@ typedef struct
 typedef struct
 {
     BOOL useVisualStyles;
+    BOOL isDebugMode;
 } TEAWin32Settings;
 
 extern DWORD TEAWIN32_INSTANCE_PID;

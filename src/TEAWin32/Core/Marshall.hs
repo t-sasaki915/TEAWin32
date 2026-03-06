@@ -1,129 +1,172 @@
-module TEAWin32.Core.Marshall (pokeRenderProcedures) where
+module TEAWin32.Core.Marshall (dispatchRenderProcedures) where
 
-import           Control.Monad                  (forM_)
-import           Control.Monad.Cont             (ContT (..))
+import           Control.Monad                  (foldM)
+import           Control.Monad.Cont             (ContT (..), evalContT)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Bits                      ((.|.))
+import           Data.Maybe                     (isJust)
 import           Data.Word                      (Word32)
-import           Foreign                        (Ptr, fillBytes, pokeByteOff)
+import           Foreign                        (Ptr, allocaBytes, castPtr,
+                                                 fillBytes, pokeByteOff)
 import           Foreign.C                      (CInt, CWString)
 import qualified TEAWin32.Core.Native           as Native
 import qualified TEAWin32.Core.Native.Constants as Native
 import           TEAWin32.Core.Types
+import           TEAWin32.Core.Util             (whenJust)
 
-pokeRenderProcedures :: Ptr () -> [(UniqueId, RenderProcedure)] -> ContT a IO ()
-pokeRenderProcedures ptr procedures = do
-    liftIO (fillBytes ptr 0 (length procedures * Native.size_RenderProcedure))
+dispatchRenderProcedures :: [(UniqueId, RenderProcedure)] -> IO ()
+dispatchRenderProcedures procedures = do
+    let totalSize = length procedures * Native.size_RenderProcedure
 
-    forM_ (zip [0..] procedures) $ \(index, procedure) ->
-        pokeRenderProcedure procedure index
-    where
-        pokeRenderProcedure :: (UniqueId, RenderProcedure) -> Int -> ContT a IO ()
-        pokeRenderProcedure (uniqueId, procedure) procOffset = do
-            let offset = procOffset * Native.size_RenderProcedure
+    allocaBytes totalSize $ \ptr -> do
+        fillBytes ptr 0 totalSize
 
-                pokeData relativeOffset val = liftIO $ pokeByteOff ptr (offset + relativeOffset) val
+        let func deferWindowPosCount (index, procedure) =
+                pokeRenderProcedure ptr procedure index >>= \case
+                    True  -> pure (deferWindowPosCount + 1)
+                    False -> pure deferWindowPosCount
 
-            case procedure of
-                (CreateWindow className windowStyle maybeParent) -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_CREATE_WINDOW
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+        evalContT $ do
+            deferWindowPosCount <- foldM func (0 :: Int) (zip [0..] procedures)
 
-                    case maybeParent of
-                        Just parent ->
-                            pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowParentUniqueId parent
+            liftIO $ Native.c_ExecuteRenderProcedures (castPtr ptr) (length procedures) deferWindowPosCount
 
-                        Nothing ->
-                            pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowParentUniqueId (0 :: CInt)
+pokeRenderProcedure :: Ptr () -> (UniqueId, RenderProcedure) -> Int -> ContT a IO Bool
+pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
+    let offset = procOffset * Native.size_RenderProcedure
 
-                    ContT (Native.withCWText className) >>= \className' ->
-                        pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowClassName className'
+        pokeData relativeOffset val = liftIO $ pokeByteOff ptr (offset + relativeOffset) val
 
-                    let (exStyles, styles) = marshallWindowStyle windowStyle
+    case procedure of
+        (CreateWindow className windowStyle maybeParent) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_CREATE_WINDOW
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
-                    pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowExStyles exStyles
-                    pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowStyles   styles
+            case maybeParent of
+                Just parent ->
+                    pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowParentUniqueId parent
 
-                (CreateButton parent) -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_CREATE_BUTTON
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+                Nothing ->
+                    pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowParentUniqueId (0 :: CInt)
 
-                    pokeData Native.offset_RenderProcedure_procData_newButtonParentUniqueId parent
+            ContT (Native.withCWText className) >>= \className' ->
+                pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowClassName className'
 
-                (SetComponentText newText) -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_TEXT
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+            let (exStyles, styles) = marshallWindowStyle windowStyle
 
-                    ContT (Native.withCWText newText) >>= \newText' ->
-                        pokeData Native.offset_RenderProcedure_procData_newComponentText newText'
+            pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowExStyles exStyles
+            pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowStyles   styles
 
-                (SetComponentFont newFont) -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_FONT
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+            pure False
 
-                    let fontName = case newFont of
-                            DefaultGUIFont    -> "MS Shell Dlg"
-                            (Font fName _)    -> fName
-                            (Font' fName _ _) -> fName
+        (CreateButton parent) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_CREATE_BUTTON
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
-                        fontSize = case newFont of
-                            DefaultGUIFont    -> 9
-                            (Font _ fSize)    -> fSize
-                            (Font' _ fSize _) -> fSize
+            pokeData Native.offset_RenderProcedure_procData_newButtonParentUniqueId parent
 
-                        italic = case newFont of
-                            DefaultGUIFont                   -> False
-                            (Font _ _)                       -> False
-                            (Font' _ _ (FontSettings i _ _)) -> i
+            pure False
 
-                        underline = case newFont of
-                            DefaultGUIFont                   -> False
-                            (Font _ _)                       -> False
-                            (Font' _ _ (FontSettings _ u _)) -> u
+        (SetComponentText newText) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_TEXT
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
-                        strikeOut = case newFont of
-                            DefaultGUIFont                   -> False
-                            (Font _ _)                       -> False
-                            (Font' _ _ (FontSettings _ _ s)) -> s
+            ContT (Native.withCWText newText) >>= \newText' ->
+                pokeData Native.offset_RenderProcedure_procData_newComponentText newText'
 
-                    ContT (Native.withCWText fontName) >>= \fontName' ->
-                            pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_fontName fontName'
+            pure False
 
-                    pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_fontSize    fontSize
-                    pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isItalic    italic
-                    pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isUnderline underline
-                    pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isStrikeOut strikeOut
+        (SetComponentPos maybeNewPos maybeNewSize bringCompToFront) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_POS
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
-                (SetComponentIcon newIcon) -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_ICON
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+            pokeData Native.offset_RenderProcedure_procData_updatePosData_hasNewLocation        (isJust maybeNewPos)
+            pokeData Native.offset_RenderProcedure_procData_updatePosData_hasNewSize            (isJust maybeNewSize)
+            pokeData Native.offset_RenderProcedure_procData_updatePosData_bringComponentToFront bringCompToFront
 
-                    case newIcon of
-                        (IconFromResourceFile rsId) -> do
-                            pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconType Native.const_RESOURCE_ICON
+            whenJust maybeNewPos $ \(newX, newY) -> do
+                pokeData Native.offset_RenderProcedure_procData_updatePosData_newX newX
+                pokeData Native.offset_RenderProcedure_procData_updatePosData_newY newY
 
-                            pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId (Native.c_MakeIntResourceW (fromIntegral rsId))
+            whenJust maybeNewSize $ \(newWidth, newHeight) -> do
+                pokeData Native.offset_RenderProcedure_procData_updatePosData_newWidth  newWidth
+                pokeData Native.offset_RenderProcedure_procData_updatePosData_newHeight newHeight
 
-                        stockIcon -> do
-                            pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconType Native.const_STOCK_ICON
+            pure True
 
-                            pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId (marshallStockIcon stockIcon)
+        (SetComponentFont newFont) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_FONT
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
-                (SetComponentCursor newCursor) -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_CURSOR
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+            let fontName = case newFont of
+                    DefaultGUIFont    -> "MS Shell Dlg"
+                    (Font fName _)    -> fName
+                    (Font' fName _ _) -> fName
 
-                    pokeData Native.offset_RenderProcedure_procData_newCursorCacheKey_cursorKey (marshallCursor newCursor)
+                fontSize = case newFont of
+                    DefaultGUIFont    -> 9
+                    (Font _ fSize)    -> fSize
+                    (Font' _ fSize _) -> fSize
 
-                (SetComponentBackgroundColour _) ->
-                    pure () -- TODO
+                italic = case newFont of
+                    DefaultGUIFont                   -> False
+                    (Font _ _)                       -> False
+                    (Font' _ _ (FontSettings i _ _)) -> i
 
-                DestroyComponent -> do
-                    pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_DESTROY_COMPONENT
-                    pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+                underline = case newFont of
+                    DefaultGUIFont                   -> False
+                    (Font _ _)                       -> False
+                    (Font' _ _ (FontSettings _ u _)) -> u
 
-                _ ->
-                    pure () -- TODO
+                strikeOut = case newFont of
+                    DefaultGUIFont                   -> False
+                    (Font _ _)                       -> False
+                    (Font' _ _ (FontSettings _ _ s)) -> s
+
+            ContT (Native.withCWText fontName) >>= \fontName' ->
+                    pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_fontName fontName'
+
+            pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_fontSize    fontSize
+            pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isItalic    italic
+            pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isUnderline underline
+            pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isStrikeOut strikeOut
+
+            pure False
+
+        (SetComponentIcon newIcon) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_ICON
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
+            case newIcon of
+                (IconFromResourceFile rsId) -> do
+                    pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconType Native.const_RESOURCE_ICON
+
+                    pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId (Native.c_MakeIntResourceW (fromIntegral rsId))
+
+                stockIcon -> do
+                    pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconType Native.const_STOCK_ICON
+
+                    pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId (marshallStockIcon stockIcon)
+
+            pure False
+
+        (SetComponentCursor newCursor) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_CURSOR
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
+            pokeData Native.offset_RenderProcedure_procData_newCursorCacheKey_cursorKey (marshallCursor newCursor)
+
+            pure False
+
+        (SetComponentBackgroundColour _) ->
+            pure False -- TODO
+
+        DestroyComponent -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_DESTROY_COMPONENT
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
+            pure False
+
 
 marshallWindowStyle :: WindowStyle -> (Word32, Word32)
 marshallWindowStyle WindowStyleBorderless      = (0, Native.const_WS_POPUP)

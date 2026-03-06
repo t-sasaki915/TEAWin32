@@ -42,12 +42,12 @@ title_ text =
 size_ :: (IsPropertyWrapper a ComponentSize) => (ScalableValue, ScalableValue) -> PropertyDSL a ()
 size_ size =
     ask >>= \parentUid ->
-        tell [(wrapProperty ComponentSize, (parentUid, SetComponentSize size))]
+        tell [(wrapProperty ComponentSize, (parentUid, SetComponentPos Nothing (Just size) False))]
 
 pos_ :: (IsPropertyWrapper a ComponentPosition) => (ScalableValue, ScalableValue) -> PropertyDSL a ()
 pos_ pos =
     ask >>= \parentUid ->
-        tell [(wrapProperty ComponentPosition, (parentUid, SetComponentPosition pos))]
+        tell [(wrapProperty ComponentPosition, (parentUid, SetComponentPos (Just pos) Nothing False))]
 
 font_ :: (IsPropertyWrapper a ComponentFont) => Font -> PropertyDSL a ()
 font_ font =
