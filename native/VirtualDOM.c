@@ -11,13 +11,16 @@
 
 void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 {
-    HWND targetHWND = GetHWNDFromUniqueId(procedure->targetUniqueId);
-
     DEBUG_LOG(
-        L"Processing RenderProcedure for HWND %p (UniqueId %d). ProcedureType: %d.",
-        (void *)targetHWND,
+        L"Processing RenderProcedure for UniqueId %d. ProcedureType: %d.",
         procedure->targetUniqueId,
         procedure->procType);
+
+    HWND targetHWND = NULL;
+    if (procedure->procType != RENDER_PROC_TYPE_CREATE_WINDOW && procedure->procType != RENDER_PROC_TYPE_CREATE_BUTTON)
+    {
+        targetHWND = GetHWNDFromUniqueId(procedure->targetUniqueId);
+    }
 
     switch (procedure->procType)
     {
@@ -76,24 +79,11 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
-            SetWindowSubclass(targetHWND, SubclassWndProc, (UINT_PTR)procedure->targetUniqueId, 0);
+            SetWindowSubclass(newButton, SubclassWndProc, (UINT_PTR)procedure->targetUniqueId, 0);
 
             RegisterHWNDToRegistry(newButton, procedure->targetUniqueId);
 
             DEBUG_LOG(L"Created Button. Parent: %d", procedure->procData.newButtonParentUniqueId);
-
-            break;
-        }
-        case RENDER_PROC_TYPE_DESTROY_COMPONENT: {
-            if (targetHWND == NULL)
-            {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
-            }
-
-            DestroyWindow(targetHWND);
-
-            DEBUG_LOG(L"Destroyed HWND %p (UniqueId %d)", (void *)targetHWND, procedure->targetUniqueId);
 
             break;
         }
@@ -204,6 +194,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
 
             SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)GetCachedIcon(&cacheKey));
 
+#ifdef TEAWIN32_DEBUG_MODE
             if (cacheKey.iconType == STOCK_ICON)
             {
                 DEBUG_LOG(
@@ -215,13 +206,26 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
             }
             else
             {
-                DEBUG_LOG(
-                    L"Updated Icon of HWND %p (UniqueId %d): Resource Icon Id: %ls, DPI: %d",
-                    (void *)targetHWND,
-                    procedure->targetUniqueId,
-                    cacheKey.iconId.stockIconId,
-                    cacheKey.dpi);
+                if (IS_INTRESOURCE(cacheKey.iconId.stockIconId))
+                {
+                    DEBUG_LOG(
+                        L"Updated Icon of HWND %p (UniqueId %d): Resource Icon Id: %d, DPI: %d",
+                        (void *)targetHWND,
+                        procedure->targetUniqueId,
+                        cacheKey.iconId.stockIconId,
+                        cacheKey.dpi);
+                }
+                else
+                {
+                    DEBUG_LOG(
+                        L"Updated Icon of HWND %p (UniqueId %d): Resource Icon Id: %ls, DPI: %d",
+                        (void *)targetHWND,
+                        procedure->targetUniqueId,
+                        cacheKey.iconId.stockIconId,
+                        cacheKey.dpi);
+                }
             }
+#endif
 
             break;
         }
@@ -237,20 +241,57 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
                 GCLP_HCURSOR,
                 (LONG_PTR)GetCachedCursor(&procedure->procData.newCursorCacheKey));
 
-            DEBUG_LOG(
-                L"Updated Cursor of HWND %p (UniqueId %d): %ls",
-                (void *)targetHWND,
-                procedure->targetUniqueId,
-                procedure->procData.newCursorCacheKey);
+#ifdef TEAWIN32_DEBUG_MODE
+            if (IS_INTRESOURCE(procedure->procData.newCursorCacheKey.cursorKey))
+            {
+                DEBUG_LOG(
+                    L"Updated Cursor of HWND %p (UniqueId %d): %d",
+                    (void *)targetHWND,
+                    procedure->targetUniqueId,
+                    procedure->procData.newCursorCacheKey);
+            }
+            else
+            {
+                DEBUG_LOG(
+                    L"Updated Cursor of HWND %p (UniqueId %d): %ls",
+                    (void *)targetHWND,
+                    procedure->targetUniqueId,
+                    procedure->procData.newCursorCacheKey);
+            }
+#endif
+
+            break;
+        }
+        case RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR: {
+            if (targetHWND == NULL)
+            {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                break;
+            }
+
+            DEBUG_LOG(L"TODO: implement RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR.");
+
+            break;
+        }
+        case RENDER_PROC_TYPE_DESTROY_COMPONENT: {
+            if (targetHWND == NULL)
+            {
+                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                break;
+            }
+
+            DestroyWindow(targetHWND);
+
+            DEBUG_LOG(L"Destroyed HWND %p (UniqueId %d)", (void *)targetHWND, procedure->targetUniqueId);
 
             break;
         }
     }
 }
 
-void ExecuteRenderProcedures(RenderProcedure **procedures, int procedureCount, int updatePosNumber)
+void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount, int updatePosNumber)
 {
-    DEBUG_LOG(L"RenderProcedure received.");
+    DEBUG_LOG(L"Executing RenderProcedures.");
 
     HDWP hdwp = NULL;
     if (updatePosNumber > 0)
@@ -262,12 +303,35 @@ void ExecuteRenderProcedures(RenderProcedure **procedures, int procedureCount, i
 
     for (int i = 0; i < procedureCount; i++)
     {
-        RenderProcedure *proc = procedures[i];
-        ExecuteRenderProcedure(proc, &hdwp);
+        ExecuteRenderProcedure(&procedures[i], &hdwp);
     }
 
     if (hdwp != NULL)
     {
         EndDeferWindowPos(hdwp);
     }
+
+    DEBUG_LOG(L"Executed RenderProcedures.");
+}
+
+void RequestRender(RenderProcedure *procedures, int procedureCount, int updatePosNumber)
+{
+    DEBUG_LOG(L"Received RenderProcedures from Haskell. Requesting render.");
+
+    int size = procedureCount * sizeof(RenderProcedure);
+
+    RenderProcedure *permanentProcedures = (RenderProcedure *)malloc(procedureCount);
+    if (permanentProcedures == NULL)
+    {
+        NotifyFatalError(L"malloc Failed.", L"RequestRender (VirtualDOM.c)");
+        return;
+    }
+
+    memcpy(permanentProcedures, procedures, size);
+
+    LPARAM lParam = ((LPARAM)procedureCount << 32) | (unsigned int)updatePosNumber;
+
+    PostMessageW(NULL, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam);
+
+    DEBUG_LOG(L"Requested render.");
 }

@@ -6,6 +6,8 @@
 #define TEAWIN32_WINDOW_CLASS_IDENTIFIER L"_TEAWIN32_"
 #define TEAWIN32_WINDOW_CLASS_IDENTIFIER_LENGTH 10
 
+#define WM_TEAWIN32_RENDER_REQUEST (WM_USER + 1)
+
 #define TEAWIN32_DEBUG_MODE
 
 #ifdef TEAWIN32_DEBUG_MODE
@@ -18,7 +20,7 @@
         fflush(stdout);                                                                                                \
     } while (0)
 #else
-#define DEBUG_LOG(fmt, ...) ((void)0)
+#define DEBUG_LOG(...) ((void)0)
 #endif
 
 typedef struct

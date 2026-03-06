@@ -32,5 +32,5 @@ foreign import ccall "FinaliseTEAWin32C"
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
-foreign import ccall "ExecuteRenderProcedures"
-    c_ExecuteRenderProcedures :: Ptr (Ptr ()) -> Int -> Int -> IO ()
+foreign import ccall unsafe "ExecuteRenderProcedures"
+    c_ExecuteRenderProcedures :: Ptr () -> Int -> Int -> IO ()

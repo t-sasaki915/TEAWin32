@@ -10,12 +10,13 @@ typedef enum
 {
     RENDER_PROC_TYPE_CREATE_WINDOW = 0,
     RENDER_PROC_TYPE_CREATE_BUTTON,
-    RENDER_PROC_TYPE_DESTROY_COMPONENT,
     RENDER_PROC_TYPE_UPDATE_TEXT,
     RENDER_PROC_TYPE_UPDATE_POS,
     RENDER_PROC_TYPE_UPDATE_FONT,
     RENDER_PROC_TYPE_UPDATE_ICON,
-    RENDER_PROC_TYPE_UPDATE_CURSOR
+    RENDER_PROC_TYPE_UPDATE_CURSOR,
+    RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR,
+    RENDER_PROC_TYPE_DESTROY_COMPONENT
 } RenderProcedureType;
 
 typedef struct
@@ -51,5 +52,7 @@ typedef struct
         CachedCursor newCursorCacheKey;
     } procData;
 } RenderProcedure;
+
+void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount, int updatePosNumber);
 
 #endif

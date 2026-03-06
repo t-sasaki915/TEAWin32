@@ -78,7 +78,7 @@ HWND GetHWNDFromUniqueId(int uniqueId)
 
 void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 {
-    DEBUG_LOG(L"Registring HWND %p (UniqueId %d) to Registry.", (void *)hwnd, uniqueId);
+    DEBUG_LOG(L"Registering HWND %p (UniqueId %d) to Registry.", (void *)hwnd, uniqueId);
 
     int pageIdx;
     int offset;

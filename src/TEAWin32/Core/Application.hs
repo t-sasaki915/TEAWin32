@@ -19,6 +19,7 @@ import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
 import           Prelude                    hiding (init)
 import           System.Exit                (exitFailure)
 import           TEAWin32.Core.DSL          (runDSL)
+import           TEAWin32.Core.Marshall     (dispatchRenderProcedures)
 import qualified TEAWin32.Core.Native       as Native
 import           TEAWin32.Core.Types
 
@@ -106,6 +107,8 @@ runTEAWin32 settings init update view =
                         }
 
                     (test1, test2) = runDSL (view' (currentModel internalState)) (lastUniqueIdInternState internalState)
+
+                dispatchRenderProcedures test1
 
                 liftIO (print test1)
                 liftIO (print test2)

@@ -158,8 +158,13 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
 
             pure False
 
-        (SetComponentBackgroundColour _) ->
-            pure False -- TODO
+        (SetComponentBackgroundColour _) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
+            -- TODO
+
+            pure False
 
         DestroyComponent -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_DESTROY_COMPONENT

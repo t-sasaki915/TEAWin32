@@ -173,9 +173,16 @@ HFONT GetCachedFont(CachedFont *fontKey)
 
 HCURSOR GetCachedCursor(CachedCursor *cacheKey)
 {
-    DEBUG_LOG(L"Searching for Cursor %ls from CURSOR_CACHE.", cacheKey->cursorKey);
-
     BOOL isIdGiven = IS_INTRESOURCE(cacheKey->cursorKey);
+
+    if (isIdGiven)
+    {
+        DEBUG_LOG(L"Searching for Cursor %d from CURSOR_CACHE.", cacheKey->cursorKey);
+    }
+    else
+    {
+        DEBUG_LOG(L"Searching for Cursor %ls from CURSOR_CACHE.", cacheKey->cursorKey);
+    }
 
     for (int i = 0; i < CURSOR_CACHE_COUNT; i++)
     {
@@ -185,7 +192,7 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
         {
             if (cacheKey->cursorKey == entry->cursorCacheKey.cursorKey)
             {
-                DEBUG_LOG(L"Cursor %ls was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
+                DEBUG_LOG(L"Cursor %d was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
 
                 return CURSOR_CACHE[i].cursorCacheHandle;
             }
@@ -230,7 +237,14 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
 
     CURSOR_CACHE_COUNT++;
 
-    DEBUG_LOG(L"Cursor %ls is added to CURSOR_CACHE.", cacheKey->cursorKey);
+    if (isIdGiven)
+    {
+        DEBUG_LOG(L"Cursor %d is added to CURSOR_CACHE.", cacheKey->cursorKey);
+    }
+    else
+    {
+        DEBUG_LOG(L"Cursor %d is added to CURSOR_CACHE.", cacheKey->cursorKey);
+    }
 
     return newCursor;
 }
@@ -351,7 +365,20 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
     }
     else
     {
-        DEBUG_LOG(L"Resource Icon %ls (DPI: %d) is added to ICON_CACHE.", cacheKey->iconId.resourceId, cacheKey->dpi);
+        if (isIdGiven)
+        {
+            DEBUG_LOG(
+                L"Resource Icon %d (DPI: %d) is added to ICON_CACHE.",
+                cacheKey->iconId.resourceId,
+                cacheKey->dpi);
+        }
+        else
+        {
+            DEBUG_LOG(
+                L"Resource Icon %ls (DPI: %d) is added to ICON_CACHE.",
+                cacheKey->iconId.resourceId,
+                cacheKey->dpi);
+        }
     }
 
     return newIcon;
