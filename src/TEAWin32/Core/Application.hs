@@ -22,6 +22,7 @@ import           TEAWin32.Core.DSL          (runDSL)
 import           TEAWin32.Core.Marshall     (dispatchRenderProcedures)
 import qualified TEAWin32.Core.Native       as Native
 import           TEAWin32.Core.Types
+import           TEAWin32.Core.VirtualDOM   (optimiseRenderProcedures)
 
 defaultTEAWin32Settings :: TEAWin32Settings
 defaultTEAWin32Settings = TEAWin32Settings
@@ -54,7 +55,7 @@ processEvents queue =
 
             let (test1, _) = runDSL (viewFunc currentMdl) internState
 
-            liftIO (dispatchRenderProcedures test1)
+            liftIO (dispatchRenderProcedures (optimiseRenderProcedures test1))
 
             processEvents queue
 
