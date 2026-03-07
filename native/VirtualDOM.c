@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <windows.h>
 
-void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
+void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
 {
     DEBUG_LOG(
         L"Processing RenderProcedure for UniqueId %d. ProcedureType: %d.",
@@ -49,6 +49,12 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
                 TEAWIN32_MAIN_INSTANCE,
                 0);
 
+            if (newWindow == NULL)
+            {
+                NotifyFatalError(L"CreateWindowExW failed.", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                return;
+            }
+
             RegisterHWNDToRegistry(newWindow, procedure->targetUniqueId);
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
@@ -78,6 +84,12 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
                 NULL,
                 TEAWIN32_MAIN_INSTANCE,
                 0);
+
+            if (newButton == NULL)
+            {
+                NotifyFatalError(L"CreateWindowW failed.", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                return;
+            }
 
             SetWindowSubclass(newButton, SubclassWndProc, (UINT_PTR)procedure->targetUniqueId, 0);
 
@@ -132,19 +144,13 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP *hdwp)
                 flags = flags | SWP_NOZORDER;
             }
 
-            HWND hwndInsertAfter = NULL;
-            if (updatePosData.bringComponentToFront)
-            {
-                hwndInsertAfter = HWND_TOP;
-            }
-
             if (hdwp == NULL)
             {
                 NotifyFatalError(L"hdwp was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 break;
             }
 
-            *hdwp = DeferWindowPos(*hdwp, targetHWND, hwndInsertAfter, x, y, w, h, flags);
+            hdwp = DeferWindowPos(hdwp, targetHWND, HWND_TOP, x, y, w, h, flags);
 
             DEBUG_LOG(
                 L"Updated Window Pos of HWND %p (UniqueId %d): X: %d, Y: %d, W: %d, H: %d, Front: %d",
@@ -303,11 +309,16 @@ void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount, in
 
     for (int i = 0; i < procedureCount; i++)
     {
-        ExecuteRenderProcedure(&procedures[i], &hdwp);
+        ExecuteRenderProcedure(&procedures[i], hdwp);
     }
 
-    if (hdwp != NULL)
+    if (updatePosNumber > 0)
     {
+        if (hdwp == NULL)
+        {
+            NotifyFatalError(L"hdwp is NULL", L"ExecuteRenderProcedures (VirtualDOM.c)");
+        }
+
         EndDeferWindowPos(hdwp);
     }
 
@@ -320,7 +331,7 @@ void RequestRender(RenderProcedure *procedures, int procedureCount, int updatePo
 
     int size = procedureCount * sizeof(RenderProcedure);
 
-    RenderProcedure *permanentProcedures = (RenderProcedure *)malloc(procedureCount);
+    RenderProcedure *permanentProcedures = (RenderProcedure *)malloc(size);
     if (permanentProcedures == NULL)
     {
         NotifyFatalError(L"malloc Failed.", L"RequestRender (VirtualDOM.c)");
@@ -329,9 +340,14 @@ void RequestRender(RenderProcedure *procedures, int procedureCount, int updatePo
 
     memcpy(permanentProcedures, procedures, size);
 
-    LPARAM lParam = ((LPARAM)procedureCount << 32) | (unsigned int)updatePosNumber;
+    LPARAM lParam = ((LPARAM)updatePosNumber << 32) | (unsigned int)procedureCount;
 
-    PostMessageW(NULL, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam);
+    if (!PostMessageW(TEAWIN32_MANAGEMENT_HWND, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam))
+    {
+        free(permanentProcedures);
+        NotifyFatalError(L"Failed to post WM_TEAWIN32_RENDER_REQUEST", L"RenderRequest (VirtualDOM.c)");
+        return;
+    }
 
     DEBUG_LOG(L"Requested render.");
 }

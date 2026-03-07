@@ -3,7 +3,7 @@ module TEAWin32.Core.Application
     , runTEAWin32
     ) where
 
-import           Control.Concurrent         (threadDelay)
+import           Control.Concurrent         (forkOS, threadDelay)
 import           Control.Concurrent.STM     (TQueue, atomically, newTQueueIO,
                                              tryReadTQueue, writeTQueue)
 import           Control.Exception          (bracket, bracket_,
@@ -11,7 +11,7 @@ import           Control.Exception          (bracket, bracket_,
 import           Control.Monad              (unless)
 import           Control.Monad.Cont         (ContT (..), evalContT)
 import           Control.Monad.IO.Class     (liftIO)
-import           Control.Monad.State.Strict (StateT, evalStateT, get)
+import           Control.Monad.State.Strict (StateT, evalStateT, get, gets)
 import           Data.Data                  (Typeable, cast)
 import qualified Data.Text                  as Text
 import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
@@ -47,8 +47,14 @@ processEvents queue =
 
             liftIO exitFailure
 
-        Just event -> do
-            liftIO (putStrLn $ "RECEIVED AN EVENT!!!!!!!!!!!!!! " <> show event)
+        Just TestEvent -> do
+            viewFunc    <- gets viewFunction
+            currentMdl  <- gets currentModel
+            internState <- gets lastUniqueIdInternState
+
+            let (test1, _) = runDSL (viewFunc currentMdl) internState
+
+            liftIO (dispatchRenderProcedures test1)
 
             processEvents queue
 
@@ -106,11 +112,6 @@ runTEAWin32 settings init update view =
                         , currentModel            = Model initModel
                         }
 
-                    (test1, test2) = runDSL (view' (currentModel internalState)) (lastUniqueIdInternState internalState)
+                _ <- forkOS (evalStateT mainLoop internalState)
 
-                dispatchRenderProcedures test1
-
-                liftIO (print test1)
-                liftIO (print test2)
-
-                evalStateT mainLoop internalState
+                liftIO Native.c_StartWin32MessageLoop

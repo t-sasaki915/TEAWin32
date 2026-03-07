@@ -4,15 +4,46 @@
 #include "Event.h"
 #include "Registry.h"
 #include "Util.h"
+#include "VirtualDOM.h"
 
 #include <commctrl.h>
 #include <stdio.h>
-#include <wchar.h>
 #include <windows.h>
 
 DWORD TEAWIN32_INSTANCE_PID;
 HINSTANCE TEAWIN32_MAIN_INSTANCE;
+HWND TEAWIN32_MANAGEMENT_HWND;
 int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
+
+LRESULT CALLBACK ManagementHWNDWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (wMsg != WM_TEAWIN32_RENDER_REQUEST)
+    {
+        return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+    }
+
+    DEBUG_LOG(L"ManagementHWNDWndProc received WM_TEAWIN32_RENDER_REQUEST.");
+
+    RenderProcedure *procs = (RenderProcedure *)wParam;
+
+    if (procs == NULL)
+    {
+        NotifyFatalError(
+            L"WM_TEAWIN32_RENDER_REQUEST with NULL RenderProcedure.",
+            L"ManagementHWNDWndProc (TEAWin32.c)");
+
+        return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+    }
+
+    int procedureCount = (int)(lParam & 0xFFFFFFFF);
+    int updatePosNumber = (int)(lParam >> 32);
+
+    ExecuteRenderProcedures(procs, procedureCount, updatePosNumber);
+
+    free(procs);
+
+    return 0;
+}
 
 void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueuerPtr)
 {
@@ -30,6 +61,30 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
 
     TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
+
+    WNDCLASSEXW wndClass;
+    ZeroMemory(&wndClass, sizeof(wndClass));
+    wndClass.cbSize = sizeof(wndClass);
+    wndClass.lpszClassName = L"TEAWIN32_INTERNAL_MANAGEMENT_HWND";
+    wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
+    wndClass.lpfnWndProc = ManagementHWNDWndProc;
+
+    if (!RegisterClassExW(&wndClass))
+    {
+        NotifyFatalError(
+            L"Failed to register TEAWIN32_INTERNAL_MANAGEMENT_HWND class.",
+            L"InitialiseTEAWin32C (TEAWin32.c)");
+        return;
+    }
+
+    TEAWIN32_MANAGEMENT_HWND =
+        CreateWindowW(L"TEAWIN32_INTERNAL_MANAGEMENT_HWND", L"", 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL);
+
+    if (TEAWIN32_MANAGEMENT_HWND == NULL)
+    {
+        NotifyFatalError(L"Failed to CreateWindowW TEAWIN32_MANAGEMENT_HWND", L"InitialiseTEAWin32C (TEAWin32.c)");
+        return;
+    }
 
     EventQueueEntry testEntry;
     ZeroMemory(&testEntry, sizeof(testEntry));
@@ -75,6 +130,26 @@ SubclassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uId
     }
 
     return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+}
+
+void StartWin32MessageLoop(void)
+{
+    DEBUG_LOG(L"Win32 MessageLoop Started.");
+
+    MSG msg;
+    BOOL bRet;
+    while ((bRet = GetMessageW(&msg, NULL, 0, 0)) != 0)
+    {
+        if (bRet == -1)
+        {
+            break;
+        }
+
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
+
+    DEBUG_LOG(L"Win32 MessageLoop Ended.");
 }
 
 void FinaliseTEAWin32C(void)

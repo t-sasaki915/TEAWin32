@@ -120,7 +120,7 @@ HWNDRegistryEntry *GetHWNDRegistryEntry(HWND hwnd)
 
 void UnregisterHWNDFromRegistry(HWND hwnd)
 {
-    DEBUG_LOG(L"Unregistring HWND %p from Registry.", (void *)hwnd);
+    DEBUG_LOG(L"Unregistering HWND %p from Registry.", (void *)hwnd);
 
     HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
     if (regEntry == NULL)
@@ -145,4 +145,6 @@ void UnregisterHWNDFromRegistry(HWND hwnd)
 
     free(regEntry);
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)NULL);
+
+    DEBUG_LOG(L"Unregistered HWND %p from Registry.", (void *)hwnd);
 }

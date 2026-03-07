@@ -29,7 +29,7 @@ dispatchRenderProcedures procedures = do
         evalContT $ do
             deferWindowPosCount <- foldM func (0 :: Int) (zip [0..] procedures)
 
-            liftIO $ Native.c_ExecuteRenderProcedures (castPtr ptr) (length procedures) deferWindowPosCount
+            liftIO $ Native.c_RequestRender (castPtr ptr) (length procedures) deferWindowPosCount
 
 pokeRenderProcedure :: Ptr () -> (UniqueId, RenderProcedure) -> Int -> ContT a IO Bool
 pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do

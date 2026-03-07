@@ -5,7 +5,8 @@ module TEAWin32.Core.Native
     , c_InitialiseTEAWin32C
     , c_FinaliseTEAWin32C
     , c_ShowErrorReporter
-    , c_ExecuteRenderProcedures
+    , c_RequestRender
+    , c_StartWin32MessageLoop
     ) where
 
 import           Data.Text           (Text)
@@ -32,5 +33,9 @@ foreign import ccall "FinaliseTEAWin32C"
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
-foreign import ccall unsafe "ExecuteRenderProcedures"
-    c_ExecuteRenderProcedures :: Ptr () -> Int -> Int -> IO ()
+foreign import ccall "RequestRender"
+    c_RequestRender :: Ptr () -> Int -> Int -> IO ()
+
+foreign import ccall "StartWin32MessageLoop"
+    c_StartWin32MessageLoop :: IO ()
+
