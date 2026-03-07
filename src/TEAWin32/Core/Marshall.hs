@@ -3,7 +3,7 @@ module TEAWin32.Core.Marshall (dispatchRenderProcedures) where
 import           Control.Monad                  (foldM)
 import           Control.Monad.Cont             (ContT (..), evalContT)
 import           Control.Monad.IO.Class         (liftIO)
-import           Data.Bits                      (Bits (shiftL), (.|.))
+import           Data.Bits                      (shiftL, (.|.))
 import           Data.Maybe                     (isJust)
 import           Data.Word                      (Word32)
 import           Foreign                        (Ptr, allocaBytes, castPtr,

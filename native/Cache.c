@@ -3,7 +3,7 @@
 #include "Event.h"
 #include "TEAWin32.h"
 
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
 #define CLASS_CACHE_MAX 1024

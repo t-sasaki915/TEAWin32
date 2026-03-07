@@ -1,7 +1,7 @@
 #include "Event.h"
 #include "TEAWin32.h"
 
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
 BOOL CALLBACK MakeWindowTaskModalCallback(HWND hwnd, LPARAM lParam)

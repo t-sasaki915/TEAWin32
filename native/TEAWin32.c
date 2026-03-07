@@ -7,9 +7,8 @@
 #include "VirtualDOM.h"
 
 #include <commctrl.h>
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
-#include <winuser.h>
 
 DWORD TEAWIN32_INSTANCE_PID;
 HINSTANCE TEAWIN32_MAIN_INSTANCE;
@@ -98,6 +97,11 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
     HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
+    if (regEntry == NULL)
+    {
+        NotifyFatalError(L"GetHWNDRegistryEntry returned NULL", L"TEAWin32WndProc (TEAWin32.c)");
+        return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+    }
 
     switch (wMsg)
     {

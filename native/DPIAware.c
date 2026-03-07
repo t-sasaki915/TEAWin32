@@ -3,7 +3,7 @@
 #include "Registry.h"
 #include "TEAWin32.h"
 
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
 typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);

@@ -6,7 +6,7 @@
 #include "TEAWin32.h"
 
 #include <commctrl.h>
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
 void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
