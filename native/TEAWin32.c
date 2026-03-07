@@ -9,6 +9,7 @@
 #include <commctrl.h>
 #include <stdio.h>
 #include <windows.h>
+#include <winuser.h>
 
 DWORD TEAWIN32_INSTANCE_PID;
 HINSTANCE TEAWIN32_MAIN_INSTANCE;
@@ -110,6 +111,14 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             {
                 PostQuitMessage(0);
             }
+        }
+        case WM_ERASEBKGND: {
+            HDC hdc = (HDC)wParam;
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+
+            HBRUSH brush = GetSysColorBrush(COLOR_WINDOW);
+            FillRect(hdc, &rect, brush);
         }
         default: {
             return DefWindowProcW(hwnd, wMsg, wParam, lParam);

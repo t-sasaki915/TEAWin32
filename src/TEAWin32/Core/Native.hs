@@ -33,7 +33,7 @@ foreign import ccall "FinaliseTEAWin32C"
 foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
-foreign import ccall "RequestRender"
+foreign import ccall unsafe "RequestRender"
     c_RequestRender :: Ptr () -> Int -> Int -> IO ()
 
 foreign import ccall "StartWin32MessageLoop"
