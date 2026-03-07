@@ -107,6 +107,8 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
     ZeroMemory(regEntry, sizeof(HWNDRegistryEntry));
     regEntry->uniqueId = uniqueId;
     regEntry->dpi = GetDPI(hwnd);
+    regEntry->hasBackgroundColour = FALSE;
+    regEntry->backgroundColour = (DWORD)0xFFFFFF;
 
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)regEntry);
 

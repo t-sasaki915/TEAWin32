@@ -111,6 +111,9 @@ offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId = #offset Rend
 offset_RenderProcedure_procData_newCursorCacheKey_cursorKey :: Int
 offset_RenderProcedure_procData_newCursorCacheKey_cursorKey = #offset RenderProcedure, procData.newCursorCacheKey.cursorKey
 
+offset_RenderProcedure_procData_newBackgroundColour :: Int
+offset_RenderProcedure_procData_newBackgroundColour = #offset RenderProcedure, procData.newBackgroundColour
+
 size_EventQueueEntry :: Int
 size_EventQueueEntry = #size EventQueueEntry
 

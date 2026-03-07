@@ -103,7 +103,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             SetWindowTextW(targetHWND, procedure->procData.newComponentText);
@@ -120,7 +120,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             UpdatePosData updatePosData = procedure->procData.updatePosData;
@@ -147,7 +147,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (hdwp == NULL)
             {
                 NotifyFatalError(L"hdwp was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             hdwp = DeferWindowPos(hdwp, targetHWND, HWND_TOP, x, y, w, h, flags);
@@ -168,7 +168,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             CachedFont cacheKey = procedure->procData.newFontCacheKey;
@@ -192,7 +192,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             CachedIcon cacheKey = procedure->procData.newIconCacheKey;
@@ -239,7 +239,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             SetClassLongPtrW(
@@ -272,10 +272,26 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
-            DEBUG_LOG(L"TODO: implement RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR.");
+            HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(targetHWND);
+            if (regEntry == NULL)
+            {
+                NotifyFatalError(L"GetHWNDRegistryEntry returned NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                return;
+            }
+
+            regEntry->hasBackgroundColour = TRUE;
+            regEntry->backgroundColour = procedure->procData.newBackgroundColour;
+
+            InvalidateRect(targetHWND, NULL, TRUE);
+
+            DEBUG_LOG(
+                L"Updated Background Colour of HWND%p (UniqueId %d): %d",
+                (void *)targetHWND,
+                procedure->targetUniqueId,
+                procedure->procData.newBackgroundColour);
 
             break;
         }
@@ -283,7 +299,7 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                break;
+                return;
             }
 
             DestroyWindow(targetHWND);

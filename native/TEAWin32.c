@@ -97,8 +97,7 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-    // HWNDRegistryEntry *entry = GetHWNDRegistryEntry(hwnd);
-    // int uniqueId = entry->uniqueId;
+    HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
 
     switch (wMsg)
     {
@@ -111,14 +110,32 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             {
                 PostQuitMessage(0);
             }
+
+            return 0;
         }
         case WM_ERASEBKGND: {
             HDC hdc = (HDC)wParam;
             RECT rect;
             GetClientRect(hwnd, &rect);
 
-            HBRUSH brush = GetSysColorBrush(COLOR_WINDOW);
-            FillRect(hdc, &rect, brush);
+            HBRUSH backgroundBrush;
+            if (regEntry->hasBackgroundColour)
+            {
+                backgroundBrush = CreateSolidBrush(regEntry->backgroundColour);
+            }
+            else
+            {
+                backgroundBrush = GetSysColorBrush(COLOR_WINDOW);
+            }
+
+            FillRect(hdc, &rect, backgroundBrush);
+
+            if (regEntry->hasBackgroundColour)
+            {
+                DeleteObject(backgroundBrush);
+            }
+
+            return 1;
         }
         default: {
             return DefWindowProcW(hwnd, wMsg, wParam, lParam);

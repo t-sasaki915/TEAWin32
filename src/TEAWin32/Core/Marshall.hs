@@ -3,7 +3,7 @@ module TEAWin32.Core.Marshall (dispatchRenderProcedures) where
 import           Control.Monad                  (foldM)
 import           Control.Monad.Cont             (ContT (..), evalContT)
 import           Control.Monad.IO.Class         (liftIO)
-import           Data.Bits                      ((.|.))
+import           Data.Bits                      (Bits (shiftL), (.|.))
 import           Data.Maybe                     (isJust)
 import           Data.Word                      (Word32)
 import           Foreign                        (Ptr, allocaBytes, castPtr,
@@ -158,11 +158,11 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
 
             pure False
 
-        (SetComponentBackgroundColour _) -> do
+        (SetComponentBackgroundColour bgColour) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
-            -- TODO
+            pokeData Native.offset_RenderProcedure_procData_newBackgroundColour (marshallColour bgColour)
 
             pure False
 
@@ -287,3 +287,8 @@ marshallCursor cursor =  Native.c_MakeIntResourceW $ case cursor of
     CursorSizeNESW -> Native.const_IDC_SIZENESW
     CursorSizeWE   -> Native.const_IDC_SIZEWE
     CursorSizeNS   -> Native.const_IDC_SIZENS
+
+marshallColour :: Colour -> Word32
+marshallColour (RGB r g b) =  fromIntegral r
+                          .|. (fromIntegral g `shiftL` 8)
+                          .|. (fromIntegral b `shiftL` 16)

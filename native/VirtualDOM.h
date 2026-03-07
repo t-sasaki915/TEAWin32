@@ -50,6 +50,7 @@ typedef struct
         CachedFont newFontCacheKey;
         CachedIcon newIconCacheKey;
         CachedCursor newCursorCacheKey;
+        DWORD newBackgroundColour;
     } procData;
 } RenderProcedure;
 

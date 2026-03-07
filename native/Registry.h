@@ -7,6 +7,8 @@ typedef struct
 {
     int uniqueId;
     int dpi;
+    BOOL hasBackgroundColour;
+    COLORREF backgroundColour;
 } HWNDRegistryEntry;
 
 HWND GetHWNDFromUniqueId(int uniqueId);
