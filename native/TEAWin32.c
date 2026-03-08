@@ -96,13 +96,6 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-    HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
-    if (regEntry == NULL)
-    {
-        NotifyFatalError(L"GetHWNDRegistryEntry returned NULL", L"TEAWin32WndProc (TEAWin32.c)");
-        return DefWindowProcW(hwnd, wMsg, wParam, lParam);
-    }
-
     switch (wMsg)
     {
         case WM_NCDESTROY: {
@@ -118,6 +111,13 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             return 0;
         }
         case WM_ERASEBKGND: {
+            HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
+            if (regEntry == NULL)
+            {
+                NotifyFatalError(L"GetHWNDRegistryEntry returned NULL", L"TEAWin32WndProc (TEAWin32.c)");
+                return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+            }
+
             HDC hdc = (HDC)wParam;
             RECT rect;
             GetClientRect(hwnd, &rect);
