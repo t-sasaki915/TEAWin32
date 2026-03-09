@@ -34,7 +34,7 @@ foreign import ccall "ShowErrorReporter"
     c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
 foreign import ccall unsafe "RequestRender"
-    c_RequestRender :: Ptr () -> Int -> Int -> IO ()
+    c_RequestRender :: Ptr () -> Int -> IO ()
 
 foreign import ccall "StartWin32MessageLoop"
     c_StartWin32MessageLoop :: IO ()

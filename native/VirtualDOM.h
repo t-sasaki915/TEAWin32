@@ -54,6 +54,6 @@ typedef struct
     } procData;
 } RenderProcedure;
 
-void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount, int updatePosNumber);
+void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount);
 
 #endif

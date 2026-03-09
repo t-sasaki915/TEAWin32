@@ -15,9 +15,20 @@ typedef struct
     HDWP hdwp;
 } DeferWindowPosContext;
 
-void ExecuteRenderProcedure(
-    RenderProcedure *procedure, DeferWindowPosContext *deferWindowPosContexts, int *contextsCount, int updatePosNumber)
+typedef struct
 {
+    RenderProcedure *renderProcedure;
+    DeferWindowPosContext *deferWindowPosContexts;
+    int *deferWindowPosContextsCount;
+    HWND *hwndsPendingToShow;
+    int *hwndsPendingToShowCount;
+    int procedureCount;
+} RenderSession;
+
+void ExecuteRenderProcedure(RenderSession *session)
+{
+    RenderProcedure *procedure = session->renderProcedure;
+
     DEBUG_LOG(
         L"Processing RenderProcedure for UniqueId %d. ProcedureType: %d.",
         procedure->targetUniqueId,
@@ -66,8 +77,8 @@ void ExecuteRenderProcedure(
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
 
-            ShowWindow(newWindow, SW_SHOW);
-            UpdateWindow(newWindow);
+            session->hwndsPendingToShow[*session->hwndsPendingToShowCount] = newWindow;
+            (*session->hwndsPendingToShowCount)++;
 
             DEBUG_LOG(
                 L"Created Window. Class: %ls, Parent: %d, ExStyles: %d, Styles: %d.",
@@ -155,13 +166,14 @@ void ExecuteRenderProcedure(
             HDWP hdwp = NULL;
 
             DEBUG_LOG(L"Looking for HDWP for HWND %p.", (void *)parentOfTargetHWND);
-            for (int i = 0; i < updatePosNumber; i++)
+            for (int i = 0; i < *session->deferWindowPosContextsCount; i++)
             {
-                if (deferWindowPosContexts[i].parentHWND == parentOfTargetHWND)
+                if (session->deferWindowPosContexts[i].parentHWND == parentOfTargetHWND)
                 {
+                    hdwp = session->deferWindowPosContexts[i].hdwp;
+
                     DEBUG_LOG(L"Found HDWP for HWND %p: %p", (void *)parentOfTargetHWND, (void *)hdwp);
 
-                    hdwp = deferWindowPosContexts[i].hdwp;
                     break;
                 }
             }
@@ -170,7 +182,7 @@ void ExecuteRenderProcedure(
             {
                 DEBUG_LOG(L"Creating HDWP for HWND %p.", (void *)parentOfTargetHWND);
 
-                hdwp = BeginDeferWindowPos(updatePosNumber);
+                hdwp = BeginDeferWindowPos(session->procedureCount);
 
                 if (hdwp == NULL)
                 {
@@ -178,9 +190,10 @@ void ExecuteRenderProcedure(
                     return;
                 }
 
-                deferWindowPosContexts[*contextsCount].parentHWND = parentOfTargetHWND;
-                deferWindowPosContexts[*contextsCount].hdwp = hdwp;
-                (*contextsCount)++;
+                int *contextsCountPtr = session->deferWindowPosContextsCount;
+                session->deferWindowPosContexts[*contextsCountPtr].parentHWND = parentOfTargetHWND;
+                session->deferWindowPosContexts[*contextsCountPtr].hdwp = hdwp;
+                (*contextsCountPtr)++;
             }
 
             hdwp = DeferWindowPos(hdwp, targetHWND, HWND_TOP, x, y, w, h, flags);
@@ -344,56 +357,76 @@ void ExecuteRenderProcedure(
     }
 }
 
-void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount, int updatePosNumber)
+void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount)
 {
     DEBUG_LOG(L"Executing RenderProcedures.");
 
-    DeferWindowPosContext *deferWindowPosContexts = NULL;
-    int contextsCount = 0;
+    DeferWindowPosContext *deferWindowPosContexts = malloc(procedureCount * sizeof(DeferWindowPosContext));
+    int deferWindowPosContextsCount = 0;
 
-    if (updatePosNumber > 0)
+    if (deferWindowPosContexts == NULL)
     {
-        DEBUG_LOG(L"updatePosNumber > 0, using DeferWindowPos.");
+        NotifyFatalError(L"deferWindowPosContexts malloc Failed", L"ExecuteRenderProcedures (VirtualDOM.c)");
+        return;
+    }
 
-        deferWindowPosContexts = malloc(updatePosNumber * sizeof(DeferWindowPosContext));
+    HWND *hwndsPendingToShow = malloc(procedureCount * sizeof(HWND));
+    int hwndsPendingToShowCount = 0;
 
-        if (deferWindowPosContexts == NULL)
-        {
-            NotifyFatalError(L"malloc Failed", L"ExecuteRenderProcedures (VirtualDOM.c)");
-            return;
-        }
+    if (hwndsPendingToShow == NULL)
+    {
+        free(deferWindowPosContexts);
+
+        NotifyFatalError(L"hwndsPendingToShow malloc Failed", L"ExecuteRenderProcedures (VirtualDOM.c)");
+        return;
     }
 
     for (int i = 0; i < procedureCount; i++)
     {
-        ExecuteRenderProcedure(&procedures[i], deferWindowPosContexts, &contextsCount, updatePosNumber);
+        RenderSession session;
+        ZeroMemory(&session, sizeof(session));
+        session.renderProcedure = &procedures[i];
+        session.deferWindowPosContexts = deferWindowPosContexts;
+        session.deferWindowPosContextsCount = &deferWindowPosContextsCount;
+        session.hwndsPendingToShow = hwndsPendingToShow;
+        session.hwndsPendingToShowCount = &hwndsPendingToShowCount;
+        session.procedureCount = procedureCount;
+
+        ExecuteRenderProcedure(&session);
     }
 
-    if (updatePosNumber > 0)
+    for (int i = 0; i < deferWindowPosContextsCount; i++)
     {
-        if (deferWindowPosContexts == NULL)
+        HDWP hdwp = deferWindowPosContexts[i].hdwp;
+
+        if (hdwp != NULL)
         {
-            NotifyFatalError(L"deferWindowPosContexts is NULL", L"ExecuteRenderProcedures (VirtualDOM.c)");
-            return;
+            DEBUG_LOG(L"Ending DeferWindowPos: %p.", (void *)hdwp);
+
+            EndDeferWindowPos(hdwp);
         }
-
-        for (int i = 0; i < contextsCount; i++)
-        {
-            HDWP hdwp = deferWindowPosContexts[i].hdwp;
-
-            if (hdwp != NULL)
-            {
-                EndDeferWindowPos(hdwp);
-            }
-        }
-
-        free(deferWindowPosContexts);
     }
+
+    for (int i = 0; i < hwndsPendingToShowCount; i++)
+    {
+        HWND hwnd = hwndsPendingToShow[i];
+
+        if (hwnd != NULL)
+        {
+            DEBUG_LOG(L"Showing HWND %p.", (void *)hwnd);
+
+            ShowWindow(hwnd, SW_SHOW);
+            UpdateWindow(hwnd);
+        }
+    }
+
+    free(deferWindowPosContexts);
+    free(hwndsPendingToShow);
 
     DEBUG_LOG(L"Executed RenderProcedures.");
 }
 
-void RequestRender(RenderProcedure *procedures, int procedureCount, int updatePosNumber)
+void RequestRender(RenderProcedure *procedures, int procedureCount)
 {
     DEBUG_LOG(L"Received RenderProcedures from Haskell. Requesting render.");
 
@@ -408,7 +441,7 @@ void RequestRender(RenderProcedure *procedures, int procedureCount, int updatePo
 
     memcpy(permanentProcedures, procedures, size);
 
-    LPARAM lParam = ((LPARAM)updatePosNumber << 32) | (unsigned int)procedureCount;
+    LPARAM lParam = (LPARAM)procedureCount;
 
     if (!PostMessageW(TEAWIN32_MANAGEMENT_HWND, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam))
     {

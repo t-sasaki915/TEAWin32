@@ -35,10 +35,9 @@ LRESULT CALLBACK ManagementHWNDWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPAR
         return DefWindowProcW(hwnd, wMsg, wParam, lParam);
     }
 
-    int procedureCount = (int)(lParam & 0xFFFFFFFF);
-    int updatePosNumber = (int)(lParam >> 32);
+    int procedureCount = (int)lParam;
 
-    ExecuteRenderProcedures(procs, procedureCount, updatePosNumber);
+    ExecuteRenderProcedures(procs, procedureCount);
 
     free(procs);
 

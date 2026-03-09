@@ -1,6 +1,6 @@
 module TEAWin32.Core.Marshall (dispatchRenderProcedures) where
 
-import           Control.Monad                  (foldM)
+import           Control.Monad                  (forM_)
 import           Control.Monad.Cont             (ContT (..), evalContT)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Bits                      (shiftL, (.|.))
@@ -21,17 +21,13 @@ dispatchRenderProcedures procedures = do
     allocaBytes totalSize $ \ptr -> do
         fillBytes ptr 0 totalSize
 
-        let func deferWindowPosCount (index, procedure) =
-                pokeRenderProcedure ptr procedure index >>= \case
-                    True  -> pure (deferWindowPosCount + 1)
-                    False -> pure deferWindowPosCount
-
         evalContT $ do
-            deferWindowPosCount <- foldM func (0 :: Int) (zip [0..] procedures)
+            forM_ (zip [0..] procedures) $ \(index, procedure) ->
+                pokeRenderProcedure ptr procedure index
 
-            liftIO $ Native.c_RequestRender (castPtr ptr) (length procedures) deferWindowPosCount
+            liftIO $ Native.c_RequestRender (castPtr ptr) (length procedures)
 
-pokeRenderProcedure :: Ptr () -> (UniqueId, RenderProcedure) -> Int -> ContT a IO Bool
+pokeRenderProcedure :: Ptr () -> (UniqueId, RenderProcedure) -> Int -> ContT a IO ()
 pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
     let offset = procOffset * Native.size_RenderProcedure
 
@@ -57,15 +53,11 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
             pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowExStyles exStyles
             pokeData Native.offset_RenderProcedure_procData_createWindowData_newWindowStyles   styles
 
-            pure False
-
         (CreateButton parent) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_CREATE_BUTTON
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
             pokeData Native.offset_RenderProcedure_procData_newButtonParentUniqueId parent
-
-            pure False
 
         (SetComponentText newText) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_TEXT
@@ -73,8 +65,6 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
 
             ContT (Native.withCWText newText) >>= \newText' ->
                 pokeData Native.offset_RenderProcedure_procData_newComponentText newText'
-
-            pure False
 
         (SetComponentPos maybeNewPos maybeNewSize bringCompToFront) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_POS
@@ -91,8 +81,6 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
             whenJust maybeNewSize $ \(newWidth, newHeight) -> do
                 pokeData Native.offset_RenderProcedure_procData_updatePosData_newWidth  newWidth
                 pokeData Native.offset_RenderProcedure_procData_updatePosData_newHeight newHeight
-
-            pure True
 
         (SetComponentFont newFont) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_FONT
@@ -131,8 +119,6 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
             pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isUnderline underline
             pokeData Native.offset_RenderProcedure_procData_newFontCacheKey_isStrikeOut strikeOut
 
-            pure False
-
         (SetComponentIcon newIcon) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_ICON
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
@@ -148,15 +134,11 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
 
                     pokeData Native.offset_RenderProcedure_procData_newIconCacheKey_iconId_resourceId (marshallStockIcon stockIcon)
 
-            pure False
-
         (SetComponentCursor newCursor) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_CURSOR
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
             pokeData Native.offset_RenderProcedure_procData_newCursorCacheKey_cursorKey (marshallCursor newCursor)
-
-            pure False
 
         (SetComponentBackgroundColour bgColour) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR
@@ -164,13 +146,9 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
 
             pokeData Native.offset_RenderProcedure_procData_newBackgroundColour (marshallColour bgColour)
 
-            pure False
-
         DestroyComponent -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_DESTROY_COMPONENT
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
-
-            pure False
 
 
 marshallWindowStyle :: WindowStyle -> (Word32, Word32)
