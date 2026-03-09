@@ -392,7 +392,7 @@ void FinaliseClassCache(void)
     {
         ClassCacheEntry entry = CLASS_CACHE[i];
 
-        DEBUG_LOG(L"Unregistring Class %ls.", entry.className);
+        DEBUG_LOG(L"Unregistering Class %ls.", entry.className);
 
         UnregisterClassW(entry.className, TEAWIN32_MAIN_INSTANCE);
 
