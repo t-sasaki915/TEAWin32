@@ -1,18 +1,21 @@
 module Main (main) where
 
-import           Control.Lens               (over, (^.))
 import           Control.Monad              (when)
 import qualified Data.Text                  as Text
-import           Model
 import           Prelude                    hiding (init)
 import           System.Win32               (sM_CXSCREEN, sM_CYSCREEN)
 import           System.Win32.Info.Computer (getSystemMetrics)
 import           TEAWin32
 
+data Model = Model
+    { displayWidth  :: Int
+    , displayHeight :: Int
+    , clickedCount  :: Int
+    } deriving Show
+
 data Msg = ButtonClicked
          | ButtonClicked2
          deriving (Show, Eq)
-
 
 init :: IO Model
 init = do
@@ -20,15 +23,15 @@ init = do
     displayHeight' <- getSystemMetrics sM_CYSCREEN
 
     pure $ Model
-        { _displayWidth  = displayWidth'
-        , _displayHeight = displayHeight'
-        , _clickedCount  = 0
+        { displayWidth  = displayWidth'
+        , displayHeight = displayHeight'
+        , clickedCount  = 0
         }
 
 update :: Msg -> Model -> IO Model
 update ButtonClicked model =
     print model >>
-        pure (over clickedCount (+1) model)
+        pure (model { clickedCount = clickedCount model + 1})
 
 update ButtonClicked2 model = do
     {-msgBoxResult <- showMessageBox defaultMessageBoxSettings
@@ -52,7 +55,7 @@ update ButtonClicked2 model = do
 
 {-view :: Model -> View
 view model = do
-    let isCountEven = even (model ^. clickedCount)
+    let isCountEven = even (clickedCount model)
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" WindowStyleNormal
@@ -64,9 +67,9 @@ view model = do
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ( do
-            title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
+            title_ ("TEAWin32 - Click Count: " <> Text.show (clickedCount model))
             icon_ IconImageFiles
-            size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
+            size_ (fromIntegral (displayWidth model), fromIntegral (displayHeight model))
             bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
             when isCountEven $
                 cursor_ CursorIBeam
@@ -78,11 +81,11 @@ view model = do
                     title_ "HELLO"
                     icon_ IconError
                     cursor_ CursorArrow
-                    size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
+                    size_ (fromIntegral (displayWidth model `div` 2), fromIntegral (displayHeight model `div` 2))
                     pos_ (100, 100)
                     bgColour_ (RGB 255 0 0)
                 ) $ do
-                    button_ (do { title_ ("Click Count 2: " <> Text.show (model ^. clickedCount)); size_ (150, 100); pos_ (20, 50) })
+                    button_ (do { title_ ("Click Count 2: " <> Text.show (clickedCount model)); size_ (150, 100); pos_ (20, 50) })
 
                     button_ (do { title_ "!?"; size_ (50, 50); pos_ (100, 150){-; onClick_ ButtonClicked2-}{-; font_ SystemFont-} })
 
@@ -97,16 +100,16 @@ view model = do
                     title_ "HELLO 2"
                     icon_ IconFolder
                     cursor_ CursorSizeNWSE
-                    size_ (fromIntegral (model ^. displayWidth `div` 2), fromIntegral (model ^. displayHeight `div` 2))
+                    size_ (fromIntegral (displayWidth model `div` 2), fromIntegral (displayHeight model `div` 2))
                     pos_ (200, 200)
                     bgColour_ (RGB 0 0 255)
                 ) noChildren
 
-            button_ (do { title_ ("Click Count 1: " <> Text.show (model ^. clickedCount)); size_ (150, 150); pos_ (150, 100){-; zIndex_ (-1)-} })-}
+            button_ (do { title_ ("Click Count 1: " <> Text.show (clickedCount model)); size_ (150, 150); pos_ (150, 100){-; zIndex_ (-1)-} })-}
 
 view :: Model -> View
 view model = do
-    let isCountEven = even (model ^. clickedCount)
+    let isCountEven = even (clickedCount model)
 
     when isCountEven $
         window_ "TEAWin32-SubSubSub" WindowStyleNormal
@@ -117,9 +120,9 @@ view model = do
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ( do
-            title_ ("TEAWin32 - Click Count: " <> Text.show (model ^. clickedCount))
+            title_ ("TEAWin32 - Click Count: " <> Text.show (clickedCount model))
             icon_ IconImageFiles
-            size_ (fromIntegral (model ^. displayWidth), fromIntegral (model ^. displayHeight))
+            size_ (fromIntegral (displayWidth model), fromIntegral (displayHeight model))
             bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
             when isCountEven $
                 cursor_ CursorIBeam
