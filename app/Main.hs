@@ -53,7 +53,7 @@ update ButtonClicked2 model = do
             error "!?"-}
     pure model
 
-{-view :: Model -> View
+view :: Model -> View
 view model = do
     let isCountEven = even (clickedCount model)
 
@@ -105,28 +105,7 @@ view model = do
                     bgColour_ (RGB 0 0 255)
                 ) noChildren
 
-            button_ (do { title_ ("Click Count 1: " <> Text.show (clickedCount model)); size_ (150, 150); pos_ (150, 100){-; zIndex_ (-1)-} })-}
-
-view :: Model -> View
-view model = do
-    let isCountEven = even (clickedCount model)
-
-    when isCountEven $
-        window_ "TEAWin32-SubSubSub" WindowStyleNormal
-            (do { title_ "Count is even!"; icon_ IconClusteredDrive; size_ (400, 10); pos_ (0, 0); bgColour_ (RGB 0 0 255) }) noChildren
-
-    window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
-        (do { title_ "!?"; icon_ IconDriveRAM; size_ (400, 200); pos_ (200, 0) }) noChildren
-
-    window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
-        ( do
-            title_ ("TEAWin32 - Click Count: " <> Text.show (clickedCount model))
-            icon_ IconImageFiles
-            size_ (fromIntegral (displayWidth model), fromIntegral (displayHeight model))
-            bgColour_ (if isCountEven then RGB 255 255 255 else RGB 100 100 100)
-            when isCountEven $
-                cursor_ CursorIBeam
-        ) noChildren
+            button_ (do { title_ ("Click Count 1: " <> Text.show (clickedCount model)); size_ (150, 150); pos_ (150, 100){-; zIndex_ (-1)-} })
 
 main :: IO ()
 main = runTEAWin32 defaultTEAWin32Settings init update view

@@ -9,7 +9,14 @@
 #include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
-void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
+typedef struct
+{
+    HWND parentHWND;
+    HDWP hdwp;
+} DeferWindowPosContext;
+
+void ExecuteRenderProcedure(
+    RenderProcedure *procedure, DeferWindowPosContext *deferWindowPosContexts, int *contextsCount, int updatePosNumber)
 {
     DEBUG_LOG(
         L"Processing RenderProcedure for UniqueId %d. ProcedureType: %d.",
@@ -144,10 +151,36 @@ void ExecuteRenderProcedure(RenderProcedure *procedure, HDWP hdwp)
                 flags = flags | SWP_NOZORDER;
             }
 
+            HWND parentOfTargetHWND = GetParent(targetHWND);
+            HDWP hdwp = NULL;
+
+            DEBUG_LOG(L"Looking for HDWP for HWND %p.", (void *)parentOfTargetHWND);
+            for (int i = 0; i < updatePosNumber; i++)
+            {
+                if (deferWindowPosContexts[i].parentHWND == parentOfTargetHWND)
+                {
+                    DEBUG_LOG(L"Found HDWP for HWND %p: %p", (void *)parentOfTargetHWND, (void *)hdwp);
+
+                    hdwp = deferWindowPosContexts[i].hdwp;
+                    break;
+                }
+            }
+
             if (hdwp == NULL)
             {
-                NotifyFatalError(L"hdwp was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                DEBUG_LOG(L"Creating HDWP for HWND %p.", (void *)parentOfTargetHWND);
+
+                hdwp = BeginDeferWindowPos(updatePosNumber);
+
+                if (hdwp == NULL)
+                {
+                    NotifyFatalError(L"BeginDeferWindowPos failed", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                    return;
+                }
+
+                deferWindowPosContexts[*contextsCount].parentHWND = parentOfTargetHWND;
+                deferWindowPosContexts[*contextsCount].hdwp = hdwp;
+                (*contextsCount)++;
             }
 
             hdwp = DeferWindowPos(hdwp, targetHWND, HWND_TOP, x, y, w, h, flags);
@@ -315,27 +348,46 @@ void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount, in
 {
     DEBUG_LOG(L"Executing RenderProcedures.");
 
-    HDWP hdwp = NULL;
+    DeferWindowPosContext *deferWindowPosContexts = NULL;
+    int contextsCount = 0;
+
     if (updatePosNumber > 0)
     {
         DEBUG_LOG(L"updatePosNumber > 0, using DeferWindowPos.");
 
-        hdwp = BeginDeferWindowPos(updatePosNumber);
+        deferWindowPosContexts = malloc(updatePosNumber * sizeof(DeferWindowPosContext));
+
+        if (deferWindowPosContexts == NULL)
+        {
+            NotifyFatalError(L"malloc Failed", L"ExecuteRenderProcedures (VirtualDOM.c)");
+            return;
+        }
     }
 
     for (int i = 0; i < procedureCount; i++)
     {
-        ExecuteRenderProcedure(&procedures[i], hdwp);
+        ExecuteRenderProcedure(&procedures[i], deferWindowPosContexts, &contextsCount, updatePosNumber);
     }
 
     if (updatePosNumber > 0)
     {
-        if (hdwp == NULL)
+        if (deferWindowPosContexts == NULL)
         {
-            NotifyFatalError(L"hdwp is NULL", L"ExecuteRenderProcedures (VirtualDOM.c)");
+            NotifyFatalError(L"deferWindowPosContexts is NULL", L"ExecuteRenderProcedures (VirtualDOM.c)");
+            return;
         }
 
-        EndDeferWindowPos(hdwp);
+        for (int i = 0; i < contextsCount; i++)
+        {
+            HDWP hdwp = deferWindowPosContexts[i].hdwp;
+
+            if (hdwp != NULL)
+            {
+                EndDeferWindowPos(hdwp);
+            }
+        }
+
+        free(deferWindowPosContexts);
     }
 
     DEBUG_LOG(L"Executed RenderProcedures.");

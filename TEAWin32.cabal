@@ -33,7 +33,7 @@ executable TEAWin32-Experiment
     , Win32 >=2.14 && <2.15
     , text >=2.1 && <2.2
   default-language: Haskell2010
-  default-extensions: OverloadedStrings, LambdaCase, QuasiQuotes
+  default-extensions: OverloadedStrings, LambdaCase
 
 library
   exposed-modules:
@@ -83,4 +83,4 @@ library
     , containers >=0.7 && <0.8
     , stm >=2.5 && <2.6
   default-language: Haskell2010
-  default-extensions: LambdaCase, OverloadedStrings, QuasiQuotes
+  default-extensions: LambdaCase, OverloadedStrings
