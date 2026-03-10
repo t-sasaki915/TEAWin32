@@ -106,6 +106,8 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
     switch (wMsg)
     {
         case WM_NCDESTROY: {
+            DEBUG_LOG(L"HWND %p received WM_NCDESTROY.", (void *)hwnd);
+
             if (!UnregisterHWNDFromRegistry(hwnd))
             {
                 return DefWindowProcW(hwnd, wMsg, wParam, lParam);
@@ -115,6 +117,8 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
 
             if (TEAWIN32_ACTIVE_WINDOW_COUNT == 0)
             {
+                DEBUG_LOG(L"TEAWIN32_ACTIVE_WINDOW_COUNT = 0. Posting quit message.");
+
                 PostQuitMessage(0);
             }
 
@@ -163,6 +167,8 @@ SubclassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uId
 
     if (uMsg == WM_NCDESTROY)
     {
+        DEBUG_LOG(L"HWND %p received WM_NCDESTROY.", (void *)hwnd);
+
         if (!UnregisterHWNDFromRegistry(hwnd))
         {
             return DefSubclassProc(hwnd, uMsg, wParam, lParam);

@@ -263,7 +263,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
             SendMessageW(targetHWND, WM_SETFONT, (WPARAM)font, 1);
 
             DEBUG_LOG(
-                L"Updated Font of HWND %p (UniqueId %d): Size %d, Italic %d, Underline %d, StrikeOut %d",
+                L"Updated Font of HWND %p (UniqueId %d): Name: %ls, Size %d, Italic %d, Underline %d, StrikeOut %d",
                 (void *)targetHWND,
                 procedure->targetUniqueId,
                 cacheKey.fontName,
