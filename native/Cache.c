@@ -43,7 +43,7 @@ static int CURSOR_CACHE_COUNT = 0;
 static IconCacheEntry ICON_CACHE[ICON_CACHE_MAX];
 static int ICON_CACHE_COUNT = 0;
 
-LPCWSTR GetCachedClassName(LPCWSTR className)
+BOOL GetCachedClassName(LPCWSTR className, void *resultPtr)
 {
     DEBUG_LOG(L"Searching Class %ls from CLASS_CACHE.", className);
 
@@ -53,7 +53,9 @@ LPCWSTR GetCachedClassName(LPCWSTR className)
         {
             DEBUG_LOG(L"Class %ls was cached in CLASS_CACHE. Reusing.", className);
 
-            return CLASS_CACHE[i].className;
+            *(LPCWSTR *)resultPtr = className;
+
+            return TRUE;
         }
     }
 
@@ -62,7 +64,7 @@ LPCWSTR GetCachedClassName(LPCWSTR className)
     if (CLASS_CACHE_COUNT >= CLASS_CACHE_MAX)
     {
         NotifyFatalError(L"CLASS_CACHE Overflow", L"CreateTEAWin32WindowClassName (Cache.c)");
-        return NULL;
+        return FALSE;
     }
 
     CLASS_CACHE[CLASS_CACHE_COUNT].className = permanentClassName;
@@ -79,15 +81,17 @@ LPCWSTR GetCachedClassName(LPCWSTR className)
     if (!RegisterClassExW(&wndClass))
     {
         NotifyFatalError(L"RegisterClassExW Failed", L"CreateTEAWin32WindowClassName (Cache.c)");
-        return NULL;
+        return FALSE;
     }
 
     DEBUG_LOG(L"Class %ls is added to CLASS_CACHE.", className);
 
-    return permanentClassName;
+    *(LPCWSTR *)resultPtr = className;
+
+    return TRUE;
 }
 
-HFONT GetCachedFont(CachedFont *fontKey)
+BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr)
 {
     DEBUG_LOG(
         L"Searching Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d) from FONT_CACHE.",
@@ -117,14 +121,16 @@ HFONT GetCachedFont(CachedFont *fontKey)
                 fontKey->isUnderline,
                 fontKey->isStrikeOut);
 
-            return FONT_CACHE[i].fontCacheHandle;
+            *resultPtr = FONT_CACHE[i].fontCacheHandle;
+
+            return TRUE;
         }
     }
 
     if (FONT_CACHE_COUNT >= FONT_CACHE_MAX)
     {
         NotifyFatalError(L"FONT_CACHE Overflow", L"GetCachedFont (Cache.c)");
-        return (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        return FALSE;
     }
 
     wchar_t *permanentFontName = _wcsdup(fontKey->fontName);
@@ -148,7 +154,7 @@ HFONT GetCachedFont(CachedFont *fontKey)
     if (newFont == NULL)
     {
         NotifyFatalError(L"CreateFontW Failed", L"GetCachedFont (Cache.c)");
-        return (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        return FALSE;
     }
 
     FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
@@ -168,10 +174,12 @@ HFONT GetCachedFont(CachedFont *fontKey)
         fontKey->isUnderline,
         fontKey->isStrikeOut);
 
-    return newFont;
+    *resultPtr = newFont;
+
+    return TRUE;
 }
 
-HCURSOR GetCachedCursor(CachedCursor *cacheKey)
+BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
 {
     BOOL isIdGiven = IS_INTRESOURCE(cacheKey->cursorKey);
 
@@ -194,7 +202,9 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
             {
                 DEBUG_LOG(L"Cursor %d was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
 
-                return CURSOR_CACHE[i].cursorCacheHandle;
+                *resultPtr = CURSOR_CACHE[i].cursorCacheHandle;
+
+                return TRUE;
             }
         }
 
@@ -204,7 +214,9 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
             {
                 DEBUG_LOG(L"Cursor %ls was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
 
-                return CURSOR_CACHE[i].cursorCacheHandle;
+                *resultPtr = CURSOR_CACHE[i].cursorCacheHandle;
+
+                return TRUE;
             }
         }
     }
@@ -212,7 +224,7 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
     if (CURSOR_CACHE_COUNT >= CURSOR_CACHE_MAX)
     {
         NotifyFatalError(L"CURSOR_CACHE Overflow", L"GetCachedCursor (Cache.c)");
-        return LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
+        return FALSE;
     }
 
     LPCWSTR permanentNameOrId = isIdGiven ? cacheKey->cursorKey : _wcsdup(cacheKey->cursorKey);
@@ -228,7 +240,7 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
         }
 
         NotifyFatalError(L"LoadCursorW Failed", L"GetCachedCursor (Cache.c)");
-        return LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
+        return FALSE;
     }
 
     CURSOR_CACHE[CURSOR_CACHE_COUNT].cursorCacheHandle = newCursor;
@@ -246,10 +258,12 @@ HCURSOR GetCachedCursor(CachedCursor *cacheKey)
         DEBUG_LOG(L"Cursor %d is added to CURSOR_CACHE.", cacheKey->cursorKey);
     }
 
-    return newCursor;
+    *resultPtr = newCursor;
+
+    return TRUE;
 }
 
-HICON GetCachedIcon(CachedIcon *cacheKey)
+BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
 {
     if (cacheKey->iconType == STOCK_ICON)
     {
@@ -290,7 +304,9 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
                     cacheKey->iconId.stockIconId,
                     cacheKey->dpi);
 
-                return entry->iconCacheHandle;
+                *resultPtr = entry->iconCacheHandle;
+
+                return TRUE;
             }
         }
         else
@@ -305,7 +321,9 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
                     cacheKey->iconId.resourceId,
                     cacheKey->dpi);
 
-                return entry->iconCacheHandle;
+                *resultPtr = entry->iconCacheHandle;
+
+                return TRUE;
             }
         }
     }
@@ -313,7 +331,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
     if (ICON_CACHE_COUNT >= ICON_CACHE_MAX)
     {
         NotifyFatalError(L"ICON_CACHE Overflow", L"GetCachedIcon (Cache.c)");
-        return LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
+        return FALSE;
     }
 
     HICON newIcon;
@@ -326,7 +344,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
         if (newIcon == NULL)
         {
             NotifyFatalError(L"GetHighDPIIcon Failed", L"GetCachedIcon (Cache.c)");
-            return LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
+            return FALSE;
         }
     }
     else
@@ -340,7 +358,7 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
             free((void *)permanentResourceId);
 
             NotifyFatalError(L"LoadIconW Failed", L"GetCachedIcon (Cache.c)");
-            return LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
+            return FALSE;
         }
     }
 
@@ -381,7 +399,9 @@ HICON GetCachedIcon(CachedIcon *cacheKey)
         }
     }
 
-    return newIcon;
+    *resultPtr = newIcon;
+
+    return TRUE;
 }
 
 void FinaliseClassCache(void)

@@ -45,7 +45,11 @@ void ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_CREATE_WINDOW: {
             CreateWindowData data = procedure->procData.createWindowData;
 
-            LPCWSTR className = GetCachedClassName(data.newWindowClassName);
+            LPCWSTR className;
+            if (!GetCachedClassName(data.newWindowClassName, &className))
+            {
+                return;
+            }
 
             HWND parentHWND = NULL;
             if (data.newWindowParentUniqueId != 0)
@@ -220,7 +224,13 @@ void ExecuteRenderProcedure(RenderSession *session)
             CachedFont cacheKey = procedure->procData.newFontCacheKey;
             cacheKey.absoluteFontSize = ResolvePointForHWND(cacheKey.fontSize, targetHWND);
 
-            SendMessageW(targetHWND, WM_SETFONT, (WPARAM)GetCachedFont(&cacheKey), 1);
+            HFONT font;
+            if (!GetCachedFont(&cacheKey, &font))
+            {
+                return;
+            }
+
+            SendMessageW(targetHWND, WM_SETFONT, (WPARAM)font, 1);
 
             DEBUG_LOG(
                 L"Updated Font of HWND %p (UniqueId %d): Size %d, Italic %d, Underline %d, StrikeOut %d",
@@ -244,7 +254,13 @@ void ExecuteRenderProcedure(RenderSession *session)
             CachedIcon cacheKey = procedure->procData.newIconCacheKey;
             cacheKey.dpi = GetDPI(targetHWND);
 
-            SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)GetCachedIcon(&cacheKey));
+            HICON icon;
+            if (!GetCachedIcon(&cacheKey, &icon))
+            {
+                return;
+            }
+
+            SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)icon);
 
 #ifdef TEAWIN32_DEBUG_MODE
             if (cacheKey.iconType == STOCK_ICON)
@@ -288,10 +304,13 @@ void ExecuteRenderProcedure(RenderSession *session)
                 return;
             }
 
-            SetClassLongPtrW(
-                targetHWND,
-                GCLP_HCURSOR,
-                (LONG_PTR)GetCachedCursor(&procedure->procData.newCursorCacheKey));
+            HCURSOR cursor;
+            if (!GetCachedCursor(&procedure->procData.newCursorCacheKey, &cursor))
+            {
+                return;
+            }
+
+            SetClassLongPtrW(targetHWND, GCLP_HCURSOR, (LONG_PTR)cursor);
 
 #ifdef TEAWIN32_DEBUG_MODE
             if (IS_INTRESOURCE(procedure->procData.newCursorCacheKey.cursorKey))

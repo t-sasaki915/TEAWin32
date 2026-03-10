@@ -38,13 +38,13 @@ typedef struct
     BOOL isKeyId;
 } CachedIcon;
 
-LPCWSTR GetCachedClassName(LPCWSTR userClass);
+BOOL GetCachedClassName(LPCWSTR className, void *resultPtr);
 
-HFONT GetCachedFont(CachedFont *fontKey);
+BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr);
 
-HCURSOR GetCachedCursor(CachedCursor *cacheKey);
+BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr);
 
-HICON GetCachedIcon(CachedIcon *cacheKey);
+BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr);
 
 void FinaliseClassCache(void);
 
