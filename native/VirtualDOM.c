@@ -25,7 +25,7 @@ typedef struct
     int procedureCount;
 } RenderSession;
 
-void ExecuteRenderProcedure(RenderSession *session)
+BOOL ExecuteRenderProcedure(RenderSession *session)
 {
     RenderProcedure *procedure = session->renderProcedure;
 
@@ -39,7 +39,7 @@ void ExecuteRenderProcedure(RenderSession *session)
     {
         if (!GetHWNDFromUniqueId(procedure->targetUniqueId, &targetHWND))
         {
-            return;
+            return FALSE;
         }
     }
 
@@ -51,7 +51,7 @@ void ExecuteRenderProcedure(RenderSession *session)
             LPCWSTR className;
             if (!GetCachedClassName(data.newWindowClassName, &className))
             {
-                return;
+                return FALSE;
             }
 
             HWND parentHWND = NULL;
@@ -59,7 +59,7 @@ void ExecuteRenderProcedure(RenderSession *session)
             {
                 if (!GetHWNDFromUniqueId(data.newWindowParentUniqueId, &parentHWND))
                 {
-                    return;
+                    return FALSE;
                 }
             }
 
@@ -80,12 +80,12 @@ void ExecuteRenderProcedure(RenderSession *session)
             if (newWindow == NULL)
             {
                 NotifyFatalError(L"CreateWindowExW failed.", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             if (!RegisterHWNDToRegistry(newWindow, procedure->targetUniqueId))
             {
-                return;
+                return FALSE;
             }
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
@@ -100,13 +100,13 @@ void ExecuteRenderProcedure(RenderSession *session)
                 data.newWindowExStyles,
                 data.newWindowStyles);
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_CREATE_BUTTON: {
             HWND parentHWND;
             if (!GetHWNDFromUniqueId(procedure->procData.newButtonParentUniqueId, &parentHWND))
             {
-                return;
+                return FALSE;
             }
 
             HWND newButton = CreateWindowW(
@@ -125,25 +125,25 @@ void ExecuteRenderProcedure(RenderSession *session)
             if (newButton == NULL)
             {
                 NotifyFatalError(L"CreateWindowW failed.", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             SetWindowSubclass(newButton, SubclassWndProc, (UINT_PTR)procedure->targetUniqueId, 0);
 
             if (!RegisterHWNDToRegistry(newButton, procedure->targetUniqueId))
             {
-                return;
+                return FALSE;
             }
 
             DEBUG_LOG(L"Created Button. Parent: %d", procedure->procData.newButtonParentUniqueId);
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_UPDATE_TEXT: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             SetWindowTextW(targetHWND, procedure->procData.newComponentText);
@@ -154,13 +154,13 @@ void ExecuteRenderProcedure(RenderSession *session)
                 procedure->targetUniqueId,
                 procedure->procData.newComponentText);
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_UPDATE_POS: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             UpdatePosData updatePosData = procedure->procData.updatePosData;
@@ -168,7 +168,7 @@ void ExecuteRenderProcedure(RenderSession *session)
             int dpi;
             if (!GetCachedDpi(targetHWND, &dpi))
             {
-                return;
+                return FALSE;
             }
 
             int x = updatePosData.hasNewLocation ? ResolvePixel(updatePosData.newX, dpi) : 0;
@@ -215,7 +215,7 @@ void ExecuteRenderProcedure(RenderSession *session)
                 if (hdwp == NULL)
                 {
                     NotifyFatalError(L"BeginDeferWindowPos failed", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                    return;
+                    return FALSE;
                 }
 
                 int *contextsCountPtr = session->deferWindowPosContextsCount;
@@ -236,19 +236,19 @@ void ExecuteRenderProcedure(RenderSession *session)
                 h,
                 updatePosData.bringComponentToFront);
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_UPDATE_FONT: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             int dpi;
             if (!GetCachedDpi(targetHWND, &dpi))
             {
-                return;
+                return FALSE;
             }
 
             CachedFont cacheKey = procedure->procData.newFontCacheKey;
@@ -257,7 +257,7 @@ void ExecuteRenderProcedure(RenderSession *session)
             HFONT font;
             if (!GetCachedFont(&cacheKey, &font))
             {
-                return;
+                return FALSE;
             }
 
             SendMessageW(targetHWND, WM_SETFONT, (WPARAM)font, 1);
@@ -272,27 +272,27 @@ void ExecuteRenderProcedure(RenderSession *session)
                 cacheKey.isUnderline,
                 cacheKey.isStrikeOut);
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_UPDATE_ICON: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             CachedIcon cacheKey = procedure->procData.newIconCacheKey;
             int dpi;
             if (!GetCachedDpi(targetHWND, &dpi))
             {
-                return;
+                return FALSE;
             }
             cacheKey.dpi = dpi;
 
             HICON icon;
             if (!GetCachedIcon(&cacheKey, &icon))
             {
-                return;
+                return FALSE;
             }
 
             SendMessageW(targetHWND, WM_SETICON, 1, (LPARAM)icon);
@@ -330,19 +330,19 @@ void ExecuteRenderProcedure(RenderSession *session)
             }
 #endif
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_UPDATE_CURSOR: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             HCURSOR cursor;
             if (!GetCachedCursor(&procedure->procData.newCursorCacheKey, &cursor))
             {
-                return;
+                return FALSE;
             }
 
             SetClassLongPtrW(targetHWND, GCLP_HCURSOR, (LONG_PTR)cursor);
@@ -366,19 +366,19 @@ void ExecuteRenderProcedure(RenderSession *session)
             }
 #endif
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             HWNDRegistryEntry *regEntry;
             if (!GetHWNDRegistryEntry(targetHWND, &regEntry))
             {
-                return;
+                return FALSE;
             }
 
             regEntry->hasBackgroundColour = TRUE;
@@ -392,20 +392,20 @@ void ExecuteRenderProcedure(RenderSession *session)
                 procedure->targetUniqueId,
                 procedure->procData.newBackgroundColour);
 
-            break;
+            return TRUE;
         }
         case RENDER_PROC_TYPE_DESTROY_COMPONENT: {
             if (targetHWND == NULL)
             {
                 NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
-                return;
+                return FALSE;
             }
 
             DestroyWindow(targetHWND);
 
             DEBUG_LOG(L"Destroyed HWND %p (UniqueId %d)", (void *)targetHWND, procedure->targetUniqueId);
 
-            break;
+            return TRUE;
         }
     }
 }
@@ -445,7 +445,10 @@ void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount)
         session.hwndsPendingToShowCount = &hwndsPendingToShowCount;
         session.procedureCount = procedureCount;
 
-        ExecuteRenderProcedure(&session);
+        if (!ExecuteRenderProcedure(&session))
+        {
+            return;
+        }
     }
 
     for (int i = 0; i < deferWindowPosContextsCount; i++)
