@@ -3,18 +3,26 @@
 
 #include <windows.h>
 
+typedef enum
+{
+    ERROR_TYPE_WIN32
+} ErrorType;
+
 typedef struct
 {
+    ErrorType errorType;
     LPCWSTR errorDescription;
     LPCWSTR errorLocation;
-    DWORD lastWin32ErrorCode;
+    union {
+        DWORD lastWin32ErrorCode;
+    } errorExtraInfo;
 } ErrorListEntry;
 
-BOOL CheckErrorList();
+BOOL CheckErrorList(void);
 
 void ReportError(ErrorListEntry *errorListEntry);
 
-void FinaliseErrorList();
+void FinaliseErrorList(void);
 
 void StartErrorReporter(void);
 

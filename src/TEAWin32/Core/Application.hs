@@ -7,7 +7,7 @@ import           Control.Concurrent         (forkOS, threadDelay)
 import           Control.Concurrent.STM     (TQueue, atomically, newTQueueIO,
                                              tryReadTQueue, writeTQueue)
 import           Control.Exception          (bracket, uninterruptibleMask_)
-import           Control.Monad              (unless, when)
+import           Control.Monad              (unless, void, when)
 import           Control.Monad.Cont         (ContT (..), evalContT)
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.State.Strict (StateT, evalStateT, get, gets)
@@ -79,27 +79,28 @@ runTEAWin32 settings init update view =
         bracket
             (with settings $ \settingsPtr -> Native.c_InitialiseTEAWin32C settingsPtr eventEnqueuer)
             (const $ uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
-            $ \initialiseSuccess -> when initialiseSuccess $ do
-                initModel <- init
+            $ \initialiseSuccess -> do
+                when initialiseSuccess $ do
+                    initModel <- init
 
-                let update' (Msg msg) (Model model) =
-                        case (cast msg, cast model) of
-                            (Just msg', Just model') -> Model <$> update msg' model'
-                            _                        -> error "" -- TODO
-                    view' (Model model) =
-                        case cast model of
-                            Just model' -> view model'
-                            _           -> error "" -- TODO
+                    let update' (Msg msg) (Model model) =
+                            case (cast msg, cast model) of
+                                (Just msg', Just model') -> Model <$> update msg' model'
+                                _                        -> error "" -- TODO
+                        view' (Model model) =
+                            case cast model of
+                                Just model' -> view model'
+                                _           -> error "" -- TODO
 
-                    internalState = InternalState
-                        { eventQueue              = evtQueue
-                        , lastRenderProcedures    = []
-                        , lastUniqueIdInternState = UniqueIdInternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1 }
-                        , updateFunction          = update'
-                        , viewFunction            = view'
-                        , currentModel            = Model initModel
-                        }
+                        internalState = InternalState
+                            { eventQueue              = evtQueue
+                            , lastRenderProcedures    = []
+                            , lastUniqueIdInternState = UniqueIdInternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1 }
+                            , updateFunction          = update'
+                            , viewFunction            = view'
+                            , currentModel            = Model initModel
+                            }
 
-                _ <- forkOS (evalStateT mainLoop internalState)
+                    void $ forkOS (evalStateT mainLoop internalState)
 
                 liftIO Native.c_StartWin32MessageLoop

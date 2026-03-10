@@ -2,7 +2,7 @@
 #include "DPIAware.h"
 #include "TEAWin32.h"
 
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
 #define TEAWIN32_ERROR_LIST_MAX 100
@@ -18,9 +18,12 @@ static volatile LONG TEAWIN32_ERROR_LIST_LOCK = 0;
 #define UI_FONT_NAME L"Meiryo UI"
 #define EDITOR_FONT_NAME L"Consolas"
 
+#define ERROR_REPORTER_WINDOW_TITLE L"TEAWin32 Error"
 #define ERROR_REPORTER_WINDOW_WIDTH 505
 #define ERROR_REPORTER_WINDOW_HEIGHT 150
 #define ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX 361
+#define ERROR_REPORTER_MAIN_TEXT L"An internal error has occurred. Exiting the programme."
+#define ERROR_REPORTER_MAIN_TEXT_LENGTH 54
 
 #define CLOSE_BUTTON_LABEL L"Close"
 #define CLOSE_BUTTON_X 375
@@ -74,9 +77,9 @@ static HWND DETAIL_BOX;
 
 static BOOL IS_DETAIL_VISIBLE = FALSE;
 
-static LPCWSTR FULL_ERROR_MSG = NULL; // TODO
+static wchar_t *FULL_ERROR_LOG;
 
-BOOL CheckErrorList()
+BOOL CheckErrorList(void)
 {
     return TEAWIN32_ERROR_LIST_COUNT == 0;
 }
@@ -85,6 +88,8 @@ void ReportError(ErrorListEntry *errorListEntry)
 {
     if (TEAWIN32_ERROR_LIST_COUNT >= TEAWIN32_ERROR_LIST_MAX)
     {
+        DEBUG_LOG(L"TEAWIN32_ERROR_LIST Overflow.");
+
         return;
     }
 
@@ -96,22 +101,31 @@ void ReportError(ErrorListEntry *errorListEntry)
     LPCWSTR permanentErrorDescription = _wcsdup(errorListEntry->errorDescription);
     LPCWSTR permanentErrorLocation = _wcsdup(errorListEntry->errorLocation);
 
+    TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorType = errorListEntry->errorType;
     TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorDescription = permanentErrorDescription;
     TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorLocation = permanentErrorLocation;
-    TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].lastWin32ErrorCode = errorListEntry->lastWin32ErrorCode;
+
+    switch (errorListEntry->errorType)
+    {
+        case ERROR_TYPE_WIN32: {
+            TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorExtraInfo.lastWin32ErrorCode =
+                errorListEntry->errorExtraInfo.lastWin32ErrorCode;
+
+            break;
+        }
+    }
 
     TEAWIN32_ERROR_LIST_COUNT++;
 
     InterlockedExchange(&TEAWIN32_ERROR_LIST_LOCK, 0);
 
     DEBUG_LOG(
-        L"An error has been reported. Description: %ls, Location: %ls, Last Win32 Error: %d",
+        L"An error has been reported. Description: %ls, Location: %ls.",
         permanentErrorDescription,
-        permanentErrorLocation,
-        errorListEntry->lastWin32ErrorCode);
+        permanentErrorLocation);
 }
 
-void FinaliseErrorList()
+void FinaliseErrorList(void)
 {
     DEBUG_LOG(L"Finalising ERROR_LIST.");
 
@@ -128,6 +142,73 @@ void FinaliseErrorList()
     TEAWIN32_ERROR_LIST_COUNT = 0;
 
     DEBUG_LOG(L"Finalised ERROR_LIST.");
+}
+
+void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry)
+{
+    wchar_t *p = *pPtr;
+
+    LPCWSTR errorTypeText;
+    switch (entry->errorType)
+    {
+        case ERROR_TYPE_WIN32: {
+            errorTypeText = L"Win32 Error";
+
+            break;
+        }
+    }
+
+    memcpy(p, errorTypeText, wcslen(errorTypeText) * sizeof(wchar_t));
+    p += wcslen(errorTypeText);
+
+    memcpy(p, L"\r\n    ", 6 * sizeof(wchar_t));
+    p += 6;
+
+    int errorDescriptionLen = wcslen(entry->errorDescription);
+    memcpy(p, entry->errorDescription, errorDescriptionLen * sizeof(wchar_t));
+    p += errorDescriptionLen;
+
+    memcpy(p, L"\r\n\r\nOccurred in: ", 17 * sizeof(wchar_t));
+    p += 17;
+
+    int errorLocationLen = wcslen(entry->errorLocation);
+    memcpy(p, entry->errorLocation, errorLocationLen * sizeof(wchar_t));
+    p += errorLocationLen;
+
+    memcpy(p, L"\r\n", 2 * sizeof(wchar_t));
+    p += 2;
+
+    switch (entry->errorType)
+    {
+        case ERROR_TYPE_WIN32: {
+            memcpy(p, L"GetLastError() = ", 17 * sizeof(wchar_t));
+            p += 17;
+
+            wchar_t errorCode[9];
+            swprintf(errorCode, 9, L"%lu", entry->errorExtraInfo.lastWin32ErrorCode);
+            memcpy(p, errorCode, 9 * sizeof(wchar_t));
+            p += 9;
+
+            break;
+        }
+    }
+
+    memcpy(p, L"\r\n\r\n", 4 * sizeof(wchar_t));
+    p += 4;
+
+    *pPtr = p;
+}
+
+void CreateFullErrorLog(void)
+{
+    FULL_ERROR_LOG = calloc(TEAWIN32_ERROR_LIST_COUNT * 2048, sizeof(wchar_t));
+
+    wchar_t *p = FULL_ERROR_LOG;
+
+    for (int i = 0; i < TEAWIN32_ERROR_LIST_COUNT; i++)
+    {
+        CreateErrorLog(&p, &TEAWIN32_ERROR_LIST[i]);
+    }
 }
 
 void StartErrorReporterFallback(void)
@@ -257,8 +338,8 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                 hdc,
                 SCALE(SHORT_ERROR_MESSAGE_TEXT_X),
                 SCALE(SHORT_ERROR_MESSAGE_TEXT_Y),
-                L"An internal error has occurred. Exiting the programme.",
-                54);
+                ERROR_REPORTER_MAIN_TEXT,
+                ERROR_REPORTER_MAIN_TEXT_LENGTH);
 
             SelectObject(hdc, oldFont);
 
@@ -277,7 +358,7 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                 }
 
                 case COPY_BUTTON_ID: {
-                    int msgSize = (wcslen(FULL_ERROR_MSG) + 1) * sizeof(wchar_t);
+                    int msgSize = (wcslen(FULL_ERROR_LOG) + 1) * sizeof(wchar_t);
 
                     HGLOBAL hndl = GlobalAlloc(GMEM_MOVEABLE, msgSize);
 
@@ -286,7 +367,7 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                         void *mem = GlobalLock(hndl);
                         if (mem != NULL)
                         {
-                            memcpy(mem, FULL_ERROR_MSG, msgSize);
+                            memcpy(mem, FULL_ERROR_LOG, msgSize);
                             GlobalUnlock(hndl);
 
                             if (OpenClipboard(hwnd))
@@ -386,6 +467,8 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
 
 void StartErrorReporter(void)
 {
+    CreateFullErrorLog();
+
     if (TEAWIN32_MAIN_INSTANCE == NULL)
     {
         TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
@@ -435,7 +518,7 @@ void StartErrorReporter(void)
     ERROR_REPORTER_WINDOW = CreateWindowExW(
         WS_EX_TOPMOST | WS_EX_APPWINDOW,
         ERROR_REPORTER_CLASS_NAME,
-        L"TEAWin32 Error",
+        ERROR_REPORTER_WINDOW_TITLE,
         WS_CLIPCHILDREN | WS_BORDER | WS_SYSMENU,
         0,
         0,
@@ -519,7 +602,7 @@ void StartErrorReporter(void)
 
     DETAIL_BOX = CreateWindowW(
         L"EDIT",
-        L"",
+        FULL_ERROR_LOG,
         WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE | ES_READONLY,
         0,
         0,
@@ -575,5 +658,9 @@ void StartErrorReporter(void)
     if (ERROR_ICON != NULL)
     {
         DestroyIcon(ERROR_ICON);
+    }
+    if (FULL_ERROR_LOG != NULL)
+    {
+        free(FULL_ERROR_LOG);
     }
 }
