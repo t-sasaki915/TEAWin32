@@ -75,7 +75,7 @@ library
       hsc2hs:hsc2hs
   extra-libraries: comctl32
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
-  cc-options: -Wall -Wextra -Wpedantic -O2
+  cc-options: -Wall -Wextra -Wpedantic -O2 -DTEAWIN32_DEBUG_MODE
   build-depends:
       base >=4.7 && <5
     , mtl >= 2.3 && <2.4

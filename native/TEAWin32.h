@@ -5,8 +5,6 @@
 
 #define WM_TEAWIN32_RENDER_REQUEST (WM_USER + 1)
 
-#define TEAWIN32_DEBUG_MODE
-
 #ifdef TEAWIN32_DEBUG_MODE
 #define DEBUG_LOG(...)                                                                                                 \
     do                                                                                                                 \
