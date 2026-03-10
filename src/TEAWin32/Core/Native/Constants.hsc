@@ -486,10 +486,10 @@ const_WS_OVERLAPPEDWINDOW = #const WS_OVERLAPPEDWINDOW
 const_WS_CHILD :: Word32
 const_WS_CHILD = #const WS_CHILD
 
-pattern EventTypeTestEvent :: CInt
-pattern EventTypeTestEvent = #const EVENT_TYPE_TEST_EVENT
+pattern EventTypeInitialRender :: CInt
+pattern EventTypeInitialRender = #const EVENT_TYPE_INITIAL_RENDER
 
 pattern EventTypeFatalError :: CInt
 pattern EventTypeFatalError = #const EVENT_TYPE_FATAL_ERROR
 
-{-# COMPLETE EventTypeTestEvent, EventTypeFatalError #-}
+{-# COMPLETE EventTypeInitialRender, EventTypeFatalError #-}

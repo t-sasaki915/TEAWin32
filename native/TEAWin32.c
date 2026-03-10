@@ -87,7 +87,7 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     EventQueueEntry testEntry;
     ZeroMemory(&testEntry, sizeof(testEntry));
-    testEntry.eventType = EVENT_TYPE_TEST_EVENT;
+    testEntry.eventType = EVENT_TYPE_INITIAL_RENDER;
     QueueEvent(&testEntry);
 
     DEBUG_LOG(L"Initialised TEAWin32C.");

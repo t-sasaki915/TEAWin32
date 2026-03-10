@@ -5,7 +5,7 @@
 
 typedef enum
 {
-    EVENT_TYPE_TEST_EVENT = 0,
+    EVENT_TYPE_INITIAL_RENDER = 0,
     EVENT_TYPE_FATAL_ERROR
 } EventType;
 

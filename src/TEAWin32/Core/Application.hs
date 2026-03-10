@@ -48,7 +48,7 @@ processEvents queue =
 
             liftIO exitFailure
 
-        Just TestEvent -> do
+        Just InitialRenderEvent -> do
             viewFunc    <- gets viewFunction
             currentMdl  <- gets currentModel
             internState <- gets lastUniqueIdInternState

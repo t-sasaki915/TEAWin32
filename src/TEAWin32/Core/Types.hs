@@ -80,7 +80,7 @@ data InternalState = InternalState
 
 type EventEnqueuer = Ptr EventQueueEntry -> IO ()
 
-data EventQueueEntry = TestEvent
+data EventQueueEntry = InitialRenderEvent
                      | FatalErrorEvent Text Word32 Text
                      deriving Show
 
@@ -91,8 +91,8 @@ instance Storable EventQueueEntry where
 
     peek ptr =
         peekByteOff ptr Native.offset_EventQueueEntry_eventType >>= \case
-            Native.EventTypeTestEvent ->
-                pure TestEvent
+            Native.EventTypeInitialRender ->
+                pure InitialRenderEvent
 
             Native.EventTypeFatalError -> do
                 errorType     <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorType >>= peekCWString
