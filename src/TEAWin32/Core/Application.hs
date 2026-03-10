@@ -6,9 +6,8 @@ module TEAWin32.Core.Application
 import           Control.Concurrent         (forkOS, threadDelay)
 import           Control.Concurrent.STM     (TQueue, atomically, newTQueueIO,
                                              tryReadTQueue, writeTQueue)
-import           Control.Exception          (bracket, bracket_,
-                                             uninterruptibleMask_)
-import           Control.Monad              (unless)
+import           Control.Exception          (bracket, uninterruptibleMask_)
+import           Control.Monad              (unless, when)
 import           Control.Monad.Cont         (ContT (..), evalContT)
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.State.Strict (StateT, evalStateT, get, gets)
@@ -89,10 +88,10 @@ withEventEnqueuer func = do
 runTEAWin32 :: (Typeable model, Typeable msg) => TEAWin32Settings -> IO model -> (msg -> model -> IO model) -> (model -> View) -> IO ()
 runTEAWin32 settings init update view =
     withEventEnqueuer $ \(evtQueue, eventEnqueuer) ->
-        bracket_
+        bracket
             (with settings $ \settingsPtr -> Native.c_InitialiseTEAWin32C settingsPtr eventEnqueuer)
-            (uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
-            $ do
+            (const $ uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
+            $ \initialiseSuccess -> when initialiseSuccess $ do
                 initModel <- init
 
                 let update' (Msg msg) (Model model) =

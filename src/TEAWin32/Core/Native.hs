@@ -25,7 +25,7 @@ foreign import ccall "wrapper"
     makeEventEnqueuerFunPtr :: EventEnqueuer -> IO (FunPtr EventEnqueuer)
 
 foreign import ccall "InitialiseTEAWin32C"
-    c_InitialiseTEAWin32C :: Ptr TEAWin32Settings -> FunPtr EventEnqueuer -> IO ()
+    c_InitialiseTEAWin32C :: Ptr TEAWin32Settings -> FunPtr EventEnqueuer -> IO Bool
 
 foreign import ccall "FinaliseTEAWin32C"
     c_FinaliseTEAWin32C :: IO ()

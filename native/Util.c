@@ -21,7 +21,7 @@ void MakeWindowTaskModal(HWND hwnd)
     EnumWindows(MakeWindowTaskModalCallback, (LPARAM)hwnd);
 }
 
-void EnableVisualStyles(void)
+BOOL EnableVisualStyles(void)
 {
     DEBUG_LOG(L"Enabling Visual Styles.");
 
@@ -29,14 +29,14 @@ void EnableVisualStyles(void)
     if (hInstance == NULL)
     {
         NotifyFatalError(L"Failed to load SHLWAPI.DLL", L"EnableVisualStyles (Util.c)");
-        return;
+        return FALSE;
     }
 
     wchar_t szPath[512];
     if (GetModuleFileNameW(hInstance, szPath, ARRAYSIZE(szPath)) == 0)
     {
         NotifyFatalError(L"GetModuleFileNameW Failed", L"EnableVisualStyles (Util.c)");
-        return;
+        return FALSE;
     }
 
     ACTCTXW actCtx;
@@ -51,7 +51,7 @@ void EnableVisualStyles(void)
     if (hActCtx == INVALID_HANDLE_VALUE)
     {
         NotifyFatalError(L"CreateActCtxW Failed", L"EnableVisualStyles (Util.c)");
-        return;
+        return FALSE;
     }
 
     ULONG_PTR cookie;
@@ -59,8 +59,10 @@ void EnableVisualStyles(void)
     {
         NotifyFatalError(L"ActivateActCtx Failed", L"EnableVisualStyles (Util.c)");
         ReleaseActCtx(hActCtx);
-        return;
+        return FALSE;
     }
 
     DEBUG_LOG(L"Enabled Visual Styles.");
+
+    return TRUE;
 }

@@ -44,7 +44,7 @@ LRESULT CALLBACK ManagementHWNDWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPAR
     return 0;
 }
 
-void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueuerPtr)
+BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueuerPtr)
 {
     DEBUG_LOG(L"Initialising TEAWin32C.");
 
@@ -52,12 +52,15 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     if (!InitialiseDPIAwareFunctions())
     {
-        return;
+        return FALSE;
     }
 
     if (settings->useVisualStyles)
     {
-        EnableVisualStyles();
+        if (!EnableVisualStyles())
+        {
+            return FALSE;
+        }
     }
 
     TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
@@ -76,7 +79,7 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
         NotifyFatalError(
             L"Failed to register TEAWIN32_INTERNAL_MANAGEMENT_HWND class.",
             L"InitialiseTEAWin32C (TEAWin32.c)");
-        return;
+        return FALSE;
     }
 
     TEAWIN32_MANAGEMENT_HWND =
@@ -85,7 +88,7 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     if (TEAWIN32_MANAGEMENT_HWND == NULL)
     {
         NotifyFatalError(L"Failed to CreateWindowW TEAWIN32_MANAGEMENT_HWND", L"InitialiseTEAWin32C (TEAWin32.c)");
-        return;
+        return FALSE;
     }
 
     EventQueueEntry testEntry;
@@ -94,6 +97,8 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     QueueEvent(&testEntry);
 
     DEBUG_LOG(L"Initialised TEAWin32C.");
+
+    return TRUE;
 }
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
