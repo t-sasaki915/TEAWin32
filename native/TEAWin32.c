@@ -1,6 +1,7 @@
 #include "TEAWin32.h"
 #include "Cache.h"
 #include "DPIAware.h"
+#include "Error.h"
 #include "Event.h"
 #include "Registry.h"
 #include "Util.h"
@@ -91,12 +92,19 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
         return FALSE;
     }
 
-    EventQueueEntry testEntry;
-    ZeroMemory(&testEntry, sizeof(testEntry));
-    testEntry.eventType = EVENT_TYPE_INITIAL_RENDER;
-    QueueEvent(&testEntry);
+    EventQueueEntry initRenderEvent;
+    ZeroMemory(&initRenderEvent, sizeof(initRenderEvent));
+    initRenderEvent.eventType = EVENT_TYPE_INITIAL_RENDER;
+    QueueEvent(&initRenderEvent);
 
     DEBUG_LOG(L"Initialised TEAWin32C.");
+
+    ErrorListEntry errEntry;
+    ZeroMemory(&errEntry, sizeof(errEntry));
+    errEntry.errorDescription = L"ERROR DESCRIPTION!!!";
+    errEntry.errorLocation = L"ERROR LOCATION!!!!!!!!!!!";
+    errEntry.lastWin32ErrorCode = GetLastError();
+    ReportError(&errEntry);
 
     return TRUE;
 }
@@ -188,6 +196,13 @@ void StartWin32MessageLoop(void)
     BOOL bRet;
     while ((bRet = GetMessageW(&msg, NULL, 0, 0)) != 0)
     {
+        if (!CheckErrorList())
+        {
+            DEBUG_LOG(L"CheckErrorList() returned FALSE. Exiting Win32 MessageLoop.");
+
+            break;
+        }
+
         if (bRet == -1)
         {
             break;
@@ -195,6 +210,13 @@ void StartWin32MessageLoop(void)
 
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
+    }
+
+    if (!CheckErrorList())
+    {
+        DEBUG_LOG(L"Starting ErrorReporter.");
+
+        StartErrorReporter();
     }
 
     DEBUG_LOG(L"Win32 MessageLoop Ended.");
@@ -208,6 +230,7 @@ void FinaliseTEAWin32C(void)
     FinaliseFontCache();
     FinaliseCursorCache();
     FinaliseIconCache();
+    FinaliseErrorList();
 
     DEBUG_LOG(L"Finalised TEAWin32C.");
 }
