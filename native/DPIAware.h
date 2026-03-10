@@ -14,18 +14,16 @@ inline int ScalableValue_Equals(ScalableValue a, ScalableValue b)
     return a.isScalable == b.isScalable && a.value == a.value;
 }
 
-void InitialiseDPIAwareFunctions(void);
+BOOL InitialiseDPIAwareFunctions(void);
 
 HICON GetHighDPIIcon(SHSTOCKICONID siid);
 
 int GetDPI(HWND hwnd);
 
-int ResolvePixelForDpi(ScalableValue scalable, int dpi);
+BOOL GetCachedDpi(HWND hwnd, int *resultPtr);
 
-int ResolvePixelForHWND(ScalableValue scalable, HWND hwnd);
+int ResolvePixel(ScalableValue scalable, int dpi);
 
-int ResolvePointForDpi(ScalableValue scalable, int dpi);
-
-int ResolvePointForHWND(ScalableValue scalable, HWND hwnd);
+int ResolvePoint(ScalableValue scalable, int dpi);
 
 #endif

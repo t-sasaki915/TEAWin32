@@ -50,7 +50,10 @@ void InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     InitialiseEvent(eventEnqueuerPtr);
 
-    InitialiseDPIAwareFunctions();
+    if (!InitialiseDPIAwareFunctions())
+    {
+        return;
+    }
 
     if (settings->useVisualStyles)
     {

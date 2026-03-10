@@ -11,13 +11,13 @@ typedef BOOL(WINAPI *PSET_PROCESS_DPI_AWARENESS_CONTEXT)(void *);
 
 static PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
 
-void InitialiseDPIAwareFunctions(void)
+BOOL InitialiseDPIAwareFunctions(void)
 {
     HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
         NotifyFatalError(L"Failed to load user32.dll", L"InitialiseDPIAwareFunctions (DPIAware.c)");
-        return;
+        return FALSE;
     }
 
     FARPROC setProcessDpiAwarenessContextPtr = GetProcAddress(user32, "SetProcessDpiAwarenessContext");
@@ -44,6 +44,8 @@ void InitialiseDPIAwareFunctions(void)
 
         DEBUG_LOG(L"GetDpiForWindow found.");
     }
+
+    return TRUE;
 }
 
 HICON GetHighDPIIcon(SHSTOCKICONID siid)
@@ -73,22 +75,24 @@ int GetDPI(HWND hwnd)
     return GET_DPI_FOR_WINDOW_FUNC(hwnd);
 }
 
-static inline int GetCachedDpi(HWND hwnd)
+BOOL GetCachedDpi(HWND hwnd, int *resultPtr)
 {
     HWNDRegistryEntry *entry = GetHWNDRegistryEntry(hwnd);
 
     if (entry == NULL)
     {
         NotifyFatalError(L"HWNDRegistryEntry was NULL", L"GetCachedDpi (DPIAware.c)");
-        return 96;
+        return FALSE;
     }
 
     DEBUG_LOG(L"Checking DPI for HWND %p using HWNDRegistry.", (void *)hwnd);
 
-    return entry->dpi;
+    *resultPtr = entry->dpi;
+
+    return TRUE;
 }
 
-int ResolvePixelForDpi(ScalableValue scalable, int dpi)
+int ResolvePixel(ScalableValue scalable, int dpi)
 {
     if (!scalable.isScalable)
     {
@@ -98,12 +102,7 @@ int ResolvePixelForDpi(ScalableValue scalable, int dpi)
     return MulDiv((int)scalable.value, dpi, 96);
 }
 
-int ResolvePixelForHWND(ScalableValue scalable, HWND hwnd)
-{
-    return ResolvePixelForDpi(scalable, GetCachedDpi(hwnd));
-}
-
-int ResolvePointForDpi(ScalableValue scalable, int dpi)
+int ResolvePoint(ScalableValue scalable, int dpi)
 {
     if (!scalable.isScalable)
     {
@@ -111,9 +110,4 @@ int ResolvePointForDpi(ScalableValue scalable, int dpi)
     }
 
     return -MulDiv((int)scalable.value, dpi, 72);
-}
-
-int ResolvePointForHWND(ScalableValue scalable, HWND hwnd)
-{
-    return ResolvePointForDpi(scalable, GetCachedDpi(hwnd));
 }

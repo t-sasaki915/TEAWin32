@@ -147,10 +147,16 @@ void ExecuteRenderProcedure(RenderSession *session)
 
             UpdatePosData updatePosData = procedure->procData.updatePosData;
 
-            int x = updatePosData.hasNewLocation ? ResolvePixelForHWND(updatePosData.newX, targetHWND) : 0;
-            int y = updatePosData.hasNewLocation ? ResolvePixelForHWND(updatePosData.newY, targetHWND) : 0;
-            int w = updatePosData.hasNewSize ? ResolvePixelForHWND(updatePosData.newWidth, targetHWND) : 0;
-            int h = updatePosData.hasNewSize ? ResolvePixelForHWND(updatePosData.newHeight, targetHWND) : 0;
+            int dpi;
+            if (!GetCachedDpi(targetHWND, &dpi))
+            {
+                return;
+            }
+
+            int x = updatePosData.hasNewLocation ? ResolvePixel(updatePosData.newX, dpi) : 0;
+            int y = updatePosData.hasNewLocation ? ResolvePixel(updatePosData.newY, dpi) : 0;
+            int w = updatePosData.hasNewSize ? ResolvePixel(updatePosData.newWidth, dpi) : 0;
+            int h = updatePosData.hasNewSize ? ResolvePixel(updatePosData.newHeight, dpi) : 0;
 
             DWORD flags = SWP_NOACTIVATE;
             if (!updatePosData.hasNewLocation)
@@ -221,8 +227,14 @@ void ExecuteRenderProcedure(RenderSession *session)
                 return;
             }
 
+            int dpi;
+            if (!GetCachedDpi(targetHWND, &dpi))
+            {
+                return;
+            }
+
             CachedFont cacheKey = procedure->procData.newFontCacheKey;
-            cacheKey.absoluteFontSize = ResolvePointForHWND(cacheKey.fontSize, targetHWND);
+            cacheKey.absoluteFontSize = ResolvePoint(cacheKey.fontSize, dpi);
 
             HFONT font;
             if (!GetCachedFont(&cacheKey, &font))
@@ -252,7 +264,12 @@ void ExecuteRenderProcedure(RenderSession *session)
             }
 
             CachedIcon cacheKey = procedure->procData.newIconCacheKey;
-            cacheKey.dpi = GetDPI(targetHWND);
+            int dpi;
+            if (!GetCachedDpi(targetHWND, &dpi))
+            {
+                return;
+            }
+            cacheKey.dpi = dpi;
 
             HICON icon;
             if (!GetCachedIcon(&cacheKey, &icon))
