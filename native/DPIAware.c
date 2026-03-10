@@ -90,6 +90,16 @@ BOOL GetCachedDpi(HWND hwnd, int *resultPtr)
     return TRUE;
 }
 
+int ResolvePixel_(double x, int dpi)
+{
+    return MulDiv((int)x, dpi, 96);
+}
+
+int ResolvePoint_(double x, int dpi)
+{
+    return -MulDiv((int)x, dpi, 72);
+}
+
 int ResolvePixel(ScalableValue scalable, int dpi)
 {
     if (!scalable.isScalable)
@@ -97,7 +107,7 @@ int ResolvePixel(ScalableValue scalable, int dpi)
         return ((int)scalable.value);
     }
 
-    return MulDiv((int)scalable.value, dpi, 96);
+    return ResolvePixel_(scalable.value, dpi);
 }
 
 int ResolvePoint(ScalableValue scalable, int dpi)
@@ -107,5 +117,5 @@ int ResolvePoint(ScalableValue scalable, int dpi)
         return ((int)scalable.value);
     }
 
-    return -MulDiv((int)scalable.value, dpi, 72);
+    return ResolvePoint_(scalable.value, dpi);
 }

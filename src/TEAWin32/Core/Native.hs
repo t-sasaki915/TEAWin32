@@ -4,7 +4,6 @@ module TEAWin32.Core.Native
     , c_MakeIntResourceW
     , c_InitialiseTEAWin32C
     , c_FinaliseTEAWin32C
-    , c_ShowErrorReporter
     , c_RequestRender
     , c_StartWin32MessageLoop
     ) where
@@ -29,9 +28,6 @@ foreign import ccall "InitialiseTEAWin32C"
 
 foreign import ccall "FinaliseTEAWin32C"
     c_FinaliseTEAWin32C :: IO ()
-
-foreign import ccall "ShowErrorReporter"
-    c_ShowErrorReporter :: CWString -> CWString -> CWString -> CWString -> IO ()
 
 foreign import ccall unsafe "RequestRender"
     c_RequestRender :: Ptr () -> Int -> IO ()

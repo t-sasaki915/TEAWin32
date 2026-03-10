@@ -212,6 +212,8 @@ void StartWin32MessageLoop(void)
         DispatchMessageW(&msg);
     }
 
+    DestroyWindow(TEAWIN32_MANAGEMENT_HWND);
+
     if (!CheckErrorList())
     {
         DEBUG_LOG(L"Starting ErrorReporter.");

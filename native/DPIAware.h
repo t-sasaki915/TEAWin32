@@ -22,6 +22,10 @@ int GetDPI(HWND hwnd);
 
 BOOL GetCachedDpi(HWND hwnd, int *resultPtr);
 
+int ResolvePixel_(double x, int dpi);
+
+int ResolvePoint_(double x, int dpi);
+
 int ResolvePixel(ScalableValue scalable, int dpi);
 
 int ResolvePoint(ScalableValue scalable, int dpi);

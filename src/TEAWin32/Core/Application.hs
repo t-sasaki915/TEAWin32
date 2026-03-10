@@ -32,20 +32,8 @@ processEvents :: TQueue EventQueueEntry -> StateT InternalState IO ()
 processEvents queue =
     liftIO (atomically $ tryReadTQueue queue) >>= \case
         Just (FatalErrorEvent errorType errorCode errorLocation) -> do
-            let dialogTitle        = "Internal Framework Error"
-                shortMsg           = "An internal error has occurred in native C programme."
-                specificMsgWithLoc = errorType <> ": " <> Text.show errorCode <> "\r\n" <> "Location: " <> errorLocation
-                fullMsg            = dialogTitle <> "\r\n\r\n" <> shortMsg <> "\r\n" <> specificMsgWithLoc
 
-            liftIO $ evalContT $ do
-                dialogTitle'        <- ContT $ Native.withCWText dialogTitle
-                shortMsg'           <- ContT $ Native.withCWText shortMsg
-                specificMsgWithLoc' <- ContT $ Native.withCWText specificMsgWithLoc
-                fullMsg'            <- ContT $ Native.withCWText fullMsg
-
-                liftIO (Native.c_ShowErrorReporter dialogTitle' shortMsg' specificMsgWithLoc' fullMsg')
-
-            liftIO exitFailure
+            processEvents queue
 
         Just InitialRenderEvent -> do
             viewFunc    <- gets viewFunction

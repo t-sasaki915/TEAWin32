@@ -50,7 +50,6 @@ library
       native/Cache.c
       native/DPIAware.c
       native/Error.c
-      native/ErrorReporter.c
       native/Event.c
       native/Registry.c
       native/TEAWin32.c
