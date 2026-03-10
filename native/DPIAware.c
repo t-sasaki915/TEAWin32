@@ -77,11 +77,9 @@ int GetDPI(HWND hwnd)
 
 BOOL GetCachedDpi(HWND hwnd, int *resultPtr)
 {
-    HWNDRegistryEntry *entry = GetHWNDRegistryEntry(hwnd);
-
-    if (entry == NULL)
+    HWNDRegistryEntry *entry;
+    if (!GetHWNDRegistryEntry(hwnd, &entry))
     {
-        NotifyFatalError(L"HWNDRegistryEntry was NULL", L"GetCachedDpi (DPIAware.c)");
         return FALSE;
     }
 

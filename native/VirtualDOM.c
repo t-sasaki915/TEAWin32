@@ -37,7 +37,10 @@ void ExecuteRenderProcedure(RenderSession *session)
     HWND targetHWND = NULL;
     if (procedure->procType != RENDER_PROC_TYPE_CREATE_WINDOW && procedure->procType != RENDER_PROC_TYPE_CREATE_BUTTON)
     {
-        targetHWND = GetHWNDFromUniqueId(procedure->targetUniqueId);
+        if (!GetHWNDFromUniqueId(procedure->targetUniqueId, &targetHWND))
+        {
+            return;
+        }
     }
 
     switch (procedure->procType)
@@ -54,7 +57,10 @@ void ExecuteRenderProcedure(RenderSession *session)
             HWND parentHWND = NULL;
             if (data.newWindowParentUniqueId != 0)
             {
-                parentHWND = GetHWNDFromUniqueId(data.newWindowParentUniqueId);
+                if (!GetHWNDFromUniqueId(data.newWindowParentUniqueId, &parentHWND))
+                {
+                    return;
+                }
             }
 
             HWND newWindow = CreateWindowExW(
@@ -77,7 +83,10 @@ void ExecuteRenderProcedure(RenderSession *session)
                 return;
             }
 
-            RegisterHWNDToRegistry(newWindow, procedure->targetUniqueId);
+            if (!RegisterHWNDToRegistry(newWindow, procedure->targetUniqueId))
+            {
+                return;
+            }
 
             TEAWIN32_ACTIVE_WINDOW_COUNT++;
 
@@ -94,6 +103,12 @@ void ExecuteRenderProcedure(RenderSession *session)
             break;
         }
         case RENDER_PROC_TYPE_CREATE_BUTTON: {
+            HWND parentHWND;
+            if (!GetHWNDFromUniqueId(procedure->procData.newButtonParentUniqueId, &parentHWND))
+            {
+                return;
+            }
+
             HWND newButton = CreateWindowW(
                 L"BUTTON",
                 L"",
@@ -102,7 +117,7 @@ void ExecuteRenderProcedure(RenderSession *session)
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
-                GetHWNDFromUniqueId(procedure->procData.newButtonParentUniqueId),
+                parentHWND,
                 NULL,
                 TEAWIN32_MAIN_INSTANCE,
                 0);
@@ -115,7 +130,10 @@ void ExecuteRenderProcedure(RenderSession *session)
 
             SetWindowSubclass(newButton, SubclassWndProc, (UINT_PTR)procedure->targetUniqueId, 0);
 
-            RegisterHWNDToRegistry(newButton, procedure->targetUniqueId);
+            if (!RegisterHWNDToRegistry(newButton, procedure->targetUniqueId))
+            {
+                return;
+            }
 
             DEBUG_LOG(L"Created Button. Parent: %d", procedure->procData.newButtonParentUniqueId);
 
@@ -357,10 +375,9 @@ void ExecuteRenderProcedure(RenderSession *session)
                 return;
             }
 
-            HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(targetHWND);
-            if (regEntry == NULL)
+            HWNDRegistryEntry *regEntry;
+            if (!GetHWNDRegistryEntry(targetHWND, &regEntry))
             {
-                NotifyFatalError(L"GetHWNDRegistryEntry returned NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
                 return;
             }
 

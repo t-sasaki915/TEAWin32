@@ -101,7 +101,10 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
     switch (wMsg)
     {
         case WM_NCDESTROY: {
-            UnregisterHWNDFromRegistry(hwnd);
+            if (!UnregisterHWNDFromRegistry(hwnd))
+            {
+                return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+            }
 
             TEAWIN32_ACTIVE_WINDOW_COUNT--;
 
@@ -113,10 +116,9 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             return 0;
         }
         case WM_ERASEBKGND: {
-            HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
-            if (regEntry == NULL)
+            HWNDRegistryEntry *regEntry;
+            if (!GetHWNDRegistryEntry(hwnd, &regEntry))
             {
-                NotifyFatalError(L"GetHWNDRegistryEntry returned NULL", L"TEAWin32WndProc (TEAWin32.c)");
                 return DefWindowProcW(hwnd, wMsg, wParam, lParam);
             }
 
@@ -156,7 +158,10 @@ SubclassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uId
 
     if (uMsg == WM_NCDESTROY)
     {
-        UnregisterHWNDFromRegistry(hwnd);
+        if (!UnregisterHWNDFromRegistry(hwnd))
+        {
+            return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+        }
 
         RemoveWindowSubclass(hwnd, SubclassWndProc, uIdSubclass);
     }

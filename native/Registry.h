@@ -11,12 +11,12 @@ typedef struct
     COLORREF backgroundColour;
 } HWNDRegistryEntry;
 
-HWND GetHWNDFromUniqueId(int uniqueId);
+BOOL GetHWNDFromUniqueId(int uniqueId, HWND *resultPtr);
 
-void RegisterHWNDToRegistry(HWND hwnd, int uniqueId);
+BOOL RegisterHWNDToRegistry(HWND hwnd, int uniqueId);
 
-HWNDRegistryEntry *GetHWNDRegistryEntry(HWND hwnd);
+BOOL GetHWNDRegistryEntry(HWND hwnd, HWNDRegistryEntry **resultPtr);
 
-void UnregisterHWNDFromRegistry(HWND hwnd);
+BOOL UnregisterHWNDFromRegistry(HWND hwnd);
 
 #endif

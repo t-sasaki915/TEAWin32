@@ -18,8 +18,7 @@ typedef struct
 static UniqueIdHWNDMapEntry *UNIQUEID_HWND_MAP_PAGE_TABLE_POSITIVE_ID[UNIQUEID_HWND_MAP_PAGE_SIZE] = {NULL};
 static UniqueIdHWNDMapEntry *UNIQUEID_HWND_MAP_PAGE_TABLE_NEGATIVE_ID[UNIQUEID_HWND_MAP_PAGE_SIZE] = {NULL};
 
-static inline BOOL CalculatePageIdxAndOffset(
-    int uniqueId, int *pageIdxPtr, int *offsetPtr, UniqueIdHWNDMapEntry ***pageTablePtr)
+BOOL CalculatePageIdxAndOffset(int uniqueId, int *pageIdxPtr, int *offsetPtr, UniqueIdHWNDMapEntry ***pageTablePtr)
 {
     if (uniqueId == 0)
     {
@@ -53,7 +52,7 @@ static inline BOOL CalculatePageIdxAndOffset(
     return TRUE;
 }
 
-HWND GetHWNDFromUniqueId(int uniqueId)
+BOOL GetHWNDFromUniqueId(int uniqueId, HWND *resultPtr)
 {
     int pageIdx;
     int offset;
@@ -61,7 +60,7 @@ HWND GetHWNDFromUniqueId(int uniqueId)
 
     if (!CalculatePageIdxAndOffset(uniqueId, &pageIdx, &offset, &pageTable))
     {
-        return NULL;
+        return FALSE;
     }
 
     UniqueIdHWNDMapEntry *page = pageTable[pageIdx];
@@ -70,13 +69,15 @@ HWND GetHWNDFromUniqueId(int uniqueId)
     {
         NotifyFatalError(L"Page was NULL.", L"GetHWNDFromUniqueId (Registry.c)");
 
-        return NULL;
+        return FALSE;
     }
 
-    return page[offset].correspondingHWND;
+    *resultPtr = page[offset].correspondingHWND;
+
+    return TRUE;
 }
 
-void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
+BOOL RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 {
     DEBUG_LOG(L"Registering HWND %p (UniqueId %d) to Registry.", (void *)hwnd, uniqueId);
 
@@ -86,7 +87,7 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 
     if (!CalculatePageIdxAndOffset(uniqueId, &pageIdx, &offset, &pageTable))
     {
-        return;
+        return FALSE;
     }
 
     if (pageTable[pageIdx] == NULL)
@@ -96,7 +97,7 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
         if (pageTable[pageIdx] == NULL)
         {
             NotifyFatalError(L"calloc Failed", L"RegisterHWNDToRegistry (Registry.c)");
-            return;
+            return FALSE;
         }
     }
 
@@ -113,22 +114,33 @@ void RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)regEntry);
 
     DEBUG_LOG(L"Registered HWND %p (UniqueId %d) to Registry.", (void *)hwnd, uniqueId);
+
+    return TRUE;
 }
 
-HWNDRegistryEntry *GetHWNDRegistryEntry(HWND hwnd)
+BOOL GetHWNDRegistryEntry(HWND hwnd, HWNDRegistryEntry **resultPtr)
 {
-    return (HWNDRegistryEntry *)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+    LONG_PTR userData = GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+
+    if (userData == 0)
+    {
+        NotifyFatalError(L"GetWindowLongPtrW GWLP_USERDATA returned 0", L"GetHWNDRegistryEntry (Registry.c)");
+        return FALSE;
+    }
+
+    *resultPtr = (HWNDRegistryEntry *)userData;
+
+    return TRUE;
 }
 
-void UnregisterHWNDFromRegistry(HWND hwnd)
+BOOL UnregisterHWNDFromRegistry(HWND hwnd)
 {
     DEBUG_LOG(L"Unregistering HWND %p from Registry.", (void *)hwnd);
 
-    HWNDRegistryEntry *regEntry = GetHWNDRegistryEntry(hwnd);
-    if (regEntry == NULL)
+    HWNDRegistryEntry *regEntry;
+    if (!GetHWNDRegistryEntry(hwnd, &regEntry))
     {
-        NotifyFatalError(L"HWNDRegistry entry was NULL.", L"UnregisterHWNDFromRegistry (Registry.c)");
-        return;
+        return FALSE;
     }
 
     int uniqueId = regEntry->uniqueId;
@@ -145,8 +157,10 @@ void UnregisterHWNDFromRegistry(HWND hwnd)
         }
     }
 
-    free(regEntry);
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)NULL);
+    free(regEntry);
 
     DEBUG_LOG(L"Unregistered HWND %p from Registry.", (void *)hwnd);
+
+    return TRUE;
 }
