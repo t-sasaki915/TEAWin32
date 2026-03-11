@@ -95,7 +95,6 @@ instance Storable EventQueueEntry where
                 pure InitialRenderEvent
 
             Native.EventTypeStopMainLoop ->
-
                 pure StopMainLoopEvent
 
     poke = undefined
