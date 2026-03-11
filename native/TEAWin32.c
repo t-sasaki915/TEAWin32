@@ -212,6 +212,13 @@ void StartWin32MessageLoop(void)
 
     if (!CheckErrorList())
     {
+        DEBUG_LOG(L"Stopping main loop.");
+
+        EventQueueEntry mainLoopStopEvent;
+        ZeroMemory(&mainLoopStopEvent, sizeof(mainLoopStopEvent));
+        mainLoopStopEvent.eventType = EVENT_TYPE_STOP_MAINLOOP;
+        QueueEvent(&mainLoopStopEvent);
+
         DEBUG_LOG(L"Starting ErrorReporter.");
 
         StartErrorReporter();

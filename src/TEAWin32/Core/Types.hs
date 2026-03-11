@@ -56,10 +56,9 @@ import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
 import           Data.Map.Strict                (Map)
 import           Data.Text                      (Text)
-import qualified Data.Text                      as Text
 import           Foreign                        (Ptr, Storable (..), Word16,
                                                  Word32, fillBytes)
-import           Foreign.C                      (CInt, CWchar, peekCWString)
+import           Foreign.C                      (CInt, CWchar)
 import qualified TEAWin32.Core.Native.Constants as Native
 
 type SHSTOCKICONID = Word32
@@ -71,6 +70,7 @@ data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
 
 data InternalState = InternalState
     { eventQueue              :: TQueue EventQueueEntry
+    , mainLoopContinue        :: Bool
     , lastRenderProcedures    :: [(UniqueId, RenderProcedure)]
     , lastUniqueIdInternState :: UniqueIdInternState
     , updateFunction          :: Msg -> Model -> IO Model
@@ -81,7 +81,7 @@ data InternalState = InternalState
 type EventEnqueuer = Ptr EventQueueEntry -> IO ()
 
 data EventQueueEntry = InitialRenderEvent
-                     | FatalErrorEvent Text Word32 Text
+                     | StopMainLoopEvent
                      deriving Show
 
 instance Storable EventQueueEntry where
@@ -94,12 +94,9 @@ instance Storable EventQueueEntry where
             Native.EventTypeInitialRender ->
                 pure InitialRenderEvent
 
-            Native.EventTypeFatalError -> do
-                errorType     <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorType >>= peekCWString
-                errorCode     <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorCode
-                errorLocation <- peekByteOff ptr Native.offset_EventQueueEntry_eventData_fatalErrorEventData_errorLocation >>= peekCWString
+            Native.EventTypeStopMainLoop ->
 
-                pure (FatalErrorEvent (Text.pack errorType) errorCode (Text.pack errorLocation))
+                pure StopMainLoopEvent
 
     poke = undefined
 

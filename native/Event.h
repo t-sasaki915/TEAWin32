@@ -6,22 +6,12 @@
 typedef enum
 {
     EVENT_TYPE_INITIAL_RENDER = 0,
-    EVENT_TYPE_FATAL_ERROR
+    EVENT_TYPE_STOP_MAINLOOP
 } EventType;
 
 typedef struct
 {
-    LPCWSTR errorType;
-    DWORD errorCode;
-    LPCWSTR errorLocation;
-} FatalErrorEventData;
-
-typedef struct
-{
     EventType eventType;
-    union {
-        FatalErrorEventData fatalErrorEventData;
-    } eventData;
 } EventQueueEntry;
 
 typedef void (*PEVENTENQUEUER)(const EventQueueEntry *);

@@ -8,15 +8,13 @@ import           Control.Concurrent.STM     (TQueue, atomically, newTQueueIO,
                                              tryReadTQueue, writeTQueue)
 import           Control.Exception          (bracket, uninterruptibleMask_)
 import           Control.Monad              (unless, void, when)
-import           Control.Monad.Cont         (ContT (..), evalContT)
 import           Control.Monad.IO.Class     (liftIO)
-import           Control.Monad.State.Strict (StateT, evalStateT, get, gets)
+import           Control.Monad.State.Strict (StateT, evalStateT, get, gets,
+                                             modify')
 import           Data.Data                  (Typeable, cast)
-import qualified Data.Text                  as Text
 import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
                                              nullPtr, peek, with)
 import           Prelude                    hiding (init)
-import           System.Exit                (exitFailure)
 import           TEAWin32.Core.DSL          (runDSL)
 import           TEAWin32.Core.Marshall     (dispatchRenderProcedures)
 import qualified TEAWin32.Core.Native       as Native
@@ -31,9 +29,8 @@ defaultTEAWin32Settings = TEAWin32Settings
 processEvents :: TQueue EventQueueEntry -> StateT InternalState IO ()
 processEvents queue =
     liftIO (atomically $ tryReadTQueue queue) >>= \case
-        Just (FatalErrorEvent errorType errorCode errorLocation) -> do
-
-            processEvents queue
+        Just StopMainLoopEvent ->
+            modify' $ \s -> s { mainLoopContinue = False }
 
         Just InitialRenderEvent -> do
             viewFunc    <- gets viewFunction
@@ -53,12 +50,14 @@ mainLoop :: StateT InternalState IO ()
 mainLoop = do
     currentState <- get
 
-    processEvents (eventQueue currentState)
+    when (mainLoopContinue currentState) $ do
 
-    --liftIO (putStrLn "LOOP")
+        processEvents (eventQueue currentState)
 
-    liftIO (threadDelay 16000)
-    mainLoop
+        --liftIO (putStrLn "LOOP")
+
+        liftIO (threadDelay 16000)
+        mainLoop
 
 withEventEnqueuer :: ((TQueue EventQueueEntry, FunPtr (Ptr EventQueueEntry -> IO ())) -> IO a) -> IO a
 withEventEnqueuer func = do
@@ -97,6 +96,7 @@ runTEAWin32 settings init update view =
 
                         internalState = InternalState
                             { eventQueue              = evtQueue
+                            , mainLoopContinue        = True
                             , lastRenderProcedures    = []
                             , lastUniqueIdInternState = UniqueIdInternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1 }
                             , updateFunction          = update'

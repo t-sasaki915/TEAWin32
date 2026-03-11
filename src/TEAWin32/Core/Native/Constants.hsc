@@ -489,7 +489,7 @@ const_WS_CHILD = #const WS_CHILD
 pattern EventTypeInitialRender :: CInt
 pattern EventTypeInitialRender = #const EVENT_TYPE_INITIAL_RENDER
 
-pattern EventTypeFatalError :: CInt
-pattern EventTypeFatalError = #const EVENT_TYPE_FATAL_ERROR
+pattern EventTypeStopMainLoop :: CInt
+pattern EventTypeStopMainLoop = #const EVENT_TYPE_STOP_MAINLOOP
 
-{-# COMPLETE EventTypeInitialRender, EventTypeFatalError #-}
+{-# COMPLETE EventTypeInitialRender, EventTypeStopMainLoop #-}
