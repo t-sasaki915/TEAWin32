@@ -8,9 +8,11 @@ Type-safe, Elm-inspired native Win32 GUI framework for Haskell
 - Compatible with Windows 7 - Windows 11
 - Optimised VirtualDOM
 - Automated DPI scaling
+- Full `text` support
+- Minimum dependencies
 
 ## Example
-![sample programme working on Windows 7](https://raw.githubusercontent.com/t-sasaki915/TEAWin32/refs/heads/main/demo.png)
+![Sample programme working on Windows 7](https://raw.githubusercontent.com/t-sasaki915/TEAWin32/refs/heads/main/demo.png)
 
 ```haskell
 module Main (main) where
