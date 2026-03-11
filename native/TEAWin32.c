@@ -99,21 +99,9 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     DEBUG_LOG(L"Initialised TEAWin32C.");
 
-    ErrorListEntry errEntry;
-    ZeroMemory(&errEntry, sizeof(errEntry));
-    errEntry.errorType = ERROR_TYPE_WIN32;
-    errEntry.errorDescription = L"ERROR DESCRIPTION!!!";
-    errEntry.errorLocation = L"ERROR LOCATION!!!!!!!!!!!";
-    errEntry.errorExtraInfo.lastWin32ErrorCode = GetLastError();
-    ReportError(&errEntry);
+    WIN32_ERROR(L"ERROR DESCRIPTION!!!");
 
-    ErrorListEntry errEntry2;
-    ZeroMemory(&errEntry2, sizeof(errEntry2));
-    errEntry2.errorType = ERROR_TYPE_WIN32;
-    errEntry2.errorDescription = L"!?!?!?!?!?!?!?";
-    errEntry2.errorLocation = L"JRGWIOWJROGJO";
-    errEntry2.errorExtraInfo.lastWin32ErrorCode = 128;
-    ReportError(&errEntry2);
+    WIN32_ERROR(L"TEST ERROR !!!! %ls", L"uwaaa");
 
     return TRUE;
 }
