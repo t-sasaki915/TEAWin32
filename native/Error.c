@@ -144,9 +144,14 @@ void FinaliseErrorList(void)
     DEBUG_LOG(L"Finalised ERROR_LIST.");
 }
 
-void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry)
+void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry, BOOL isFirstEntry)
 {
     wchar_t *p = *pPtr;
+
+    if (!isFirstEntry)
+    {
+        p += swprintf(p, 2048, L"================================================================\r\n\r\n");
+    }
 
     LPCWSTR errorTypeText;
     switch (entry->errorType)
@@ -158,43 +163,24 @@ void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry)
         }
     }
 
-    memcpy(p, errorTypeText, wcslen(errorTypeText) * sizeof(wchar_t));
-    p += wcslen(errorTypeText);
-
-    memcpy(p, L"\r\n    ", 6 * sizeof(wchar_t));
-    p += 6;
-
-    int errorDescriptionLen = wcslen(entry->errorDescription);
-    memcpy(p, entry->errorDescription, errorDescriptionLen * sizeof(wchar_t));
-    p += errorDescriptionLen;
-
-    memcpy(p, L"\r\n\r\nOccurred in: ", 17 * sizeof(wchar_t));
-    p += 17;
-
-    int errorLocationLen = wcslen(entry->errorLocation);
-    memcpy(p, entry->errorLocation, errorLocationLen * sizeof(wchar_t));
-    p += errorLocationLen;
-
-    memcpy(p, L"\r\n", 2 * sizeof(wchar_t));
-    p += 2;
+    p += swprintf(
+        p,
+        2048,
+        L"%ls\r\n    %ls\r\n\r\nOccurred in: %ls\r\n",
+        errorTypeText,
+        entry->errorDescription,
+        entry->errorLocation);
 
     switch (entry->errorType)
     {
         case ERROR_TYPE_WIN32: {
-            memcpy(p, L"GetLastError() = ", 17 * sizeof(wchar_t));
-            p += 17;
-
-            wchar_t errorCode[9];
-            swprintf(errorCode, 9, L"%lu", entry->errorExtraInfo.lastWin32ErrorCode);
-            memcpy(p, errorCode, 9 * sizeof(wchar_t));
-            p += 9;
+            p += swprintf(p, 2048, L"GetLastError() = %lu", entry->errorExtraInfo.lastWin32ErrorCode);
 
             break;
         }
     }
 
-    memcpy(p, L"\r\n\r\n", 4 * sizeof(wchar_t));
-    p += 4;
+    p += swprintf(p, 2048, L"\r\n\r\n");
 
     *pPtr = p;
 }
@@ -207,13 +193,17 @@ void CreateFullErrorLog(void)
 
     for (int i = 0; i < TEAWIN32_ERROR_LIST_COUNT; i++)
     {
-        CreateErrorLog(&p, &TEAWIN32_ERROR_LIST[i]);
+        BOOL isFirstEntry = i == 0;
+        CreateErrorLog(&p, &TEAWIN32_ERROR_LIST[i], isFirstEntry);
     }
 }
 
 void StartErrorReporterFallback(void)
 {
-    MessageBoxW(NULL, L"FALLBACK", L"FALLBACK", MB_TASKMODAL | MB_OK | MB_ICONERROR);
+    wchar_t mainText[TEAWIN32_ERROR_LIST_COUNT * 2048];
+    swprintf(mainText, TEAWIN32_ERROR_LIST_COUNT * 2048, L"%ls\r\n\r\n%ls", ERROR_REPORTER_MAIN_TEXT, FULL_ERROR_LOG);
+
+    MessageBoxW(NULL, mainText, ERROR_REPORTER_WINDOW_TITLE, MB_TASKMODAL | MB_OK | MB_ICONERROR);
 }
 
 void DesignErrorReporter(BOOL setMainWindowPos)
