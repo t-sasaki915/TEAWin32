@@ -29,9 +29,7 @@ LRESULT CALLBACK ManagementHWNDWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPAR
 
     if (procs == NULL)
     {
-        NotifyFatalError(
-            L"WM_TEAWIN32_RENDER_REQUEST with NULL RenderProcedure.",
-            L"ManagementHWNDWndProc (TEAWin32.c)");
+        TEAWIN32_ERROR(L"WM_TEAWIN32_RENDER_REQUEST with NULL RenderProcedure.");
 
         return DefWindowProcW(hwnd, wMsg, wParam, lParam);
     }
@@ -77,9 +75,8 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     if (!RegisterClassExW(&wndClass))
     {
-        NotifyFatalError(
-            L"Failed to register TEAWIN32_INTERNAL_MANAGEMENT_HWND class.",
-            L"InitialiseTEAWin32C (TEAWin32.c)");
+        WIN32_ERROR(L"Failed to register TEAWIN32_INTERNAL_MANAGEMENT_HWND class.");
+
         return FALSE;
     }
 
@@ -88,7 +85,8 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     if (TEAWIN32_MANAGEMENT_HWND == NULL)
     {
-        NotifyFatalError(L"Failed to CreateWindowW TEAWIN32_MANAGEMENT_HWND", L"InitialiseTEAWin32C (TEAWin32.c)");
+        WIN32_ERROR(L"Failed to CreateWindowW TEAWIN32_MANAGEMENT_HWND");
+
         return FALSE;
     }
 
@@ -98,10 +96,6 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     QueueEvent(&initRenderEvent);
 
     DEBUG_LOG(L"Initialised TEAWin32C.");
-
-    WIN32_ERROR(L"ERROR DESCRIPTION!!!");
-
-    WIN32_ERROR(L"TEST ERROR !!!! %ls", L"uwaaa");
 
     return TRUE;
 }
@@ -158,6 +152,11 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             }
 
             return 1;
+        }
+        case WM_COMMAND: {
+            FATAL_MEMORY_ERROR(L"TEST");
+
+            return DefWindowProcW(hwnd, wMsg, wParam, lParam);
         }
         default: {
             return DefWindowProcW(hwnd, wMsg, wParam, lParam);

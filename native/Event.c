@@ -19,19 +19,3 @@ void QueueEvent(EventQueueEntry *newEvent)
 
     DEBUG_LOG(L"Event Queued. Event Type: %d", newEvent->eventType);
 }
-
-void NotifyFatalError(LPCWSTR errorType, LPCWSTR errorLocation)
-{
-    DWORD lastErrorCode = GetLastError();
-
-    printf("Internal C Error\r\n");
-    printf("%ls: %lu\r\nLocation: %ls\r\n", errorType, lastErrorCode, errorLocation);
-
-    EventQueueEntry event;
-    ZeroMemory(&event, sizeof(event));
-    event.eventType = EVENT_TYPE_FATAL_ERROR;
-    event.eventData.fatalErrorEventData.errorType = errorType;
-    event.eventData.fatalErrorEventData.errorCode = lastErrorCode;
-    event.eventData.fatalErrorEventData.errorLocation = errorLocation;
-    QueueEvent(&event);
-}

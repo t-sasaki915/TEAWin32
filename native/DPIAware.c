@@ -1,5 +1,5 @@
 #include "DPIAware.h"
-#include "Event.h"
+#include "Error.h"
 #include "Registry.h"
 #include "TEAWin32.h"
 
@@ -16,7 +16,7 @@ BOOL InitialiseDPIAwareFunctions(void)
     HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 == NULL)
     {
-        NotifyFatalError(L"Failed to load user32.dll", L"InitialiseDPIAwareFunctions (DPIAware.c)");
+        WIN32_ERROR(L"Failed to load user32.dll");
         return FALSE;
     }
 

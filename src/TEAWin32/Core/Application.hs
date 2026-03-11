@@ -79,8 +79,11 @@ runTEAWin32 settings init update view =
         bracket
             (with settings $ \settingsPtr -> Native.c_InitialiseTEAWin32C settingsPtr eventEnqueuer)
             (const $ uninterruptibleMask_ Native.c_FinaliseTEAWin32C)
-            $ \initialiseSuccess -> do
-                when initialiseSuccess $ do
+            $ \case
+                False ->
+                    liftIO Native.c_StartErrorReporter
+
+                True -> do
                     initModel <- init
 
                     let update' (Msg msg) (Model model) =
@@ -103,4 +106,4 @@ runTEAWin32 settings init update view =
 
                     void $ forkOS (evalStateT mainLoop internalState)
 
-                liftIO Native.c_StartWin32MessageLoop
+                    liftIO Native.c_StartWin32MessageLoop

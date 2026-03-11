@@ -6,6 +6,7 @@ module TEAWin32.Core.Native
     , c_FinaliseTEAWin32C
     , c_RequestRender
     , c_StartWin32MessageLoop
+    , c_StartErrorReporter
     ) where
 
 import           Data.Text           (Text)
@@ -35,3 +36,5 @@ foreign import ccall unsafe "RequestRender"
 foreign import ccall "StartWin32MessageLoop"
     c_StartWin32MessageLoop :: IO ()
 
+foreign import ccall "StartErrorReporter"
+    c_StartErrorReporter :: IO ()

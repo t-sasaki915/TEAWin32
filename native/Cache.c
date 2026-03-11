@@ -1,6 +1,6 @@
 #include "Cache.h"
 #include "DPIAware.h"
-#include "Event.h"
+#include "Error.h"
 #include "TEAWin32.h"
 
 #include <stdio.h> // IWYU pragma: keep
@@ -63,7 +63,7 @@ BOOL GetCachedClassName(LPCWSTR className, void *resultPtr)
 
     if (CLASS_CACHE_COUNT >= CLASS_CACHE_MAX)
     {
-        NotifyFatalError(L"CLASS_CACHE Overflow", L"CreateTEAWin32WindowClassName (Cache.c)");
+        TEAWIN32_ERROR(L"CLASS_CACHE Overflow");
         return FALSE;
     }
 
@@ -80,7 +80,8 @@ BOOL GetCachedClassName(LPCWSTR className, void *resultPtr)
 
     if (!RegisterClassExW(&wndClass))
     {
-        NotifyFatalError(L"RegisterClassExW Failed", L"CreateTEAWin32WindowClassName (Cache.c)");
+        WIN32_ERROR(L"RegisterClassExW Failed");
+
         return FALSE;
     }
 
@@ -129,7 +130,7 @@ BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr)
 
     if (FONT_CACHE_COUNT >= FONT_CACHE_MAX)
     {
-        NotifyFatalError(L"FONT_CACHE Overflow", L"GetCachedFont (Cache.c)");
+        TEAWIN32_ERROR(L"FONT_CACHE Overflow");
         return FALSE;
     }
 
@@ -153,7 +154,8 @@ BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr)
 
     if (newFont == NULL)
     {
-        NotifyFatalError(L"CreateFontW Failed", L"GetCachedFont (Cache.c)");
+        WIN32_ERROR(L"CreateFontW Failed");
+
         return FALSE;
     }
 
@@ -223,7 +225,7 @@ BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
 
     if (CURSOR_CACHE_COUNT >= CURSOR_CACHE_MAX)
     {
-        NotifyFatalError(L"CURSOR_CACHE Overflow", L"GetCachedCursor (Cache.c)");
+        TEAWIN32_ERROR(L"CURSOR_CACHE Overflow");
         return FALSE;
     }
 
@@ -239,7 +241,8 @@ BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
             free((void *)permanentNameOrId);
         }
 
-        NotifyFatalError(L"LoadCursorW Failed", L"GetCachedCursor (Cache.c)");
+        WIN32_ERROR(L"LoadCursorW Failed");
+
         return FALSE;
     }
 
@@ -330,7 +333,7 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
 
     if (ICON_CACHE_COUNT >= ICON_CACHE_MAX)
     {
-        NotifyFatalError(L"ICON_CACHE Overflow", L"GetCachedIcon (Cache.c)");
+        TEAWIN32_ERROR(L"ICON_CACHE Overflow");
         return FALSE;
     }
 
@@ -343,7 +346,7 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
 
         if (newIcon == NULL)
         {
-            NotifyFatalError(L"GetHighDPIIcon Failed", L"GetCachedIcon (Cache.c)");
+            WIN32_ERROR(L"GetHighDPIIcon Failed");
             return FALSE;
         }
     }
@@ -357,7 +360,7 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
         {
             free((void *)permanentResourceId);
 
-            NotifyFatalError(L"LoadIconW Failed", L"GetCachedIcon (Cache.c)");
+            WIN32_ERROR(L"LoadIconW Failed");
             return FALSE;
         }
     }

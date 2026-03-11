@@ -113,6 +113,12 @@ void ReportError(ErrorListEntry *errorListEntry)
 
             break;
         }
+        case ERROR_TYPE_FATAL_MEMORY: {
+            break;
+        }
+        case ERROR_TYPE_TEAWIN32: {
+            break;
+        }
     }
 
     TEAWIN32_ERROR_LIST_COUNT++;
@@ -161,6 +167,16 @@ void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry, BOOL isFirstEntry)
 
             break;
         }
+        case ERROR_TYPE_FATAL_MEMORY: {
+            errorTypeText = L"Fatal Memory Error";
+
+            break;
+        }
+        case ERROR_TYPE_TEAWIN32: {
+            errorTypeText = L"TEAWin32 Error";
+
+            break;
+        }
     }
 
     p += swprintf(
@@ -176,6 +192,12 @@ void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry, BOOL isFirstEntry)
         case ERROR_TYPE_WIN32: {
             p += swprintf(p, 2048, L"GetLastError() = %lu", entry->errorExtraInfo.lastWin32ErrorCode);
 
+            break;
+        }
+        case ERROR_TYPE_FATAL_MEMORY: {
+            break;
+        }
+        case ERROR_TYPE_TEAWIN32: {
             break;
         }
     }

@@ -30,6 +30,4 @@ void InitialiseEvent(PEVENTENQUEUER eventEnqueuer);
 
 void QueueEvent(EventQueueEntry *newEvent);
 
-void NotifyFatalError(LPCWSTR errorType, LPCWSTR errorLocation);
-
 #endif

@@ -1,7 +1,7 @@
 #include "VirtualDOM.h"
 #include "Cache.h"
 #include "DPIAware.h"
-#include "Event.h"
+#include "Error.h"
 #include "Registry.h"
 #include "TEAWin32.h"
 
@@ -79,7 +79,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
 
             if (newWindow == NULL)
             {
-                NotifyFatalError(L"CreateWindowExW failed.", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                WIN32_ERROR(L"CreateWindowExW failed.");
                 return FALSE;
             }
 
@@ -124,7 +124,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
 
             if (newButton == NULL)
             {
-                NotifyFatalError(L"CreateWindowW failed.", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                WIN32_ERROR(L"CreateWindowW failed.");
                 return FALSE;
             }
 
@@ -142,7 +142,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_UPDATE_TEXT: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -159,7 +159,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_UPDATE_POS: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -214,7 +214,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
 
                 if (hdwp == NULL)
                 {
-                    NotifyFatalError(L"BeginDeferWindowPos failed", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                    WIN32_ERROR(L"BeginDeferWindowPos failed");
                     return FALSE;
                 }
 
@@ -241,7 +241,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_UPDATE_FONT: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -277,7 +277,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_UPDATE_ICON: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -335,7 +335,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_UPDATE_CURSOR: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -371,7 +371,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_UPDATE_BACKGROUND_COLOUR: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -397,7 +397,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
         case RENDER_PROC_TYPE_DESTROY_COMPONENT: {
             if (targetHWND == NULL)
             {
-                NotifyFatalError(L"targetHWND was NULL", L"ExecuteRenderProcedure (VirtualDOM.c)");
+                TEAWIN32_ERROR(L"targetHWND was NULL");
                 return FALSE;
             }
 
@@ -419,7 +419,7 @@ void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount)
 
     if (deferWindowPosContexts == NULL)
     {
-        NotifyFatalError(L"deferWindowPosContexts malloc Failed", L"ExecuteRenderProcedures (VirtualDOM.c)");
+        FATAL_MEMORY_ERROR(L"deferWindowPosContexts malloc Failed");
         return;
     }
 
@@ -430,7 +430,7 @@ void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount)
     {
         free(deferWindowPosContexts);
 
-        NotifyFatalError(L"hwndsPendingToShow malloc Failed", L"ExecuteRenderProcedures (VirtualDOM.c)");
+        FATAL_MEMORY_ERROR(L"hwndsPendingToShow malloc Failed");
         return;
     }
 
@@ -491,7 +491,7 @@ void RequestRender(RenderProcedure *procedures, int procedureCount)
     RenderProcedure *permanentProcedures = (RenderProcedure *)malloc(size);
     if (permanentProcedures == NULL)
     {
-        NotifyFatalError(L"malloc Failed.", L"RequestRender (VirtualDOM.c)");
+        FATAL_MEMORY_ERROR(L"malloc Failed.");
         return;
     }
 
@@ -502,7 +502,7 @@ void RequestRender(RenderProcedure *procedures, int procedureCount)
     if (!PostMessageW(TEAWIN32_MANAGEMENT_HWND, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam))
     {
         free(permanentProcedures);
-        NotifyFatalError(L"Failed to post WM_TEAWIN32_RENDER_REQUEST", L"RenderRequest (VirtualDOM.c)");
+        WIN32_ERROR(L"Failed to post WM_TEAWIN32_RENDER_REQUEST");
         return;
     }
 

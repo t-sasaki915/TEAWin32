@@ -1,6 +1,6 @@
 #include "Registry.h"
 #include "DPIAware.h"
-#include "Event.h"
+#include "Error.h"
 #include "TEAWin32.h"
 
 #include <stdio.h> // IWYU pragma: keep
@@ -22,7 +22,7 @@ BOOL CalculatePageIdxAndOffset(int uniqueId, int *pageIdxPtr, int *offsetPtr, Un
 {
     if (uniqueId == 0)
     {
-        NotifyFatalError(L"UniqueId 0 is given.", L"CalculatePageIdxAndOffset (Registry.c)");
+        TEAWIN32_ERROR(L"UniqueId 0 is given.");
         return FALSE;
     }
 
@@ -32,7 +32,7 @@ BOOL CalculatePageIdxAndOffset(int uniqueId, int *pageIdxPtr, int *offsetPtr, Un
 
     if (pageIdx >= UNIQUEID_HWND_MAP_PAGE_MAX)
     {
-        NotifyFatalError(L"UNIQUEID_HWND_MAP_PAGE_TABLE Overflow.", L"CalculatePageIdxAndOffset (Registry.c)");
+        TEAWIN32_ERROR(L"UNIQUEID_HWND_MAP_PAGE_TABLE Overflow.");
 
         return FALSE;
     }
@@ -67,7 +67,7 @@ BOOL GetHWNDFromUniqueId(int uniqueId, HWND *resultPtr)
 
     if (page == NULL)
     {
-        NotifyFatalError(L"Page was NULL.", L"GetHWNDFromUniqueId (Registry.c)");
+        TEAWIN32_ERROR(L"Page was NULL.");
 
         return FALSE;
     }
@@ -96,7 +96,7 @@ BOOL RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
 
         if (pageTable[pageIdx] == NULL)
         {
-            NotifyFatalError(L"calloc Failed", L"RegisterHWNDToRegistry (Registry.c)");
+            FATAL_MEMORY_ERROR(L"calloc Failed");
             return FALSE;
         }
     }
@@ -124,7 +124,7 @@ BOOL GetHWNDRegistryEntry(HWND hwnd, HWNDRegistryEntry **resultPtr)
 
     if (userData == 0)
     {
-        NotifyFatalError(L"GetWindowLongPtrW GWLP_USERDATA returned 0", L"GetHWNDRegistryEntry (Registry.c)");
+        TEAWIN32_ERROR(L"GetWindowLongPtrW GWLP_USERDATA returned 0");
         return FALSE;
     }
 
