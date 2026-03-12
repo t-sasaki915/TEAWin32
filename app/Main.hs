@@ -63,7 +63,7 @@ view model = do
 
     window_' "TEAWin32-SubSubSubSubSub" "TEAWin32-SubSubSubSubSub" WindowStyleNormal
         (do { title_ "!?"; icon_ IconDriveRAM; size_ (400, 200); pos_ (200, 0) }) $
-            button_ (do { title_ "!?!?"; size_ (100, 50); pos_ (0, 0){-; onClick_ ButtonClicked-} })
+            button_ (do { title_ "!?!?"; size_ (100, 50); pos_ (0, 0); onClick_ ButtonClicked })
 
     window_' "TEAWin32-Main" "TEAWin32-Main" WindowStyleNormal
         ( do
@@ -74,7 +74,7 @@ view model = do
             when isCountEven $
                 cursor_ CursorIBeam
         ) $ do
-            button_ (do { title_ "TEST BUTTON"; size_ (100, 50); pos_ (0, 0){-; onClick_ ButtonClicked-} })
+            button_ (do { title_ "TEST BUTTON"; size_ (100, 50); pos_ (0, 0); onClick_ ButtonClicked })
 
             window_ "TEAWin32-Sub" WindowStyleNormalChild
                 ( do
@@ -87,7 +87,7 @@ view model = do
                 ) $ do
                     button_ (do { title_ ("Click Count 2: " <> Text.show (clickedCount model)); size_ (150, 100); pos_ (20, 50) })
 
-                    button_ (do { title_ "!?"; size_ (50, 50); pos_ (100, 150){-; onClick_ ButtonClicked2-}{-; font_ SystemFont-} })
+                    button_ (do { title_ "!?"; size_ (50, 50); pos_ (100, 150); onClick_ ButtonClicked2{-; font_ SystemFont-} })
 
                     button_
                         (do { title_ "おはようございます"; size_ (200, 50); pos_ (300, 0); font_ (if isCountEven then Font "Meiryo" 24 else Font "Meiryo" 9) })

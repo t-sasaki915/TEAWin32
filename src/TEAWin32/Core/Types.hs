@@ -42,6 +42,7 @@ module TEAWin32.Core.Types
     , ComponentIcon (..)
     , ComponentCursor (..)
     , ComponentBackgroundColour (..)
+    , ComponentOnClick (..)
     , IsPropertyWrapper (..)
     , WindowProperty (..)
     , IsWindowProperty
@@ -67,6 +68,15 @@ type LPCWSTR       = Ptr CWchar
 
 data Model = forall a. Typeable a => Model a
 data Msg = forall a. (Typeable a, Eq a, Show a) => Msg a
+
+instance Show Msg where
+    show (Msg a) = "Msg " <> show a
+
+instance Eq Msg where
+    (Msg a) == (Msg b) =
+        case cast b of
+            Just b' -> a == b'
+            Nothing -> False
 
 data InternalState = InternalState
     { eventQueue              :: TQueue EventQueueEntry
@@ -276,6 +286,8 @@ data RenderProcedure = CreateWindow                 Text WindowStyle (Maybe Uniq
                      | SetComponentCursor           Cursor
                      | SetComponentBackgroundColour Colour
                      | DestroyComponent
+                     | SetComponentClickEvent       Msg
+                     | UnsetComponentClickEvent
                      deriving (Show, Eq)
 
 class IsChildWrapper a b where
@@ -329,6 +341,7 @@ data ComponentFont             = ComponentFont             deriving (Show, Eq)
 data ComponentIcon             = ComponentIcon             deriving (Show, Eq)
 data ComponentCursor           = ComponentCursor           deriving (Show, Eq)
 data ComponentBackgroundColour = ComponentBackgroundColour deriving (Show, Eq)
+data ComponentOnClick          = ComponentOnClick          deriving (Show, Eq)
 
 class IsPropertyWrapper a b where
     wrapProperty :: b -> a
@@ -373,6 +386,7 @@ instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize
 instance IsButtonProperty ComponentPosition
 instance IsButtonProperty ComponentFont
+instance IsButtonProperty ComponentOnClick
 
 instance (Typeable a, Show a, Eq a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
     wrapProperty = ButtonProperty

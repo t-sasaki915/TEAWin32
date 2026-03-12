@@ -18,6 +18,7 @@ module TEAWin32
     , icon_
     , cursor_
     , bgColour_
+    , onClick_
     , window_'
     , window_
     , button_'

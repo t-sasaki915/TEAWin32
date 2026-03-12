@@ -407,6 +407,28 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
 
             return TRUE;
         }
+        case RENDER_PROC_TYPE_SET_COMPONENT_CLICK_EVENT: {
+            if (targetHWND == NULL)
+            {
+                TEAWIN32_ERROR(L"targetHWND was NULL");
+                return FALSE;
+            }
+
+            // TODO
+
+            return TRUE;
+        }
+        case RENDER_PROC_TYPE_UNSET_COMPONENT_CLICK_EVENT: {
+            if (targetHWND == NULL)
+            {
+                TEAWIN32_ERROR(L"targetHWND was NULL");
+                return FALSE;
+            }
+
+            // TODO
+
+            return TRUE;
+        }
     }
 }
 

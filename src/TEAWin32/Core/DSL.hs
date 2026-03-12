@@ -10,6 +10,7 @@ module TEAWin32.Core.DSL
     , icon_
     , cursor_
     , bgColour_
+    , onClick_
     , window_'
     , window_
     , button_'
@@ -20,6 +21,7 @@ import           Control.Monad.Reader        (ask, runReader)
 import           Control.Monad.State.Strict  (gets, lift, modify', runState,
                                               state)
 import           Control.Monad.Writer.Strict (execWriterT, tell)
+import           Data.Data                   (Typeable)
 import qualified Data.Map                    as Map
 import           Data.Maybe                  (fromJust)
 import           Data.Text                   (Text)
@@ -68,6 +70,11 @@ bgColour_ :: (IsPropertyWrapper a ComponentBackgroundColour) => Colour -> Proper
 bgColour_ colour =
     ask >>= \parentUid ->
         tell [(wrapProperty ComponentBackgroundColour, (parentUid, SetComponentBackgroundColour colour))]
+
+onClick_ :: (IsPropertyWrapper a ComponentOnClick, Typeable msg, Eq msg, Show msg) => msg -> PropertyDSL a ()
+onClick_ clickMsg =
+    ask >>= \parentUid ->
+        tell [(wrapProperty ComponentOnClick, (parentUid, SetComponentClickEvent (Msg clickMsg)))]
 
 window_' :: (IsChildWrapper a Window) => Text -> Text -> WindowStyle -> PropertyDSL WindowProperty () -> DSL WindowChild () -> DSL a ()
 window_' windowUniqueId windowClass windowStyle windowProperties windowChildren =

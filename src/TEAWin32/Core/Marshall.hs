@@ -150,6 +150,14 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_DESTROY_COMPONENT
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
 
+        (SetComponentClickEvent msg) -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_SET_COMPONENT_CLICK_EVENT
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
+        UnsetComponentClickEvent -> do
+            pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UNSET_COMPONENT_CLICK_EVENT
+            pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
 
 marshallWindowStyle :: WindowStyle -> (Word32, Word32)
 marshallWindowStyle WindowStyleBorderless      = (0, Native.const_WS_POPUP)
