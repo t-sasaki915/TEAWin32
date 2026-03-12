@@ -12,8 +12,8 @@ import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.State.Strict (StateT, evalStateT, get, gets,
                                              modify')
 import           Data.Data                  (Typeable, cast)
-import           Foreign                    (FunPtr, Ptr, freeHaskellFunPtr,
-                                             nullPtr, peek, with)
+import           Foreign                    (FunPtr, freeHaskellFunPtr, nullPtr,
+                                             peekArray, with)
 import           Prelude                    hiding (init)
 import           TEAWin32.Core.DSL          (runDSL)
 import           TEAWin32.Core.Marshall     (dispatchRenderProcedures)
@@ -59,14 +59,14 @@ mainLoop = do
         liftIO (threadDelay 16000)
         mainLoop
 
-withEventEnqueuer :: ((TQueue EventQueueEntry, FunPtr (Ptr EventQueueEntry -> IO ())) -> IO a) -> IO a
+withEventEnqueuer :: ((TQueue EventQueueEntry, FunPtr EventEnqueuer) -> IO a) -> IO a
 withEventEnqueuer func = do
     evtQueue <- newTQueueIO
 
-    let enqueuer entryPtr =
-            unless (entryPtr == nullPtr) $
-                peek entryPtr >>=
-                    atomically . writeTQueue evtQueue
+    let enqueuer entriesPtr entryCount =
+            unless (entriesPtr == nullPtr) $
+                peekArray entryCount entriesPtr >>=
+                    atomically . mapM_ (writeTQueue evtQueue)
 
     bracket (Native.makeEventEnqueuerFunPtr enqueuer)
             freeHaskellFunPtr

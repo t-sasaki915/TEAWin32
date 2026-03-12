@@ -13,9 +13,14 @@ void InitialiseEvent(PEVENTENQUEUER eventEnqueuerPtr)
     DEBUG_LOG(L"Event Enqueuer initialised.");
 }
 
-void QueueEvent(EventQueueEntry *newEvent)
+void QueueEvents(EventQueueEntry *newEvents, int eventCount)
 {
-    EVENT_ENQUEUER_PTR(newEvent);
+    EVENT_ENQUEUER_PTR(newEvents, eventCount);
 
-    DEBUG_LOG(L"Event Queued. Event Type: %d", newEvent->eventType);
+#ifdef TEAWIN32_DEBUG_MODE
+    for (int i = 0; i < eventCount; i++)
+    {
+        DEBUG_LOG(L"Event Queued. Event Type: %d", newEvents[i].eventType);
+    }
+#endif
 }

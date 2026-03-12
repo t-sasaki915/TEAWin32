@@ -14,10 +14,10 @@ typedef struct
     EventType eventType;
 } EventQueueEntry;
 
-typedef void (*PEVENTENQUEUER)(const EventQueueEntry *);
+typedef void (*PEVENTENQUEUER)(const EventQueueEntry *, int);
 
 void InitialiseEvent(PEVENTENQUEUER eventEnqueuer);
 
-void QueueEvent(EventQueueEntry *newEvent);
+void QueueEvents(EventQueueEntry *newEvents, int eventCount);
 
 #endif

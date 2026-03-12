@@ -78,7 +78,7 @@ data InternalState = InternalState
     , currentModel            :: Model
     }
 
-type EventEnqueuer = Ptr EventQueueEntry -> IO ()
+type EventEnqueuer = Ptr EventQueueEntry -> Int -> IO ()
 
 data EventQueueEntry = InitialRenderEvent
                      | StopMainLoopEvent

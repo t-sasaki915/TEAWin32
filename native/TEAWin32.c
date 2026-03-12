@@ -93,7 +93,7 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
     EventQueueEntry initRenderEvent;
     ZeroMemory(&initRenderEvent, sizeof(initRenderEvent));
     initRenderEvent.eventType = EVENT_TYPE_INITIAL_RENDER;
-    QueueEvent(&initRenderEvent);
+    QueueEvents(&initRenderEvent, 1);
 
     DEBUG_LOG(L"Initialised TEAWin32C.");
 
@@ -217,7 +217,7 @@ void StartWin32MessageLoop(void)
         EventQueueEntry mainLoopStopEvent;
         ZeroMemory(&mainLoopStopEvent, sizeof(mainLoopStopEvent));
         mainLoopStopEvent.eventType = EVENT_TYPE_STOP_MAINLOOP;
-        QueueEvent(&mainLoopStopEvent);
+        QueueEvents(&mainLoopStopEvent, 1);
 
         DEBUG_LOG(L"Starting ErrorReporter.");
 
