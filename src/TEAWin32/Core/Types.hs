@@ -359,15 +359,15 @@ instance Eq WindowProperty where
 
 class IsWindowProperty a
 
+instance (Typeable a, Show a, Eq a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
+    wrapProperty = WindowProperty
+
 instance IsWindowProperty ComponentTitle
 instance IsWindowProperty ComponentSize
 instance IsWindowProperty ComponentPosition
 instance IsWindowProperty ComponentIcon
 instance IsWindowProperty ComponentCursor
 instance IsWindowProperty ComponentBackgroundColour
-
-instance (Typeable a, Show a, Eq a, IsWindowProperty a) => IsPropertyWrapper WindowProperty a where
-    wrapProperty = WindowProperty
 
 data ButtonProperty = forall a. (Typeable a, Show a, Eq a, IsButtonProperty a) => ButtonProperty a
 
@@ -382,11 +382,11 @@ instance Eq ButtonProperty where
 
 class IsButtonProperty a
 
+instance (Typeable a, Show a, Eq a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
+    wrapProperty = ButtonProperty
+
 instance IsButtonProperty ComponentTitle
 instance IsButtonProperty ComponentSize
 instance IsButtonProperty ComponentPosition
 instance IsButtonProperty ComponentFont
 instance IsButtonProperty ComponentOnClick
-
-instance (Typeable a, Show a, Eq a, IsButtonProperty a) => IsPropertyWrapper ButtonProperty a where
-    wrapProperty = ButtonProperty
