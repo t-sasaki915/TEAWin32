@@ -226,6 +226,11 @@ void StartErrorReporterFallback(void)
     swprintf(mainText, TEAWIN32_ERROR_LIST_COUNT * 2048, L"%ls\r\n\r\n%ls", ERROR_REPORTER_MAIN_TEXT, FULL_ERROR_LOG);
 
     MessageBoxW(NULL, mainText, ERROR_REPORTER_WINDOW_TITLE, MB_TASKMODAL | MB_OK | MB_ICONERROR);
+
+    if (FULL_ERROR_LOG != NULL)
+    {
+        free(FULL_ERROR_LOG);
+    }
 }
 
 void DesignErrorReporter(BOOL setMainWindowPos)
