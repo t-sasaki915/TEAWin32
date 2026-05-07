@@ -4,18 +4,18 @@
 #include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
-static PEVENTENQUEUER EVENT_ENQUEUER_PTR;
+static PEVENTENQUEUER g_eventEnqueuerPtr;
 
 void InitialiseEvent(PEVENTENQUEUER eventEnqueuerPtr)
 {
-    EVENT_ENQUEUER_PTR = eventEnqueuerPtr;
+    g_eventEnqueuerPtr = eventEnqueuerPtr;
 
     DEBUG_LOG(L"Event Enqueuer initialised.");
 }
 
 void QueueEvents(EventQueueEntry *newEvents, int eventCount)
 {
-    EVENT_ENQUEUER_PTR(newEvents, eventCount);
+    g_eventEnqueuerPtr(newEvents, eventCount);
 
 #ifdef TEAWIN32_DEBUG_MODE
     for (int i = 0; i < eventCount; i++)

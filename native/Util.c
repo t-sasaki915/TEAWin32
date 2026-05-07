@@ -8,7 +8,7 @@ BOOL CALLBACK MakeWindowTaskModalCallback(HWND hwnd, LPARAM lParam)
 {
     DWORD pid;
     GetWindowThreadProcessId(hwnd, &pid);
-    if (pid == TEAWIN32_INSTANCE_PID && hwnd != (HWND)lParam)
+    if (pid == g_teaWin32InstancePid && hwnd != (HWND)lParam)
     {
         EnableWindow(hwnd, FALSE);
     }

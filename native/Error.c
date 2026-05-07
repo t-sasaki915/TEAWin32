@@ -7,9 +7,9 @@
 
 #define TEAWIN32_ERROR_LIST_MAX 100
 
-static ErrorListEntry TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_MAX];
-static int TEAWIN32_ERROR_LIST_COUNT = 0;
-static volatile LONG TEAWIN32_ERROR_LIST_LOCK = 0;
+static ErrorListEntry g_teaWin32ErrorList[TEAWIN32_ERROR_LIST_MAX];
+static int g_teaWin32ErrorListCount = 0;
+static volatile LONG g_teaWin32ErrorListLock = 0;
 
 #define ERROR_REPORTER_CLASS_NAME L"TEAWin32-ErrorReporter"
 
@@ -61,39 +61,39 @@ static volatile LONG TEAWIN32_ERROR_LIST_LOCK = 0;
 #define SHORT_ERROR_MESSAGE_TEXT_Y 24
 #define SHORT_ERROR_MESSAGE_TEXT_COLOUR RGB(0, 0, 0)
 
-#define SCALE(x) ResolvePixel_(x, DPI)
+#define SCALE(x) ResolvePixel_(x, g_dpi)
 
-static int DPI;
+static int g_dpi;
 
-static HICON ERROR_ICON;
-static HFONT UI_FONT;
-static HFONT EDITOR_FONT;
+static HICON g_errorIcon;
+static HFONT g_uiFont;
+static HFONT g_editorFont;
 
-static HWND ERROR_REPORTER_WINDOW;
-static HWND CLOSE_BUTTON;
-static HWND COPY_BUTTON;
-static HWND DETAIL_BUTTON;
-static HWND DETAIL_BOX;
+static HWND g_errorReporterWindow;
+static HWND g_closeButton;
+static HWND g_copyButton;
+static HWND g_detailButton;
+static HWND g_detailBox;
 
-static BOOL IS_DETAIL_VISIBLE = FALSE;
+static BOOL g_isDetailVisible = FALSE;
 
-static wchar_t *FULL_ERROR_LOG;
+static wchar_t *g_fullErrorLog;
 
 BOOL CheckErrorList(void)
 {
-    return TEAWIN32_ERROR_LIST_COUNT == 0;
+    return g_teaWin32ErrorListCount == 0;
 }
 
 void ReportError(ErrorListEntry *errorListEntry)
 {
-    if (TEAWIN32_ERROR_LIST_COUNT >= TEAWIN32_ERROR_LIST_MAX)
+    if (g_teaWin32ErrorListCount >= TEAWIN32_ERROR_LIST_MAX)
     {
         DEBUG_LOG(L"TEAWIN32_ERROR_LIST Overflow.");
 
         return;
     }
 
-    while (InterlockedCompareExchange(&TEAWIN32_ERROR_LIST_LOCK, 1, 0) != 0)
+    while (InterlockedCompareExchange(&g_teaWin32ErrorListLock, 1, 0) != 0)
     {
         YieldProcessor();
     }
@@ -101,14 +101,14 @@ void ReportError(ErrorListEntry *errorListEntry)
     LPCWSTR permanentErrorDescription = _wcsdup(errorListEntry->errorDescription);
     LPCWSTR permanentErrorLocation = _wcsdup(errorListEntry->errorLocation);
 
-    TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorType = errorListEntry->errorType;
-    TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorDescription = permanentErrorDescription;
-    TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorLocation = permanentErrorLocation;
+    g_teaWin32ErrorList[g_teaWin32ErrorListCount].errorType = errorListEntry->errorType;
+    g_teaWin32ErrorList[g_teaWin32ErrorListCount].errorDescription = permanentErrorDescription;
+    g_teaWin32ErrorList[g_teaWin32ErrorListCount].errorLocation = permanentErrorLocation;
 
     switch (errorListEntry->errorType)
     {
         case ERROR_TYPE_WIN32: {
-            TEAWIN32_ERROR_LIST[TEAWIN32_ERROR_LIST_COUNT].errorExtraInfo.lastWin32ErrorCode =
+            g_teaWin32ErrorList[g_teaWin32ErrorListCount].errorExtraInfo.lastWin32ErrorCode =
                 errorListEntry->errorExtraInfo.lastWin32ErrorCode;
 
             break;
@@ -121,9 +121,9 @@ void ReportError(ErrorListEntry *errorListEntry)
         }
     }
 
-    TEAWIN32_ERROR_LIST_COUNT++;
+    g_teaWin32ErrorListCount++;
 
-    InterlockedExchange(&TEAWIN32_ERROR_LIST_LOCK, 0);
+    InterlockedExchange(&g_teaWin32ErrorListLock, 0);
 
     DEBUG_LOG(
         L"An error has been reported. Description: %ls, Location: %ls.",
@@ -135,9 +135,9 @@ void FinaliseErrorList(void)
 {
     DEBUG_LOG(L"Finalising ERROR_LIST.");
 
-    for (int i = 0; i < TEAWIN32_ERROR_LIST_COUNT; i++)
+    for (int i = 0; i < g_teaWin32ErrorListCount; i++)
     {
-        ErrorListEntry entry = TEAWIN32_ERROR_LIST[i];
+        ErrorListEntry entry = g_teaWin32ErrorList[i];
 
         DEBUG_LOG(L"Releasing LPCWSTRs of error %ls", entry.errorDescription);
 
@@ -145,7 +145,7 @@ void FinaliseErrorList(void)
         free((void *)entry.errorLocation);
     }
 
-    TEAWIN32_ERROR_LIST_COUNT = 0;
+    g_teaWin32ErrorListCount = 0;
 
     DEBUG_LOG(L"Finalised ERROR_LIST.");
 }
@@ -209,36 +209,36 @@ void CreateErrorLog(wchar_t **pPtr, ErrorListEntry *entry, BOOL isFirstEntry)
 
 void CreateFullErrorLog(void)
 {
-    FULL_ERROR_LOG = calloc(TEAWIN32_ERROR_LIST_COUNT * 2048, sizeof(wchar_t));
+    g_fullErrorLog = calloc(g_teaWin32ErrorListCount * 2048, sizeof(wchar_t));
 
-    wchar_t *p = FULL_ERROR_LOG;
+    wchar_t *p = g_fullErrorLog;
 
-    for (int i = 0; i < TEAWIN32_ERROR_LIST_COUNT; i++)
+    for (int i = 0; i < g_teaWin32ErrorListCount; i++)
     {
         BOOL isFirstEntry = i == 0;
-        CreateErrorLog(&p, &TEAWIN32_ERROR_LIST[i], isFirstEntry);
+        CreateErrorLog(&p, &g_teaWin32ErrorList[i], isFirstEntry);
     }
 }
 
 void StartErrorReporterFallback(void)
 {
-    wchar_t mainText[TEAWIN32_ERROR_LIST_COUNT * 2048];
-    swprintf(mainText, TEAWIN32_ERROR_LIST_COUNT * 2048, L"%ls\r\n\r\n%ls", ERROR_REPORTER_MAIN_TEXT, FULL_ERROR_LOG);
+    wchar_t mainText[g_teaWin32ErrorListCount * 2048];
+    swprintf(mainText, g_teaWin32ErrorListCount * 2048, L"%ls\r\n\r\n%ls", ERROR_REPORTER_MAIN_TEXT, g_fullErrorLog);
 
     MessageBoxW(NULL, mainText, ERROR_REPORTER_WINDOW_TITLE, MB_TASKMODAL | MB_OK | MB_ICONERROR);
 
-    if (FULL_ERROR_LOG != NULL)
+    if (g_fullErrorLog != NULL)
     {
-        free(FULL_ERROR_LOG);
+        free(g_fullErrorLog);
     }
 }
 
 void DesignErrorReporter(BOOL setMainWindowPos)
 {
-    DPI = GetDPI(ERROR_REPORTER_WINDOW);
+    g_dpi = GetDPI(g_errorReporterWindow);
 
-    UI_FONT = CreateFontW(
-        ResolvePoint_(UI_FONT_SIZE, DPI),
+    g_uiFont = CreateFontW(
+        ResolvePoint_(UI_FONT_SIZE, g_dpi),
         0,
         0,
         0,
@@ -252,8 +252,8 @@ void DesignErrorReporter(BOOL setMainWindowPos)
         CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE,
         UI_FONT_NAME);
-    EDITOR_FONT = CreateFontW(
-        ResolvePoint_(EDITOR_FONT_SIZE, DPI),
+    g_editorFont = CreateFontW(
+        ResolvePoint_(EDITOR_FONT_SIZE, g_dpi),
         0,
         0,
         0,
@@ -268,15 +268,15 @@ void DesignErrorReporter(BOOL setMainWindowPos)
         DEFAULT_PITCH | FF_DONTCARE,
         EDITOR_FONT_NAME);
 
-    SendMessageW(CLOSE_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
-    SendMessageW(COPY_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
-    SendMessageW(DETAIL_BUTTON, WM_SETFONT, (WPARAM)UI_FONT, 1);
-    SendMessageW(DETAIL_BOX, WM_SETFONT, (WPARAM)EDITOR_FONT, 1);
+    SendMessageW(g_closeButton, WM_SETFONT, (WPARAM)g_uiFont, 1);
+    SendMessageW(g_copyButton, WM_SETFONT, (WPARAM)g_uiFont, 1);
+    SendMessageW(g_detailButton, WM_SETFONT, (WPARAM)g_uiFont, 1);
+    SendMessageW(g_detailBox, WM_SETFONT, (WPARAM)g_editorFont, 1);
 
     if (setMainWindowPos)
     {
         SetWindowPos(
-            ERROR_REPORTER_WINDOW,
+            g_errorReporterWindow,
             NULL,
             0,
             0,
@@ -286,7 +286,7 @@ void DesignErrorReporter(BOOL setMainWindowPos)
     }
 
     SetWindowPos(
-        CLOSE_BUTTON,
+        g_closeButton,
         NULL,
         SCALE(CLOSE_BUTTON_X),
         SCALE(CLOSE_BUTTON_Y),
@@ -294,7 +294,7 @@ void DesignErrorReporter(BOOL setMainWindowPos)
         SCALE(CLOSE_BUTTON_HEIGHT),
         SWP_NOZORDER);
     SetWindowPos(
-        COPY_BUTTON,
+        g_copyButton,
         NULL,
         SCALE(COPY_BUTTON_X),
         SCALE(COPY_BUTTON_Y),
@@ -302,7 +302,7 @@ void DesignErrorReporter(BOOL setMainWindowPos)
         SCALE(COPY_BUTTON_HEIGHT),
         SWP_NOZORDER);
     SetWindowPos(
-        DETAIL_BUTTON,
+        g_detailButton,
         NULL,
         SCALE(DETAIL_BUTTON_X),
         SCALE(DETAIL_BUTTON_Y),
@@ -310,7 +310,7 @@ void DesignErrorReporter(BOOL setMainWindowPos)
         SCALE(DETAIL_BUTTON_HEIGHT),
         SWP_NOZORDER);
     SetWindowPos(
-        DETAIL_BOX,
+        g_detailBox,
         NULL,
         SCALE(DETAIL_BOX_X),
         SCALE(DETAIL_BOX_Y),
@@ -339,14 +339,14 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                 hdc,
                 SCALE(ERROR_ICON_X),
                 SCALE(ERROR_ICON_Y),
-                ERROR_ICON,
+                g_errorIcon,
                 SCALE(ERROR_ICON_WIDTH),
                 SCALE(ERROR_ICON_HEIGHT),
                 0,
                 NULL,
                 DI_NORMAL);
 
-            HFONT oldFont = SelectObject(hdc, UI_FONT);
+            HFONT oldFont = SelectObject(hdc, g_uiFont);
 
             SetTextColor(hdc, SHORT_ERROR_MESSAGE_TEXT_COLOUR);
             SetBkMode(hdc, 1);
@@ -375,7 +375,7 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                 }
 
                 case COPY_BUTTON_ID: {
-                    int msgSize = (wcslen(FULL_ERROR_LOG) + 1) * sizeof(wchar_t);
+                    int msgSize = (wcslen(g_fullErrorLog) + 1) * sizeof(wchar_t);
 
                     HGLOBAL hndl = GlobalAlloc(GMEM_MOVEABLE, msgSize);
 
@@ -384,7 +384,7 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                         void *mem = GlobalLock(hndl);
                         if (mem != NULL)
                         {
-                            memcpy(mem, FULL_ERROR_LOG, msgSize);
+                            memcpy(mem, g_fullErrorLog, msgSize);
                             GlobalUnlock(hndl);
 
                             if (OpenClipboard(hwnd))
@@ -409,9 +409,9 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                 }
 
                 case DETAIL_BUTTON_ID: {
-                    if (IS_DETAIL_VISIBLE)
+                    if (g_isDetailVisible)
                     {
-                        SetWindowTextW(DETAIL_BUTTON, DETAIL_BUTTON_LABEL_EXPAND);
+                        SetWindowTextW(g_detailButton, DETAIL_BUTTON_LABEL_EXPAND);
 
                         SetWindowPos(
                             hwnd,
@@ -422,15 +422,15 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                             SCALE(ERROR_REPORTER_WINDOW_HEIGHT),
                             SWP_NOMOVE);
 
-                        ShowWindow(DETAIL_BOX, SW_HIDE);
+                        ShowWindow(g_detailBox, SW_HIDE);
 
-                        IS_DETAIL_VISIBLE = FALSE;
+                        g_isDetailVisible = FALSE;
 
                         return 0;
                     }
                     else
                     {
-                        SetWindowTextW(DETAIL_BUTTON, DETAIL_BUTTON_LABEL_COLLAPSE);
+                        SetWindowTextW(g_detailButton, DETAIL_BUTTON_LABEL_COLLAPSE);
 
                         SetWindowPos(
                             hwnd,
@@ -441,9 +441,9 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
                             SCALE(ERROR_REPORTER_WINDOW_HEIGHT_WITH_DETAIL_BOX),
                             SWP_NOMOVE);
 
-                        ShowWindow(DETAIL_BOX, SW_SHOW);
+                        ShowWindow(g_detailBox, SW_SHOW);
 
-                        IS_DETAIL_VISIBLE = TRUE;
+                        g_isDetailVisible = TRUE;
 
                         return 0;
                     }
@@ -463,11 +463,11 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
             LONG b = rect->bottom;
             SetWindowPos(hwnd, NULL, l, t, r - l, b - t, SWP_NOZORDER | SWP_NOACTIVATE);
 
-            DeleteObject(UI_FONT);
-            DeleteObject(EDITOR_FONT);
-            DestroyIcon(ERROR_ICON);
+            DeleteObject(g_uiFont);
+            DeleteObject(g_editorFont);
+            DestroyIcon(g_errorIcon);
 
-            ERROR_ICON = GetHighDPIIcon(SIID_ERROR);
+            g_errorIcon = GetHighDPIIcon(SIID_ERROR);
 
             DesignErrorReporter(FALSE);
 
@@ -486,9 +486,9 @@ void StartErrorReporter(void)
 {
     CreateFullErrorLog();
 
-    if (TEAWIN32_MAIN_INSTANCE == NULL)
+    if (g_teaWin32MainInstance == NULL)
     {
-        TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
+        g_teaWin32MainInstance = GetModuleHandleW(NULL);
     }
 
     if (!InitialiseDPIAwareFunctions())
@@ -499,8 +499,8 @@ void StartErrorReporter(void)
         return;
     }
 
-    ERROR_ICON = GetHighDPIIcon(SIID_ERROR);
-    if (ERROR_ICON == NULL)
+    g_errorIcon = GetHighDPIIcon(SIID_ERROR);
+    if (g_errorIcon == NULL)
     {
         DEBUG_LOG(L"GetHighDPIIcon failed. Fallback.");
 
@@ -515,8 +515,8 @@ void StartErrorReporter(void)
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = ERROR_REPORTER_CLASS_NAME;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
-    wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
-    wndClass.hIcon = ERROR_ICON;
+    wndClass.hInstance = g_teaWin32MainInstance;
+    wndClass.hIcon = g_errorIcon;
     wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wndClass.lpfnWndProc = ErrorReporterWndProc;
 
@@ -532,7 +532,7 @@ void StartErrorReporter(void)
 
     DEBUG_LOG(L"Creating UI elements.");
 
-    ERROR_REPORTER_WINDOW = CreateWindowExW(
+    g_errorReporterWindow = CreateWindowExW(
         WS_EX_TOPMOST | WS_EX_APPWINDOW,
         ERROR_REPORTER_CLASS_NAME,
         ERROR_REPORTER_WINDOW_TITLE,
@@ -543,10 +543,10 @@ void StartErrorReporter(void)
         0,
         NULL,
         NULL,
-        TEAWIN32_MAIN_INSTANCE,
+        g_teaWin32MainInstance,
         0);
 
-    if (ERROR_REPORTER_WINDOW == NULL)
+    if (g_errorReporterWindow == NULL)
     {
         DEBUG_LOG(L"ERROR_REPORTER_WINDOW CreateWindowExW failed. Fallback.");
 
@@ -554,7 +554,7 @@ void StartErrorReporter(void)
         return;
     }
 
-    CLOSE_BUTTON = CreateWindowW(
+    g_closeButton = CreateWindowW(
         L"BUTTON",
         CLOSE_BUTTON_LABEL,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
@@ -562,12 +562,12 @@ void StartErrorReporter(void)
         0,
         0,
         0,
-        ERROR_REPORTER_WINDOW,
+        g_errorReporterWindow,
         (HMENU)CLOSE_BUTTON_ID,
-        TEAWIN32_MAIN_INSTANCE,
+        g_teaWin32MainInstance,
         NULL);
 
-    if (CLOSE_BUTTON == NULL)
+    if (g_closeButton == NULL)
     {
         DEBUG_LOG(L"CLOSE_BUTTON CreateWindowW failed. Fallback.");
 
@@ -575,7 +575,7 @@ void StartErrorReporter(void)
         return;
     }
 
-    COPY_BUTTON = CreateWindowW(
+    g_copyButton = CreateWindowW(
         L"BUTTON",
         COPY_BUTTON_LABEL,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
@@ -583,12 +583,12 @@ void StartErrorReporter(void)
         0,
         0,
         0,
-        ERROR_REPORTER_WINDOW,
+        g_errorReporterWindow,
         (HMENU)COPY_BUTTON_ID,
-        TEAWIN32_MAIN_INSTANCE,
+        g_teaWin32MainInstance,
         NULL);
 
-    if (COPY_BUTTON == NULL)
+    if (g_copyButton == NULL)
     {
         DEBUG_LOG(L"COPY_BUTTON CreateWindowW failed. Fallback.");
 
@@ -596,7 +596,7 @@ void StartErrorReporter(void)
         return;
     }
 
-    DETAIL_BUTTON = CreateWindowW(
+    g_detailButton = CreateWindowW(
         L"BUTTON",
         DETAIL_BUTTON_LABEL_EXPAND,
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON | WS_CLIPSIBLINGS,
@@ -604,12 +604,12 @@ void StartErrorReporter(void)
         0,
         0,
         0,
-        ERROR_REPORTER_WINDOW,
+        g_errorReporterWindow,
         (HMENU)DETAIL_BUTTON_ID,
-        TEAWIN32_MAIN_INSTANCE,
+        g_teaWin32MainInstance,
         NULL);
 
-    if (DETAIL_BUTTON == NULL)
+    if (g_detailButton == NULL)
     {
         DEBUG_LOG(L"DETAIL_BUTTON CreateWindowW failed. Fallback.");
 
@@ -617,20 +617,20 @@ void StartErrorReporter(void)
         return;
     }
 
-    DETAIL_BOX = CreateWindowW(
+    g_detailBox = CreateWindowW(
         L"EDIT",
-        FULL_ERROR_LOG,
+        g_fullErrorLog,
         WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE | ES_READONLY,
         0,
         0,
         0,
         0,
-        ERROR_REPORTER_WINDOW,
+        g_errorReporterWindow,
         NULL,
-        TEAWIN32_MAIN_INSTANCE,
+        g_teaWin32MainInstance,
         NULL);
 
-    if (DETAIL_BOX == NULL)
+    if (g_detailBox == NULL)
     {
         DEBUG_LOG(L"DETAIL_BOX CreateWindowW failed. Fallback.");
 
@@ -644,14 +644,14 @@ void StartErrorReporter(void)
 
     DesignErrorReporter(TRUE);
 
-    ShowWindow(ERROR_REPORTER_WINDOW, SW_SHOWNORMAL);
-    UpdateWindow(ERROR_REPORTER_WINDOW);
+    ShowWindow(g_errorReporterWindow, SW_SHOWNORMAL);
+    UpdateWindow(g_errorReporterWindow);
 
     DEBUG_LOG(L"ErrorReporter MessageLoop Started.");
 
     MSG msg;
     BOOL bRet;
-    while ((bRet = GetMessageW(&msg, ERROR_REPORTER_WINDOW, 0, 0)) != 0)
+    while ((bRet = GetMessageW(&msg, g_errorReporterWindow, 0, 0)) != 0)
     {
         if (bRet == -1)
         {
@@ -664,20 +664,20 @@ void StartErrorReporter(void)
 
     DEBUG_LOG(L"ErrorReporter MessageLoop Ended.");
 
-    if (UI_FONT != NULL)
+    if (g_uiFont != NULL)
     {
-        DeleteObject(UI_FONT);
+        DeleteObject(g_uiFont);
     }
-    if (EDITOR_FONT != NULL)
+    if (g_editorFont != NULL)
     {
-        DeleteObject(EDITOR_FONT);
+        DeleteObject(g_editorFont);
     }
-    if (ERROR_ICON != NULL)
+    if (g_errorIcon != NULL)
     {
-        DestroyIcon(ERROR_ICON);
+        DestroyIcon(g_errorIcon);
     }
-    if (FULL_ERROR_LOG != NULL)
+    if (g_fullErrorLog != NULL)
     {
-        free(FULL_ERROR_LOG);
+        free(g_fullErrorLog);
     }
 }

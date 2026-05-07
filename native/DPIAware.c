@@ -9,7 +9,7 @@
 typedef UINT(WINAPI *PGET_DPI_FOR_WINDOW)(HWND);
 typedef BOOL(WINAPI *PSET_PROCESS_DPI_AWARENESS_CONTEXT)(void *);
 
-static PGET_DPI_FOR_WINDOW GET_DPI_FOR_WINDOW_FUNC = NULL;
+static PGET_DPI_FOR_WINDOW g_getDpiForWindowFunc = NULL;
 
 BOOL InitialiseDPIAwareFunctions(void)
 {
@@ -40,7 +40,7 @@ BOOL InitialiseDPIAwareFunctions(void)
     FARPROC getDpiForWindowAddr = GetProcAddress(user32, "GetDpiForWindow");
     if (getDpiForWindowAddr != NULL)
     {
-        GET_DPI_FOR_WINDOW_FUNC = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
+        g_getDpiForWindowFunc = (PGET_DPI_FOR_WINDOW)getDpiForWindowAddr;
 
         DEBUG_LOG(L"GetDpiForWindow found.");
     }
@@ -60,9 +60,9 @@ HICON GetHighDPIIcon(SHSTOCKICONID siid)
 
 int GetDPI(HWND hwnd)
 {
-    if (GET_DPI_FOR_WINDOW_FUNC == NULL)
+    if (g_getDpiForWindowFunc == NULL)
     {
-        DEBUG_LOG(L"GET_DPI_FOR_WINDOW_FUNC == NULL. Checking DPI for HWND %p using GetDeviceCaps.", (void *)hwnd);
+        DEBUG_LOG(L"g_getDpiForWindowFunc == NULL. Checking DPI for HWND %p using GetDeviceCaps.", (void *)hwnd);
 
         HDC hdc = GetDC(hwnd);
         int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
@@ -70,9 +70,9 @@ int GetDPI(HWND hwnd)
         return dpi;
     }
 
-    DEBUG_LOG(L"GET_DPI_FOR_WINDOW_FUNC /= NULL. Checking DPI for HWND %p using GetDpiForWindow.", (void *)hwnd);
+    DEBUG_LOG(L"g_getDpiForWindowFunc /= NULL. Checking DPI for HWND %p using GetDpiForWindow.", (void *)hwnd);
 
-    return GET_DPI_FOR_WINDOW_FUNC(hwnd);
+    return g_getDpiForWindowFunc(hwnd);
 }
 
 BOOL GetCachedDpi(HWND hwnd, int *resultPtr)

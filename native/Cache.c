@@ -34,22 +34,22 @@ typedef struct
     HICON iconCacheHandle;
 } IconCacheEntry;
 
-static ClassCacheEntry CLASS_CACHE[CLASS_CACHE_MAX];
-static int CLASS_CACHE_COUNT = 0;
-static FontCacheEntry FONT_CACHE[FONT_CACHE_MAX];
-static int FONT_CACHE_COUNT = 0;
-static CursorCacheEntry CURSOR_CACHE[CURSOR_CACHE_MAX];
-static int CURSOR_CACHE_COUNT = 0;
-static IconCacheEntry ICON_CACHE[ICON_CACHE_MAX];
-static int ICON_CACHE_COUNT = 0;
+static ClassCacheEntry g_classCache[CLASS_CACHE_MAX];
+static int g_classCacheCount = 0;
+static FontCacheEntry g_fontCache[FONT_CACHE_MAX];
+static int g_fontCacheCount = 0;
+static CursorCacheEntry g_cursorCache[CURSOR_CACHE_MAX];
+static int g_cursorCacheCount = 0;
+static IconCacheEntry g_iconCache[ICON_CACHE_MAX];
+static int g_iconCacheCount = 0;
 
 BOOL GetCachedClassName(LPCWSTR className, void *resultPtr)
 {
     DEBUG_LOG(L"Searching Class %ls from CLASS_CACHE.", className);
 
-    for (int i = 0; i < CLASS_CACHE_COUNT; i++)
+    for (int i = 0; i < g_classCacheCount; i++)
     {
-        if (wcscmp(CLASS_CACHE[i].className, className) == 0)
+        if (wcscmp(g_classCache[i].className, className) == 0)
         {
             DEBUG_LOG(L"Class %ls was cached in CLASS_CACHE. Reusing.", className);
 
@@ -61,21 +61,21 @@ BOOL GetCachedClassName(LPCWSTR className, void *resultPtr)
 
     LPCWSTR permanentClassName = _wcsdup(className);
 
-    if (CLASS_CACHE_COUNT >= CLASS_CACHE_MAX)
+    if (g_classCacheCount >= CLASS_CACHE_MAX)
     {
         TEAWIN32_ERROR(L"CLASS_CACHE Overflow");
         return FALSE;
     }
 
-    CLASS_CACHE[CLASS_CACHE_COUNT].className = permanentClassName;
-    CLASS_CACHE_COUNT++;
+    g_classCache[g_classCacheCount].className = permanentClassName;
+    g_classCacheCount++;
 
     WNDCLASSEXW wndClass;
     ZeroMemory(&wndClass, sizeof(wndClass));
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = permanentClassName;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;
-    wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
+    wndClass.hInstance = g_teaWin32MainInstance;
     wndClass.lpfnWndProc = TEAWin32WndProc;
 
     if (!RegisterClassExW(&wndClass))
@@ -102,9 +102,9 @@ BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr)
         fontKey->isUnderline,
         fontKey->isStrikeOut);
 
-    for (int i = 0; i < FONT_CACHE_COUNT; i++)
+    for (int i = 0; i < g_fontCacheCount; i++)
     {
-        CachedFont entry = FONT_CACHE[i].fontCacheKey;
+        CachedFont entry = g_fontCache[i].fontCacheKey;
 
         BOOL matchFontName = fontKey->fontName == entry.fontName || wcscmp(fontKey->fontName, entry.fontName) == 0;
         BOOL matchFontSize = fontKey->absoluteFontSize == entry.absoluteFontSize;
@@ -122,13 +122,13 @@ BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr)
                 fontKey->isUnderline,
                 fontKey->isStrikeOut);
 
-            *resultPtr = FONT_CACHE[i].fontCacheHandle;
+            *resultPtr = g_fontCache[i].fontCacheHandle;
 
             return TRUE;
         }
     }
 
-    if (FONT_CACHE_COUNT >= FONT_CACHE_MAX)
+    if (g_fontCacheCount >= FONT_CACHE_MAX)
     {
         TEAWIN32_ERROR(L"FONT_CACHE Overflow");
         return FALSE;
@@ -159,14 +159,14 @@ BOOL GetCachedFont(CachedFont *fontKey, HFONT *resultPtr)
         return FALSE;
     }
 
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheHandle = newFont;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.fontName = permanentFontName;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.absoluteFontSize = fontKey->absoluteFontSize;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isItalic = fontKey->isItalic;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isUnderline = fontKey->isUnderline;
-    FONT_CACHE[FONT_CACHE_COUNT].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
+    g_fontCache[g_fontCacheCount].fontCacheHandle = newFont;
+    g_fontCache[g_fontCacheCount].fontCacheKey.fontName = permanentFontName;
+    g_fontCache[g_fontCacheCount].fontCacheKey.absoluteFontSize = fontKey->absoluteFontSize;
+    g_fontCache[g_fontCacheCount].fontCacheKey.isItalic = fontKey->isItalic;
+    g_fontCache[g_fontCacheCount].fontCacheKey.isUnderline = fontKey->isUnderline;
+    g_fontCache[g_fontCacheCount].fontCacheKey.isStrikeOut = fontKey->isStrikeOut;
 
-    FONT_CACHE_COUNT++;
+    g_fontCacheCount++;
 
     DEBUG_LOG(
         L"Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d) is added to FONT_CACHE.",
@@ -194,9 +194,9 @@ BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
         DEBUG_LOG(L"Searching for Cursor %ls from CURSOR_CACHE.", cacheKey->cursorKey);
     }
 
-    for (int i = 0; i < CURSOR_CACHE_COUNT; i++)
+    for (int i = 0; i < g_cursorCacheCount; i++)
     {
-        CursorCacheEntry *entry = &CURSOR_CACHE[i];
+        CursorCacheEntry *entry = &g_cursorCache[i];
 
         if (isIdGiven && entry->cursorCacheKey.isKeyId)
         {
@@ -204,7 +204,7 @@ BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
             {
                 DEBUG_LOG(L"Cursor %d was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
 
-                *resultPtr = CURSOR_CACHE[i].cursorCacheHandle;
+                *resultPtr = g_cursorCache[i].cursorCacheHandle;
 
                 return TRUE;
             }
@@ -216,21 +216,21 @@ BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
             {
                 DEBUG_LOG(L"Cursor %ls was cached in CURSOR_CACHE. Reusing.", cacheKey->cursorKey);
 
-                *resultPtr = CURSOR_CACHE[i].cursorCacheHandle;
+                *resultPtr = g_cursorCache[i].cursorCacheHandle;
 
                 return TRUE;
             }
         }
     }
 
-    if (CURSOR_CACHE_COUNT >= CURSOR_CACHE_MAX)
+    if (g_cursorCacheCount >= CURSOR_CACHE_MAX)
     {
         TEAWIN32_ERROR(L"CURSOR_CACHE Overflow");
         return FALSE;
     }
 
     LPCWSTR permanentNameOrId = isIdGiven ? cacheKey->cursorKey : _wcsdup(cacheKey->cursorKey);
-    HINSTANCE instanceToUse = isIdGiven ? NULL : TEAWIN32_MAIN_INSTANCE;
+    HINSTANCE instanceToUse = isIdGiven ? NULL : g_teaWin32MainInstance;
 
     HCURSOR newCursor = LoadCursorW(instanceToUse, permanentNameOrId);
 
@@ -246,11 +246,11 @@ BOOL GetCachedCursor(CachedCursor *cacheKey, HCURSOR *resultPtr)
         return FALSE;
     }
 
-    CURSOR_CACHE[CURSOR_CACHE_COUNT].cursorCacheHandle = newCursor;
-    CURSOR_CACHE[CURSOR_CACHE_COUNT].cursorCacheKey.cursorKey = permanentNameOrId;
-    CURSOR_CACHE[CURSOR_CACHE_COUNT].cursorCacheKey.isKeyId = isIdGiven;
+    g_cursorCache[g_cursorCacheCount].cursorCacheHandle = newCursor;
+    g_cursorCache[g_cursorCacheCount].cursorCacheKey.cursorKey = permanentNameOrId;
+    g_cursorCache[g_cursorCacheCount].cursorCacheKey.isKeyId = isIdGiven;
 
-    CURSOR_CACHE_COUNT++;
+    g_cursorCacheCount++;
 
     if (isIdGiven)
     {
@@ -289,9 +289,9 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
         isIdGiven = IS_INTRESOURCE(cacheKey->iconId.resourceId);
     }
 
-    for (int i = 0; i < ICON_CACHE_COUNT; i++)
+    for (int i = 0; i < g_iconCacheCount; i++)
     {
-        IconCacheEntry *entry = &ICON_CACHE[i];
+        IconCacheEntry *entry = &g_iconCache[i];
 
         if (entry->iconCacheKey.iconType != cacheKey->iconType || entry->iconCacheKey.dpi != cacheKey->dpi)
         {
@@ -331,7 +331,7 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
         }
     }
 
-    if (ICON_CACHE_COUNT >= ICON_CACHE_MAX)
+    if (g_iconCacheCount >= ICON_CACHE_MAX)
     {
         TEAWIN32_ERROR(L"ICON_CACHE Overflow");
         return FALSE;
@@ -354,7 +354,7 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
     {
         permanentResourceId = isIdGiven ? cacheKey->iconId.resourceId : _wcsdup(cacheKey->iconId.resourceId);
 
-        newIcon = LoadIconW(TEAWIN32_MAIN_INSTANCE, permanentResourceId);
+        newIcon = LoadIconW(g_teaWin32MainInstance, permanentResourceId);
 
         if (newIcon == NULL)
         {
@@ -365,20 +365,20 @@ BOOL GetCachedIcon(CachedIcon *cacheKey, HICON *resultPtr)
         }
     }
 
-    ICON_CACHE[ICON_CACHE_COUNT].iconCacheHandle = newIcon;
-    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconType = cacheKey->iconType;
-    ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.dpi = cacheKey->dpi;
+    g_iconCache[g_iconCacheCount].iconCacheHandle = newIcon;
+    g_iconCache[g_iconCacheCount].iconCacheKey.iconType = cacheKey->iconType;
+    g_iconCache[g_iconCacheCount].iconCacheKey.dpi = cacheKey->dpi;
     if (cacheKey->iconType == STOCK_ICON)
     {
-        ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconId.stockIconId = cacheKey->iconId.stockIconId;
+        g_iconCache[g_iconCacheCount].iconCacheKey.iconId.stockIconId = cacheKey->iconId.stockIconId;
     }
     else
     {
-        ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.iconId.resourceId = permanentResourceId;
-        ICON_CACHE[ICON_CACHE_COUNT].iconCacheKey.isKeyId = isIdGiven;
+        g_iconCache[g_iconCacheCount].iconCacheKey.iconId.resourceId = permanentResourceId;
+        g_iconCache[g_iconCacheCount].iconCacheKey.isKeyId = isIdGiven;
     }
 
-    ICON_CACHE_COUNT++;
+    g_iconCacheCount++;
 
     if (cacheKey->iconType == STOCK_ICON)
     {
@@ -411,18 +411,18 @@ void FinaliseClassCache(void)
 {
     DEBUG_LOG(L"Finalising CLASS_CACHE.");
 
-    for (int i = 0; i < CLASS_CACHE_COUNT; i++)
+    for (int i = 0; i < g_classCacheCount; i++)
     {
-        ClassCacheEntry entry = CLASS_CACHE[i];
+        ClassCacheEntry entry = g_classCache[i];
 
         DEBUG_LOG(L"Unregistering Class %ls.", entry.className);
 
-        UnregisterClassW(entry.className, TEAWIN32_MAIN_INSTANCE);
+        UnregisterClassW(entry.className, g_teaWin32MainInstance);
 
         free((void *)entry.className);
     }
 
-    CLASS_CACHE_COUNT = 0;
+    g_classCacheCount = 0;
 
     DEBUG_LOG(L"Finalised CLASS_CACHE.");
 }
@@ -431,9 +431,9 @@ void FinaliseFontCache(void)
 {
     DEBUG_LOG(L"Finalising FONT_CACHE.");
 
-    for (int i = 0; i < FONT_CACHE_COUNT; i++)
+    for (int i = 0; i < g_fontCacheCount; i++)
     {
-        FontCacheEntry entry = FONT_CACHE[i];
+        FontCacheEntry entry = g_fontCache[i];
 
         DEBUG_LOG(
             L"Deleting Font %ls (Size %d, Italic %d, Underline %d, StrikeOut %d).",
@@ -448,7 +448,7 @@ void FinaliseFontCache(void)
         free((void *)entry.fontCacheKey.fontName);
     }
 
-    FONT_CACHE_COUNT = 0;
+    g_fontCacheCount = 0;
 
     DEBUG_LOG(L"Finalised FONT_CACHE.");
 }
@@ -457,9 +457,9 @@ void FinaliseCursorCache(void)
 {
     DEBUG_LOG(L"Finalising CURSOR_CACHE.");
 
-    for (int i = 0; i < CURSOR_CACHE_COUNT; i++)
+    for (int i = 0; i < g_cursorCacheCount; i++)
     {
-        CursorCacheEntry entry = CURSOR_CACHE[i];
+        CursorCacheEntry entry = g_cursorCache[i];
 
         if (!entry.cursorCacheKey.isKeyId)
         {
@@ -469,7 +469,7 @@ void FinaliseCursorCache(void)
         }
     }
 
-    CURSOR_CACHE_COUNT = 0;
+    g_cursorCacheCount = 0;
 
     DEBUG_LOG(L"Finalised CURSOR_CACHE.");
 }
@@ -478,9 +478,9 @@ void FinaliseIconCache(void)
 {
     DEBUG_LOG(L"Finalising ICON_CACHE.");
 
-    for (int i = 0; i < ICON_CACHE_COUNT; i++)
+    for (int i = 0; i < g_iconCacheCount; i++)
     {
-        IconCacheEntry entry = ICON_CACHE[i];
+        IconCacheEntry entry = g_iconCache[i];
 
         if (entry.iconCacheKey.iconType == STOCK_ICON)
         {
@@ -505,7 +505,7 @@ void FinaliseIconCache(void)
         }
     }
 
-    ICON_CACHE_COUNT = 0;
+    g_iconCacheCount = 0;
 
     DEBUG_LOG(L"Finalised ICON_CACHE.");
 }

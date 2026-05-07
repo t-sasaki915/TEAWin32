@@ -23,10 +23,10 @@ typedef struct
     BOOL useVisualStyles;
 } TEAWin32Settings;
 
-extern DWORD TEAWIN32_INSTANCE_PID;
-extern HINSTANCE TEAWIN32_MAIN_INSTANCE;
-extern HWND TEAWIN32_MANAGEMENT_HWND;
-extern int TEAWIN32_ACTIVE_WINDOW_COUNT;
+extern DWORD g_teaWin32InstancePid;
+extern HINSTANCE g_teaWin32MainInstance;
+extern HWND g_teaWin32ManagementHWND;
+extern int g_teaWin32ActiveWindowCount;
 
 LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam);
 

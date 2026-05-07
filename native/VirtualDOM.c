@@ -74,7 +74,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
                 CW_USEDEFAULT,
                 parentHWND,
                 NULL,
-                TEAWIN32_MAIN_INSTANCE,
+                g_teaWin32MainInstance,
                 0);
 
             if (newWindow == NULL)
@@ -88,7 +88,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
                 return FALSE;
             }
 
-            TEAWIN32_ACTIVE_WINDOW_COUNT++;
+            g_teaWin32ActiveWindowCount++;
 
             session->hwndsPendingToShow[*session->hwndsPendingToShowCount] = newWindow;
             (*session->hwndsPendingToShowCount)++;
@@ -119,7 +119,7 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
                 CW_USEDEFAULT,
                 parentHWND,
                 NULL,
-                TEAWIN32_MAIN_INSTANCE,
+                g_teaWin32MainInstance,
                 0);
 
             if (newButton == NULL)
@@ -521,7 +521,7 @@ void RequestRender(RenderProcedure *procedures, int procedureCount)
 
     LPARAM lParam = (LPARAM)procedureCount;
 
-    if (!PostMessageW(TEAWIN32_MANAGEMENT_HWND, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam))
+    if (!PostMessageW(g_teaWin32ManagementHWND, WM_TEAWIN32_RENDER_REQUEST, (WPARAM)permanentProcedures, lParam))
     {
         free(permanentProcedures);
         WIN32_ERROR(L"Failed to post WM_TEAWIN32_RENDER_REQUEST");

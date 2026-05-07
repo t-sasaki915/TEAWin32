@@ -15,8 +15,8 @@ typedef struct
     HWND correspondingHWND;
 } UniqueIdHWNDMapEntry;
 
-static UniqueIdHWNDMapEntry *UNIQUEID_HWND_MAP_PAGE_TABLE_POSITIVE_ID[UNIQUEID_HWND_MAP_PAGE_SIZE] = {NULL};
-static UniqueIdHWNDMapEntry *UNIQUEID_HWND_MAP_PAGE_TABLE_NEGATIVE_ID[UNIQUEID_HWND_MAP_PAGE_SIZE] = {NULL};
+static UniqueIdHWNDMapEntry *g_uniqueIdHWNDMapPageTablePositiveId[UNIQUEID_HWND_MAP_PAGE_SIZE] = {NULL};
+static UniqueIdHWNDMapEntry *g_uniqueIdHWNDMapPageTableNegativeId[UNIQUEID_HWND_MAP_PAGE_SIZE] = {NULL};
 
 BOOL CalculatePageIdxAndOffset(int uniqueId, int *pageIdxPtr, int *offsetPtr, UniqueIdHWNDMapEntry ***pageTablePtr)
 {
@@ -42,11 +42,11 @@ BOOL CalculatePageIdxAndOffset(int uniqueId, int *pageIdxPtr, int *offsetPtr, Un
 
     if (uniqueId > 0)
     {
-        *pageTablePtr = UNIQUEID_HWND_MAP_PAGE_TABLE_POSITIVE_ID;
+        *pageTablePtr = g_uniqueIdHWNDMapPageTablePositiveId;
     }
     else
     {
-        *pageTablePtr = UNIQUEID_HWND_MAP_PAGE_TABLE_NEGATIVE_ID;
+        *pageTablePtr = g_uniqueIdHWNDMapPageTableNegativeId;
     }
 
     return TRUE;

@@ -11,10 +11,10 @@
 #include <stdio.h> // IWYU pragma: keep
 #include <windows.h>
 
-DWORD TEAWIN32_INSTANCE_PID;
-HINSTANCE TEAWIN32_MAIN_INSTANCE;
-HWND TEAWIN32_MANAGEMENT_HWND;
-int TEAWIN32_ACTIVE_WINDOW_COUNT = 0;
+DWORD g_teaWin32InstancePid;
+HINSTANCE g_teaWin32MainInstance;
+HWND g_teaWin32ManagementHWND;
+int g_teaWin32ActiveWindowCount = 0;
 
 LRESULT CALLBACK ManagementHWNDWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -62,15 +62,15 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
         }
     }
 
-    TEAWIN32_INSTANCE_PID = GetCurrentProcessId();
+    g_teaWin32InstancePid = GetCurrentProcessId();
 
-    TEAWIN32_MAIN_INSTANCE = GetModuleHandleW(NULL);
+    g_teaWin32MainInstance = GetModuleHandleW(NULL);
 
     WNDCLASSEXW wndClass;
     ZeroMemory(&wndClass, sizeof(wndClass));
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = L"TEAWIN32_INTERNAL_MANAGEMENT_HWND";
-    wndClass.hInstance = TEAWIN32_MAIN_INSTANCE;
+    wndClass.hInstance = g_teaWin32MainInstance;
     wndClass.lpfnWndProc = ManagementHWNDWndProc;
 
     if (!RegisterClassExW(&wndClass))
@@ -80,10 +80,10 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
         return FALSE;
     }
 
-    TEAWIN32_MANAGEMENT_HWND =
+    g_teaWin32ManagementHWND =
         CreateWindowW(L"TEAWIN32_INTERNAL_MANAGEMENT_HWND", L"", 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL);
 
-    if (TEAWIN32_MANAGEMENT_HWND == NULL)
+    if (g_teaWin32ManagementHWND == NULL)
     {
         WIN32_ERROR(L"Failed to CreateWindowW TEAWIN32_MANAGEMENT_HWND");
 
@@ -112,9 +112,9 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
                 return DefWindowProcW(hwnd, wMsg, wParam, lParam);
             }
 
-            TEAWIN32_ACTIVE_WINDOW_COUNT--;
+            g_teaWin32ActiveWindowCount--;
 
-            if (TEAWIN32_ACTIVE_WINDOW_COUNT == 0)
+            if (g_teaWin32ActiveWindowCount == 0)
             {
                 DEBUG_LOG(L"TEAWIN32_ACTIVE_WINDOW_COUNT = 0. Posting quit message.");
 
@@ -208,7 +208,7 @@ void StartWin32MessageLoop(void)
         DispatchMessageW(&msg);
     }
 
-    DestroyWindow(TEAWIN32_MANAGEMENT_HWND);
+    DestroyWindow(g_teaWin32ManagementHWND);
 
     if (!CheckErrorList())
     {
