@@ -209,6 +209,7 @@ void StartWin32MessageLoop(void)
     }
 
     DestroyWindow(g_teaWin32ManagementHWND);
+    g_teaWin32ManagementHWND = NULL;
 
     if (!CheckErrorList())
     {

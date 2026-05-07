@@ -230,6 +230,7 @@ void StartErrorReporterFallback(void)
     if (g_fullErrorLog != NULL)
     {
         free(g_fullErrorLog);
+        g_fullErrorLog = NULL;
     }
 }
 
@@ -464,8 +465,11 @@ LRESULT CALLBACK ErrorReporterWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARA
             SetWindowPos(hwnd, NULL, l, t, r - l, b - t, SWP_NOZORDER | SWP_NOACTIVATE);
 
             DeleteObject(g_uiFont);
+            g_uiFont = NULL;
             DeleteObject(g_editorFont);
+            g_editorFont = NULL;
             DestroyIcon(g_errorIcon);
+            g_errorIcon = NULL;
 
             g_errorIcon = GetHighDPIIcon(SIID_ERROR);
 
@@ -667,17 +671,21 @@ void StartErrorReporter(void)
     if (g_uiFont != NULL)
     {
         DeleteObject(g_uiFont);
+        g_uiFont = NULL;
     }
     if (g_editorFont != NULL)
     {
         DeleteObject(g_editorFont);
+        g_editorFont = NULL;
     }
     if (g_errorIcon != NULL)
     {
         DestroyIcon(g_errorIcon);
+        g_errorIcon = NULL;
     }
     if (g_fullErrorLog != NULL)
     {
         free(g_fullErrorLog);
+        g_fullErrorLog = NULL;
     }
 }
