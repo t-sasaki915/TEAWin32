@@ -114,6 +114,9 @@ offset_RenderProcedure_procData_newCursorCacheKey_cursorKey = #offset RenderProc
 offset_RenderProcedure_procData_newBackgroundColour :: Int
 offset_RenderProcedure_procData_newBackgroundColour = #offset RenderProcedure, procData.newBackgroundColour
 
+offset_RenderProcedure_procData_newClickEventMsgPtr :: Int
+offset_RenderProcedure_procData_newClickEventMsgPtr = #offset RenderProcedure, procData.newClickEventMsgPtr
+
 size_EventQueueEntry :: Int
 size_EventQueueEntry = #size EventQueueEntry
 
@@ -122,6 +125,9 @@ alignment_EventQueueEntry = #alignment EventQueueEntry
 
 offset_EventQueueEntry_eventType :: Int
 offset_EventQueueEntry_eventType = #offset EventQueueEntry, eventType
+
+offset_EventQueueEntry_eventData_componentClickEventMsgPtr :: Int
+offset_EventQueueEntry_eventData_componentClickEventMsgPtr = #offset EventQueueEntry, eventData.componentClickEventMsgPtr
 
 const_RESOURCE_ICON :: CInt
 const_RESOURCE_ICON = #const RESOURCE_ICON
@@ -489,4 +495,9 @@ pattern EventTypeInitialRender = #const EVENT_TYPE_INITIAL_RENDER
 pattern EventTypeStopMainLoop :: CInt
 pattern EventTypeStopMainLoop = #const EVENT_TYPE_STOP_MAINLOOP
 
-{-# COMPLETE EventTypeInitialRender, EventTypeStopMainLoop #-}
+pattern EventTypeComponentClickEvent :: CInt
+pattern EventTypeComponentClickEvent = #const EVENT_TYPE_COMPONENT_CLICK_EVENT
+
+{-# COMPLETE EventTypeInitialRender
+           , EventTypeStopMainLoop
+           , EventTypeComponentClickEvent #-}

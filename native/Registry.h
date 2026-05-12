@@ -9,6 +9,7 @@ typedef struct
     int dpi;
     BOOL hasBackgroundColour;
     COLORREF backgroundColour;
+    void *clickEventMsgPtr;
 } HWNDRegistryEntry;
 
 BOOL GetHWNDFromUniqueId(int uniqueId, HWND *resultPtr);

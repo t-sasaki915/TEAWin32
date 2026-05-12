@@ -12,8 +12,9 @@ import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.State.Strict (StateT, evalStateT, get, gets,
                                              modify')
 import           Data.Data                  (Typeable, cast)
-import           Foreign                    (FunPtr, freeHaskellFunPtr, nullPtr,
-                                             peekArray, with)
+import           Foreign                    (FunPtr, castPtrToStablePtr,
+                                             deRefStablePtr, freeHaskellFunPtr,
+                                             nullPtr, peekArray, with)
 import           Prelude                    hiding (init)
 import           TEAWin32.Core.DSL          (runDSL)
 import           TEAWin32.Core.Marshall     (dispatchRenderProcedures)
@@ -42,6 +43,18 @@ processEvents queue =
             liftIO (dispatchRenderProcedures (optimiseRenderProcedures test1))
 
             processEvents queue
+
+        Just (ComponentClickEvent msgPtr) -> do
+            when (msgPtr == nullPtr) $
+                pure () -- TODO
+
+            msg        <- liftIO (deRefStablePtr (castPtrToStablePtr msgPtr))
+            updateFunc <- gets updateFunction
+            currentMdl <- gets currentModel
+
+            _ <- liftIO (updateFunc msg currentMdl)
+
+            pure ()
 
         Nothing ->
             pure ()

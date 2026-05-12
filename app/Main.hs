@@ -34,6 +34,7 @@ update ButtonClicked model =
         pure (model { clickedCount = clickedCount model + 1})
 
 update ButtonClicked2 model = do
+    putStrLn "!?"
     {-msgBoxResult <- showMessageBox defaultMessageBoxSettings
             { messageBoxTitle         = "TEAWin32"
             , messageBoxContent       = "!?!?!?"

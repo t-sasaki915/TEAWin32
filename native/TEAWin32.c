@@ -154,7 +154,21 @@ LRESULT CALLBACK TEAWin32WndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lPa
             return 1;
         }
         case WM_COMMAND: {
-            FATAL_MEMORY_ERROR(L"TEST");
+            HWND hwndControl = (HWND)lParam;
+
+            HWNDRegistryEntry *regEntry;
+            if (!GetHWNDRegistryEntry(hwndControl, &regEntry))
+            {
+                return DefWindowProcW(hwnd, wMsg, wParam, lParam);
+            }
+
+            if (regEntry->clickEventMsgPtr)
+            {
+                EventQueueEntry entry = {0};
+                entry.eventType = EVENT_TYPE_COMPONENT_CLICK_EVENT;
+                entry.eventData.componentClickEventMsgPtr = regEntry->clickEventMsgPtr;
+                QueueEvents(&entry, 1);
+            }
 
             return DefWindowProcW(hwnd, wMsg, wParam, lParam);
         }

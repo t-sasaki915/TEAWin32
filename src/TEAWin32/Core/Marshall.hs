@@ -7,7 +7,8 @@ import           Data.Bits                      (shiftL, (.|.))
 import           Data.Maybe                     (isJust)
 import           Data.Word                      (Word32)
 import           Foreign                        (Ptr, allocaBytes, castPtr,
-                                                 fillBytes, pokeByteOff)
+                                                 fillBytes, newStablePtr,
+                                                 pokeByteOff)
 import           Foreign.C                      (CInt, CWString)
 import qualified TEAWin32.Core.Native           as Native
 import qualified TEAWin32.Core.Native.Constants as Native
@@ -153,6 +154,9 @@ pokeRenderProcedure ptr (uniqueId, procedure) procOffset = do
         (SetComponentClickEvent msg) -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_SET_COMPONENT_CLICK_EVENT
             pokeData Native.offset_RenderProcedure_targetUniqueId uniqueId
+
+            msgPtr <- liftIO (newStablePtr msg)
+            pokeData Native.offset_RenderProcedure_procData_newClickEventMsgPtr msgPtr
 
         UnsetComponentClickEvent -> do
             pokeData Native.offset_RenderProcedure_procType       Native.const_RENDER_PROC_TYPE_UNSET_COMPONENT_CLICK_EVENT

@@ -53,6 +53,7 @@ typedef struct
         CachedIcon newIconCacheKey;
         CachedCursor newCursorCacheKey;
         DWORD newBackgroundColour;
+        void *newClickEventMsgPtr;
     } procData;
 } RenderProcedure;
 

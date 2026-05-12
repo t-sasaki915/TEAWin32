@@ -414,7 +414,18 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
                 return FALSE;
             }
 
-            // TODO
+            HWNDRegistryEntry *regEntry;
+            if (!GetHWNDRegistryEntry(targetHWND, &regEntry))
+            {
+                return FALSE;
+            }
+
+            regEntry->clickEventMsgPtr = procedure->procData.newClickEventMsgPtr;
+
+            DEBUG_LOG(
+                L"Assigned %p as the click event of HWND %p",
+                (void *)targetHWND,
+                procedure->procData.newClickEventMsgPtr);
 
             return TRUE;
         }
@@ -425,7 +436,15 @@ BOOL ExecuteRenderProcedure(RenderSession *session)
                 return FALSE;
             }
 
-            // TODO
+            HWNDRegistryEntry *regEntry;
+            if (!GetHWNDRegistryEntry(targetHWND, &regEntry))
+            {
+                return FALSE;
+            }
+
+            regEntry->clickEventMsgPtr = NULL;
+
+            DEBUG_LOG(L"Unassigned the click event of HWND %p", (void *)targetHWND);
 
             return TRUE;
         }

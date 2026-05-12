@@ -110,6 +110,7 @@ BOOL RegisterHWNDToRegistry(HWND hwnd, int uniqueId)
     regEntry->dpi = GetDPI(hwnd);
     regEntry->hasBackgroundColour = FALSE;
     regEntry->backgroundColour = (DWORD)0xFFFFFF;
+    regEntry->clickEventMsgPtr = NULL;
 
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)regEntry);
 

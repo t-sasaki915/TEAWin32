@@ -92,6 +92,7 @@ type EventEnqueuer = Ptr EventQueueEntry -> Int -> IO ()
 
 data EventQueueEntry = InitialRenderEvent
                      | StopMainLoopEvent
+                     | ComponentClickEvent (Ptr ())
                      deriving Show
 
 instance Storable EventQueueEntry where
@@ -106,6 +107,10 @@ instance Storable EventQueueEntry where
 
             Native.EventTypeStopMainLoop ->
                 pure StopMainLoopEvent
+
+            Native.EventTypeComponentClickEvent ->
+                peekByteOff ptr Native.offset_EventQueueEntry_eventData_componentClickEventMsgPtr >>= \msgPtr ->
+                    pure (ComponentClickEvent msgPtr)
 
     poke = undefined
 
