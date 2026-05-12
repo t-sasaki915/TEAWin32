@@ -11,7 +11,7 @@ module TEAWin32.Core.Types
     , InternalState (..)
     , EventEnqueuer
     , EventQueueEntry (..)
-    , UniqueIdInternState (..)
+    , InternState (..)
     , DSLState (..)
     , DSL
     , PropertyDSL
@@ -57,8 +57,8 @@ import           Control.Monad.Writer.Strict    (WriterT)
 import           Data.Data                      (Typeable, cast)
 import           Data.Map.Strict                (Map)
 import           Data.Text                      (Text)
-import           Foreign                        (Ptr, Storable (..), Word16,
-                                                 Word32, fillBytes)
+import           Foreign                        (Ptr, StablePtr, Storable (..),
+                                                 Word16, Word32, fillBytes)
 import           Foreign.C                      (CInt, CWchar)
 import qualified TEAWin32.Core.Native.Constants as Native
 
@@ -79,13 +79,13 @@ instance Eq Msg where
             Nothing -> False
 
 data InternalState = InternalState
-    { eventQueue              :: TQueue EventQueueEntry
-    , mainLoopContinue        :: Bool
-    , lastRenderProcedures    :: [(UniqueId, RenderProcedure)]
-    , lastUniqueIdInternState :: UniqueIdInternState
-    , updateFunction          :: Msg -> Model -> IO Model
-    , viewFunction            :: Model -> View
-    , currentModel            :: Model
+    { eventQueue           :: TQueue EventQueueEntry
+    , mainLoopContinue     :: Bool
+    , lastRenderProcedures :: [(UniqueId, RenderProcedure)]
+    , lastInternState      :: InternState
+    , updateFunction       :: Msg -> Model -> IO Model
+    , viewFunction         :: Model -> View
+    , currentModel         :: Model
     }
 
 type EventEnqueuer = Ptr EventQueueEntry -> Int -> IO ()
@@ -114,15 +114,16 @@ instance Storable EventQueueEntry where
 
     poke = undefined
 
-data UniqueIdInternState = UniqueIdInternState
+data InternState = InternState
     { internedUserUniqueIdMap      :: Map Text Int
     , nextUserUniqueIdInternNumber :: Int
-    } deriving (Show, Eq)
+    , msgInternMap                 :: [(Msg, StablePtr Msg)]
+    } deriving Eq
 
 data DSLState = DSLState
     { nextAutoUniqueId      :: Int
     , userUniqueIdsAppeared :: [Text]
-    , uniqueIdInternState   :: UniqueIdInternState
+    , internState           :: InternState
     , parentUniqueId        :: Maybe UniqueId
     }
 

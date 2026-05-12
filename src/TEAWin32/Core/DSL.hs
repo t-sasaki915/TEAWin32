@@ -28,11 +28,11 @@ import           Data.Text                   (Text)
 import           TEAWin32.Core.Types
 import           TEAWin32.Core.Util          (whenJust)
 
-runDSL :: DSL a () -> UniqueIdInternState -> ([(UniqueId, RenderProcedure)], UniqueIdInternState)
-runDSL dsl internState =
-    let dslState = DSLState { nextAutoUniqueId = 1, userUniqueIdsAppeared = [], parentUniqueId = Nothing, uniqueIdInternState = internState }
+runDSL :: DSL a () -> InternState -> ([(UniqueId, RenderProcedure)], InternState)
+runDSL dsl oldInternState =
+    let dslState = DSLState { nextAutoUniqueId = 1, userUniqueIdsAppeared = [], parentUniqueId = Nothing, internState = oldInternState }
         (result, dslState') = runState (execWriterT dsl) dslState in
-            (snd <$> result, uniqueIdInternState dslState')
+            (snd <$> result, internState dslState')
 
 noChildren :: DSL a ()
 noChildren = pure ()
@@ -127,15 +127,15 @@ internUserUniqueId :: Text -> DSL a UniqueId
 internUserUniqueId userUniqueId = state $ \dState ->
     case userUniqueId `elem` userUniqueIdsAppeared dState of
         False ->
-            let internMap = internedUserUniqueIdMap (uniqueIdInternState dState) in
+            let internMap = internedUserUniqueIdMap (internState dState) in
                 case Map.lookup userUniqueId internMap of
                     Just n ->
                         (UniqueId n, dState)
 
                     Nothing ->
-                        let internNumber = nextUserUniqueIdInternNumber (uniqueIdInternState dState)
+                        let internNumber = nextUserUniqueIdInternNumber (internState dState)
                             newDSLState = dState
-                                { uniqueIdInternState = UniqueIdInternState
+                                { internState = (internState dState)
                                     { internedUserUniqueIdMap      = Map.insert userUniqueId internNumber internMap
                                     , nextUserUniqueIdInternNumber = internNumber + 1
                                     }

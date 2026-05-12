@@ -36,9 +36,9 @@ processEvents queue =
         Just InitialRenderEvent -> do
             viewFunc    <- gets viewFunction
             currentMdl  <- gets currentModel
-            internState <- gets lastUniqueIdInternState
+            internSt    <- gets lastInternState
 
-            let (test1, _) = runDSL (viewFunc currentMdl) internState
+            let (test1, _) = runDSL (viewFunc currentMdl) internSt
 
             liftIO (dispatchRenderProcedures (optimiseRenderProcedures test1))
 
@@ -111,7 +111,7 @@ runTEAWin32 settings init update view =
                             { eventQueue              = evtQueue
                             , mainLoopContinue        = True
                             , lastRenderProcedures    = []
-                            , lastUniqueIdInternState = UniqueIdInternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1 }
+                            , lastInternState         = InternState { internedUserUniqueIdMap = mempty, nextUserUniqueIdInternNumber = 1, msgInternMap = mempty }
                             , updateFunction          = update'
                             , viewFunction            = view'
                             , currentModel            = Model initModel
