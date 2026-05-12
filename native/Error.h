@@ -23,8 +23,7 @@ typedef struct
 #define WIN32_ERROR(...)                                                                                               \
     do                                                                                                                 \
     {                                                                                                                  \
-        ErrorListEntry win32ErrorEntry;                                                                                \
-        ZeroMemory(&win32ErrorEntry, sizeof(win32ErrorEntry));                                                         \
+        ErrorListEntry win32ErrorEntry = {0};                                                                          \
         win32ErrorEntry.errorType = ERROR_TYPE_WIN32;                                                                  \
         wchar_t errorDescription[1024];                                                                                \
         swprintf(errorDescription, 1024, __VA_ARGS__);                                                                 \
@@ -39,8 +38,7 @@ typedef struct
 #define FATAL_MEMORY_ERROR(...)                                                                                        \
     do                                                                                                                 \
     {                                                                                                                  \
-        ErrorListEntry fatalMemoryErrorEntry;                                                                          \
-        ZeroMemory(&fatalMemoryErrorEntry, sizeof(fatalMemoryErrorEntry));                                             \
+        ErrorListEntry fatalMemoryErrorEntry = {0};                                                                    \
         fatalMemoryErrorEntry.errorType = ERROR_TYPE_FATAL_MEMORY;                                                     \
         wchar_t errorDescription[1024];                                                                                \
         swprintf(errorDescription, 1024, __VA_ARGS__);                                                                 \
@@ -54,8 +52,7 @@ typedef struct
 #define TEAWIN32_ERROR(...)                                                                                            \
     do                                                                                                                 \
     {                                                                                                                  \
-        ErrorListEntry teaWin32Error;                                                                                  \
-        ZeroMemory(&teaWin32Error, sizeof(teaWin32Error));                                                             \
+        ErrorListEntry teaWin32Error = {0};                                                                            \
         teaWin32Error.errorType = ERROR_TYPE_TEAWIN32;                                                                 \
         wchar_t errorDescription[1024];                                                                                \
         swprintf(errorDescription, 1024, __VA_ARGS__);                                                                 \

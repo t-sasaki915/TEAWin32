@@ -39,8 +39,7 @@ BOOL EnableVisualStyles(void)
         return FALSE;
     }
 
-    ACTCTXW actCtx;
-    ZeroMemory(&actCtx, sizeof(actCtx));
+    ACTCTXW actCtx = {0};
     actCtx.cbSize = sizeof(actCtx);
     actCtx.hModule = hInstance;
     actCtx.lpResourceName = MAKEINTRESOURCEW(123);

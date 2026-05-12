@@ -70,8 +70,7 @@ BOOL GetCachedClassName(LPCWSTR className, void *resultPtr)
     g_classCache[g_classCacheCount].className = permanentClassName;
     g_classCacheCount++;
 
-    WNDCLASSEXW wndClass;
-    ZeroMemory(&wndClass, sizeof(wndClass));
+    WNDCLASSEXW wndClass = {0};
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = permanentClassName;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;

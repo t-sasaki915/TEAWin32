@@ -477,8 +477,7 @@ void ExecuteRenderProcedures(RenderProcedure *procedures, int procedureCount)
 
     for (int i = 0; i < procedureCount; i++)
     {
-        RenderSession session;
-        ZeroMemory(&session, sizeof(session));
+        RenderSession session = {0};
         session.renderProcedure = &procedures[i];
         session.deferWindowPosContexts = deferWindowPosContexts;
         session.deferWindowPosContextsCount = &deferWindowPosContextsCount;

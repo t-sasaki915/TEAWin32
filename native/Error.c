@@ -514,8 +514,7 @@ void StartErrorReporter(void)
 
     DEBUG_LOG(L"Registering ERROR_REPORTER_CLASS_NAME.");
 
-    WNDCLASSEXW wndClass;
-    ZeroMemory(&wndClass, sizeof(wndClass));
+    WNDCLASSEXW wndClass = {0};
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = ERROR_REPORTER_CLASS_NAME;
     wndClass.style = CS_VREDRAW | CS_HREDRAW;

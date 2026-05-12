@@ -66,8 +66,7 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
 
     g_teaWin32MainInstance = GetModuleHandleW(NULL);
 
-    WNDCLASSEXW wndClass;
-    ZeroMemory(&wndClass, sizeof(wndClass));
+    WNDCLASSEXW wndClass = {0};
     wndClass.cbSize = sizeof(wndClass);
     wndClass.lpszClassName = L"TEAWIN32_INTERNAL_MANAGEMENT_HWND";
     wndClass.hInstance = g_teaWin32MainInstance;
@@ -90,8 +89,7 @@ BOOL InitialiseTEAWin32C(TEAWin32Settings *settings, PEVENTENQUEUER eventEnqueue
         return FALSE;
     }
 
-    EventQueueEntry initRenderEvent;
-    ZeroMemory(&initRenderEvent, sizeof(initRenderEvent));
+    EventQueueEntry initRenderEvent = {0};
     initRenderEvent.eventType = EVENT_TYPE_INITIAL_RENDER;
     QueueEvents(&initRenderEvent, 1);
 
@@ -229,8 +227,7 @@ void StartWin32MessageLoop(void)
     {
         DEBUG_LOG(L"Stopping main loop.");
 
-        EventQueueEntry mainLoopStopEvent;
-        ZeroMemory(&mainLoopStopEvent, sizeof(mainLoopStopEvent));
+        EventQueueEntry mainLoopStopEvent = {0};
         mainLoopStopEvent.eventType = EVENT_TYPE_STOP_MAINLOOP;
         QueueEvents(&mainLoopStopEvent, 1);
 
