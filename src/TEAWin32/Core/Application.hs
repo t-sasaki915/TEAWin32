@@ -44,17 +44,15 @@ processEvents queue =
 
             processEvents queue
 
-        Just (ComponentClickEvent msgPtr) -> do
-            when (msgPtr == nullPtr) $
-                pure () -- TODO
+        Just (ComponentClickEvent msgPtr) ->
+            Native.assumeNotNULL msgPtr $ do
+                msg        <- liftIO (deRefStablePtr (castPtrToStablePtr msgPtr))
+                updateFunc <- gets updateFunction
+                currentMdl <- gets currentModel
 
-            msg        <- liftIO (deRefStablePtr (castPtrToStablePtr msgPtr))
-            updateFunc <- gets updateFunction
-            currentMdl <- gets currentModel
+                _ <- liftIO (updateFunc msg currentMdl)
 
-            _ <- liftIO (updateFunc msg currentMdl)
-
-            pure ()
+                pure ()
 
         Nothing ->
             pure ()
